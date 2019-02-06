@@ -1,2 +1,2 @@
-# mscai-thesis
-Thesis for the MSc AI
+# MSc AI -Thesis
+Thesis for the AI Master's Programme
