@@ -1,35 +1,25 @@
 import pickle
 import numpy as np
-import matplotlib.pyplot as plt
 from os.path import join
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
-
-from data_augmentation import ToPILImage
-from data_augmentation import FlipNumpy
-from data_augmentation import Flip
-from data_augmentation import ToTensor
-from definitions import DATA_DIR
+from torch.utils.data import Dataset
 
 
 class MedicalScanDataset(Dataset):
     """Medical Scans Dataset"""
 
-    def __init__(self, root_dir=DATA_DIR, split='train', transform=lambda x: x):
+    def __init__(self, data_dir, transform=lambda x: x):
         """
 
-        :param root_dir: path to folder containing input images
-        :param split: specify whether to take train/test dataset
+        :param data_dir: path to folder containing images
         :param transform: optional transform to apply on samples
         """
-        assert split in ['train', 'test']
+        self.n_channels = 1
+        self.n_classes = 2
 
-        self.data_dir = join(root_dir, split)
+        self.data_dir = data_dir
 
-        with open(join(root_dir, 'partition.pkl'), 'rb') as f:
-            partition = pickle.load(f)
-
-        self.file_list = partition[split]
+        with open(join(data_dir, 'file_list.pkl'), 'rb') as f:
+            self.file_list = pickle.load(f)
 
         self.transform = transform
 
@@ -44,23 +34,4 @@ class MedicalScanDataset(Dataset):
 
         image, segmentation = self.transform((image, segmentation))
 
-        return {'image': image, 'segmentation': segmentation, 'name': img_name}
-
-
-if __name__ == '__main__':
-
-    train_dataset = MedicalScanDataset(DATA_DIR, split='train')
-
-    for i in range(len(train_dataset)):
-        scan, seg = train_dataset[i]['image'], train_dataset[i]['segmentation']
-
-        plt.figure()
-        plt.subplot(1, 2, 1)
-        plt.imshow(scan)
-
-        plt.subplot(1, 2, 2)
-        plt.imshow(seg)
-
-        plt.show()
-
-        break
+        return image, segmentation

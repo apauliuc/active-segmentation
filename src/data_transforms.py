@@ -3,6 +3,7 @@ import numpy as np
 from PIL.Image import Image, FLIP_LEFT_RIGHT
 from PIL.Image import BILINEAR
 from torchvision.transforms import transforms
+from helpers.types import floatTensor, longTensor
 
 
 class Rotation(object):
@@ -73,7 +74,7 @@ class ToTensor(object):
         :param segmentation: Segmentation to be converted to tensor.
         :return: Image and segmentation as tensor object
         """
-        return self.to_tensor(image), self.to_tensor(segmentation)
+        return self.to_tensor(image).type(floatTensor), self.to_tensor(segmentation).type(floatTensor)
 
 
 class Flip(object):
