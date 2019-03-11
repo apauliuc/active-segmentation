@@ -14,6 +14,7 @@ def _get_model_instance(name: str):
     try:
         return {
             'cross_entropy_loss': nn.CrossEntropyLoss,
+            'bce_loss': nn.BCELoss,
             'bce_loss_2d': BinaryCrossEntropyLoss2D,
             'soft_dice_loss': SoftDiceLoss
         }[name]

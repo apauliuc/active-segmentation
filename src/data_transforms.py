@@ -1,4 +1,5 @@
 import random
+import torch
 import numpy as np
 from PIL.Image import Image, FLIP_LEFT_RIGHT
 from PIL.Image import BILINEAR
@@ -75,9 +76,25 @@ class ToTensor(object):
         :return: Image and segmentation as tensor object
         """
         image = self.to_tensor(image).type(floatTensor)
-        segmentation = self.to_tensor(segmentation).type(longTensor).squeeze(0)
-
+        segmentation = self.to_tensor(segmentation).type(floatTensor)
+        # segmentation = self.to_tensor(segmentation).type(floatTensor).squeeze(0)
         return image, segmentation
+
+
+class Normalize(object):
+    """"
+    Normalises image with dataset mean and standard deviation.
+    """
+
+    def __init__(self, mean=6.838, std=15.604) -> None:
+        self._normalize = transforms.Normalize([mean], [std])
+
+    def __call__(self, sample: tuple) -> tuple:
+        return self.normalize(sample[0], sample[1])
+
+    def normalize(self, image: floatTensor, segmentation: longTensor):
+        segmentation = segmentation / 255
+        return self._normalize(image), segmentation
 
 
 class Flip(object):

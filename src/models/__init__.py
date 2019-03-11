@@ -12,8 +12,8 @@ def get_model(model_dict, n_channels, n_classes):
     if model_name == 'unet':
         model = model(n_channels=n_channels, n_classes=n_classes, **param_dict)
 
-    elif model_name == 'ffnn':
-        model = model()
+    # elif model_name == 'ffnn':
+    #     model = model()
 
     return model
 

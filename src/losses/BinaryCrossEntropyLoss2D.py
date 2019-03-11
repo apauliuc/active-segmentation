@@ -11,7 +11,7 @@ class BinaryCrossEntropyLoss2D(nn.Module):
 
     def forward(self, y_pred, y):
         batch_size = y_pred.size(0)
-        y_pred = torch.tensor(sigmoid(y_pred)).view(batch_size, -1)  # Remove sigmoid if done in network
+        y_pred = sigmoid(y_pred).view(batch_size, -1)  # Remove sigmoid if done in network
         y = y.view(batch_size, -1)
         return self.bce_loss(y_pred, y)
 

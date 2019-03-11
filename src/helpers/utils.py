@@ -27,3 +27,9 @@ def dice_coefficient(prediction, target):
     intersection = (m1 * m2).sum()
 
     return (2. * intersection + smooth) / (m1.sum() + m2.sum() + smooth)
+
+
+def timer_to_str(value):
+    m, s = divmod(value, 60)
+    h, m = divmod(m, 60)
+    return "%02i:%02i:%02i" % (h, m, s)
