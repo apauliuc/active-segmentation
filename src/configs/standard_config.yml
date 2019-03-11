@@ -2,15 +2,19 @@ data:
   dataset: AMC
   train_split: train
   val_split: val
-  batch_size: 32
+  batch_size: 1
   num_workers: 0
 training:
   num_epochs: 10
   lr: 0.001
+  weight_decay: 0.0001
+  amsgrad: False
   log_interval: 5
   save_model_interval: 5
   ignite_history_size: 5
+  loss_fn:
+    name: cross_entropy_loss
 model:
-  name: ffnn
+  name: unet
   pretrained_network: None
   network_params: {}

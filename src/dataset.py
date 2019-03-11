@@ -14,7 +14,7 @@ class MedicalScanDataset(Dataset):
         :param transform: optional transform to apply on samples
         """
         self.n_channels = 1
-        self.n_classes = 2
+        self.n_classes = 1
 
         self.data_dir = data_dir
 

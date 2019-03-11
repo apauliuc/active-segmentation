@@ -74,7 +74,10 @@ class ToTensor(object):
         :param segmentation: Segmentation to be converted to tensor.
         :return: Image and segmentation as tensor object
         """
-        return self.to_tensor(image).type(floatTensor), self.to_tensor(segmentation).type(floatTensor)
+        image = self.to_tensor(image).type(floatTensor)
+        segmentation = self.to_tensor(segmentation).type(longTensor).squeeze(0)
+
+        return image, segmentation
 
 
 class Flip(object):

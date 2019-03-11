@@ -4,3 +4,4 @@ longTensor = torch.cuda.LongTensor if torch.cuda.is_available() else torch.LongT
 floatTensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+ 

@@ -1,5 +1,7 @@
+import math
+
 import torch.nn as nn
-from models.components import UNetConv2d, UNetUpConcatConv2d
+from models.components import UNetConvStack, UNetUpConvStack
 
 
 class UNet(nn.Module):
@@ -7,7 +9,7 @@ class UNet(nn.Module):
     Implementation of the U-Net neural network for segmentation
     """
 
-    def __init__(self, n_channels=1, n_classes=2):
+    def __init__(self, n_channels=1, n_classes=1):
         super(UNet, self).__init__()
 
         # Maybe use batch norm on conv layers?
@@ -15,29 +17,35 @@ class UNet(nn.Module):
         filter_sizes = [64, 128, 256, 512, 1024]
 
         # Down sampling layers (1 to 4)
-        self.conv1 = UNetConv2d(n_channels, filter_sizes[0])
+        self.conv1 = UNetConvStack(n_channels, filter_sizes[0])
         self.maxpool1 = nn.MaxPool2d(kernel_size=2)
 
-        self.conv2 = UNetConv2d(filter_sizes[0], filter_sizes[1])
+        self.conv2 = UNetConvStack(filter_sizes[0], filter_sizes[1])
         self.maxpool2 = nn.MaxPool2d(kernel_size=2)
 
-        self.conv3 = UNetConv2d(filter_sizes[1], filter_sizes[2])
+        self.conv3 = UNetConvStack(filter_sizes[1], filter_sizes[2])
         self.maxpool3 = nn.MaxPool2d(kernel_size=2)
 
-        self.conv4 = UNetConv2d(filter_sizes[2], filter_sizes[3])
+        self.conv4 = UNetConvStack(filter_sizes[2], filter_sizes[3])
         self.maxpool4 = nn.MaxPool2d(kernel_size=2)
 
         # Bottom convolution (5th layer)
-        self.bottom_conv = UNetConv2d(filter_sizes[3], filter_sizes[4])
+        self.bottom_conv = UNetConvStack(filter_sizes[3], filter_sizes[4])
 
         # Up sampling layers (1 to 4) - concatenate past output
-        self.upsample1 = UNetUpConcatConv2d(filter_sizes[4], filter_sizes[3], False)
-        self.upsample2 = UNetUpConcatConv2d(filter_sizes[3], filter_sizes[2], False)
-        self.upsample3 = UNetUpConcatConv2d(filter_sizes[2], filter_sizes[1], False)
-        self.upsample4 = UNetUpConcatConv2d(filter_sizes[1], filter_sizes[0], False)
+        self.upsample1 = UNetUpConvStack(filter_sizes[4], filter_sizes[3], True)
+        self.upsample2 = UNetUpConvStack(filter_sizes[3], filter_sizes[2], True)
+        self.upsample3 = UNetUpConvStack(filter_sizes[2], filter_sizes[1], True)
+        self.upsample4 = UNetUpConvStack(filter_sizes[1], filter_sizes[0], True)
 
         # Final conv layer 1x1
-        self.last_conv = nn.Conv2d(filter_sizes[0], n_classes, kernel_size=1)
+        self.output_conv = nn.Conv2d(filter_sizes[0], n_classes, kernel_size=1)
+
+        # Initialisation of weights with paper method
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
 
     def forward(self, in_image):
         conv1_out = self.conv1(in_image)
@@ -52,7 +60,7 @@ class UNet(nn.Module):
         upsample3_out = self.upsample3(upsample2_out, conv2_out)
         upsample4_out = self.upsample4(upsample3_out, conv1_out)
 
-        return self.last_conv(upsample4_out)
+        return self.output_conv(upsample4_out)
 
     def __repr__(self):
         return 'U-Net'
