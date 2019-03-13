@@ -4,7 +4,7 @@ from models.unet import UNet
 from models.ffnn import FeedFwdNeuralNet
 
 
-def get_model(model_dict, n_channels, n_classes):
+def get_model(model_dict, n_channels=1, n_classes=1):
     model_name = model_dict['name']
     model = _get_model_instance(model_name)
     param_dict = model_dict['network_params']

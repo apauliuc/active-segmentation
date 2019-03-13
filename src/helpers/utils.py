@@ -3,7 +3,7 @@ import sys
 import logging
 
 
-def create_logger(logdir, name):
+def setup_logger(logdir, name):
     log_format = '[%(levelname)s: %(filename)s: %(lineno)4d]: %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
 
@@ -21,9 +21,9 @@ def create_logger(logdir, name):
 
 def dice_coefficient(prediction, target):
     smooth = 1.
-    num_classes = prediction.size(0)
-    m1 = prediction.view(num_classes, -1)
-    m2 = target.view(num_classes, -1)
+    batch_size = prediction.size(0)
+    m1 = prediction.view(batch_size, -1)
+    m2 = target.view(batch_size, -1)
     intersection = (m1 * m2).sum()
 
     return (2. * intersection + smooth) / (m1.sum() + m2.sum() + smooth)
