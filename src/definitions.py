@@ -4,7 +4,8 @@ SOURCES_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SOURCES_DIR)
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 RUNS_DIR = os.path.join(ROOT_DIR, 'runs')
+CONFIG_DIR = os.path.join(SOURCES_DIR, 'configs')
 
 DATA_DIR_AT_AMC = os.path.join('C:', 'Andrei', 'data')
 
-CONFIG_STANDARD = os.path.join(SOURCES_DIR, 'configs', 'standard_config.yml')
+CONFIG_STANDARD = os.path.join(CONFIG_DIR, 'standard_config.yml')
