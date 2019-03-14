@@ -3,21 +3,21 @@ data:
   dataset: AMC
   train_split: train
   val_split: val
-  batch_size: 1
-  num_workers: 0
+  batch_size: 4
+  num_workers: 4
 training:
   seed:
-  num_epochs: 50
+  num_epochs: 75
   lr: 0.001
-  weight_decay: 0
-  amsgrad: False
+  weight_decay: 0.0001
+  amsgrad: True
   scheduler: step
-  lr_cycle: 20
+  lr_cycle: 30
   log_interval: 20
-  save_model_interval: 10
-  ignite_history_size: 5
+  save_model_interval: 20
+  ignite_history_size: 4
   loss_fn:
-    name: bce_loss_2d
+    name: bce_loss
 model:
   name: unet
   resume_from:

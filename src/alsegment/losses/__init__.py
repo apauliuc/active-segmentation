@@ -1,22 +1,27 @@
 from alsegment.losses.BinaryCrossEntropyLoss2D import BinaryCrossEntropyLoss2D
 from alsegment.losses.SoftDiceLoss import SoftDiceLoss
+from alsegment.losses.JaccardLoss import JaccardLoss
 import torch.nn as nn
 
 
+loss2class = {
+    'bce_loss': nn.BCEWithLogitsLoss,
+    'jaccard_loss': JaccardLoss
+    # 'bce_loss_2d': BinaryCrossEntropyLoss2D,
+    # 'cross_entropy_loss': nn.CrossEntropyLoss,
+    # 'soft_dice_loss': SoftDiceLoss,
+}
+
+
 def get_loss_fn(loss_dict):
-    loss_fn_name = loss_dict['name']
-    loss_fn = _get_model_instance(loss_fn_name)()
+    if loss_dict['name'] is None:
+        return nn.BCEWithLogitsLoss()
+    else:
+        loss_name = loss_dict['name']
+        loss_params = {k: v for k, v in loss_dict.items() if k != "name"}
 
-    return loss_fn
+        if loss_name not in loss2class:
+            raise NotImplementedError("Loss {} not implemented".format(loss_name))
 
-
-def _get_model_instance(name: str):
-    try:
-        return {
-            'cross_entropy_loss': nn.CrossEntropyLoss,
-            'bce_loss': nn.BCELoss,
-            'bce_loss_2d': BinaryCrossEntropyLoss2D,
-            'soft_dice_loss': SoftDiceLoss
-        }[name]
-    except KeyError:
-        raise ('Loss function %s not available' % name)
+        loss_fn = loss2class[loss_name](**loss_params)
+        return loss_fn

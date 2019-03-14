@@ -74,8 +74,6 @@ class UNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=1, batch_norm=False, up_conv=True):
         super(UNet, self).__init__()
 
-        # Maybe use batch norm on conv layers?
-
         filter_sizes = [64, 128, 256, 512, 1024]
 
         # Down sampling layers (1 to 4)

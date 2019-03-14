@@ -27,7 +27,7 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 def train(cfg, save_dir):
     # Initialise writer, logger and configs
     writer = SummaryWriter(log_dir=save_dir)
-    logger = setup_logger(save_dir, __name__)
+    logger = setup_logger(save_dir)
 
     data_cfg = cfg['data']
     model_cfg = cfg['model']
@@ -82,9 +82,12 @@ def train(cfg, save_dir):
                                             device=device, non_blocking=True)
 
     # Configure Ignite objects
-    epoch_timer = Timer(average=False)
-    epoch_timer.attach(trainer, start=Events.EPOCH_STARTED,
-                       resume=Events.ITERATION_STARTED, pause=Events.ITERATION_COMPLETED)
+    network_pass_timer = Timer(average=False)
+    network_pass_timer.attach(trainer, start=Events.EPOCH_STARTED,
+                              resume=Events.ITERATION_STARTED, pause=Events.ITERATION_COMPLETED)
+
+    total_epoch_timer = Timer(average=False)
+    total_epoch_timer.attach(trainer, start=Events.EPOCH_STARTED, pause=Events.ITERATION_COMPLETED)
 
     RunningAverage(output_transform=lambda x: x).attach(trainer, 'avg_loss')
 
@@ -117,12 +120,15 @@ def train(cfg, save_dir):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(train_engine: Engine):
-        duration = timer_to_str(epoch_timer.value())
+        train_duration = timer_to_str(network_pass_timer.value())
+        epoch_duration = timer_to_str(total_epoch_timer.value())
         avg_loss = train_engine.state.metrics['avg_loss']
         msg = f'Training results - Epoch:{train_engine.state.epoch:2d}/{train_engine.state.max_epochs}. ' \
-            f'Duration: {duration}. Avg loss: {avg_loss:.4f}'
+            f'Duration: {train_duration}. Avg loss: {avg_loss:.4f}'
         logger.info(msg)
-        writer.add_scalar("training/avg_loss", avg_loss, train_engine.state.epoch)
+        writer.add_scalar('training/avg_loss', avg_loss, train_engine.state.epoch)
+        writer.add_scalar('timer/train_timer', train_duration, train_engine.state.epoch)
+        writer.add_scalar('timer/epoch_timer', epoch_duration, train_engine.state.epoch)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_evaluation_results(train_engine: Engine):
@@ -131,14 +137,14 @@ def train(cfg, save_dir):
         msg = f'Eval. on train_loader - Epoch:{train_engine.state.epoch:2d}/{train_engine.state.max_epochs}. ' \
             f'Avg loss: {evaluation_loss:.4f}'
         logger.info(msg)
-        writer.add_scalar("training_eval/avg_loss", evaluation_loss, train_engine.state.epoch)
+        writer.add_scalar('training_eval/avg_loss', evaluation_loss, train_engine.state.epoch)
 
         evaluator.run(val_loader)
         evaluation_loss = evaluator.state.metrics['eval_loss']
         msg = f'Eval. on val_loader - Epoch:{train_engine.state.epoch:2d}/{train_engine.state.max_epochs}. ' \
             f'Avg loss: {evaluation_loss:.4f}'
         logger.info(msg)
-        writer.add_scalar("validation_eval/avg_loss", evaluation_loss, train_engine.state.epoch)
+        writer.add_scalar('validation_eval/avg_loss', evaluation_loss, train_engine.state.epoch)
 
     @trainer.on(Events.EXCEPTION_RAISED)
     def handle_exception(train_engine: Engine, e):

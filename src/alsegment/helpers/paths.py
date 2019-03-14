@@ -16,7 +16,7 @@ def create_run_name(name: str, time_signature: float) -> str:
     return name + datetime.datetime.fromtimestamp(time_signature).strftime(NAME_TEMPLATE)
 
 
-def get_new_run_path(name) -> str:
+def get_new_run_path(name: str) -> str:
     if name is None:
         name = DEFAULT_NAME
     path = os.path.join(RUNS_DIR, create_run_name(name, time.time()))
