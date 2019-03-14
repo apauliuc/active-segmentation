@@ -1,7 +1,5 @@
-import copy
-
-from models.unet import UNet
-from models.ffnn import FeedFwdNeuralNet
+from alsegment.models.unet import UNet
+from alsegment.models.ffnn import FeedFwdNeuralNet
 
 
 def get_model(model_dict, n_channels=1, n_classes=1):

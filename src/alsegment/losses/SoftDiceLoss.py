@@ -1,4 +1,3 @@
-import torch
 from torch import sigmoid
 import torch.nn as nn
 

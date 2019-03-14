@@ -1,5 +1,5 @@
-from losses.BinaryCrossEntropyLoss2D import BinaryCrossEntropyLoss2D
-from losses.SoftDiceLoss import SoftDiceLoss
+from alsegment.losses.BinaryCrossEntropyLoss2D import BinaryCrossEntropyLoss2D
+from alsegment.losses.SoftDiceLoss import SoftDiceLoss
 import torch.nn as nn
 
 

@@ -1,10 +1,10 @@
 import random
 import torch
+
 import numpy as np
 from PIL.Image import Image, FLIP_LEFT_RIGHT
 from PIL.Image import BILINEAR
 from torchvision.transforms import transforms
-from helpers.types import floatTensor, longTensor
 
 
 class Rotation(object):
@@ -75,9 +75,9 @@ class ToTensor(object):
         :param segmentation: Segmentation to be converted to tensor.
         :return: Image and segmentation as tensor object
         """
-        image = self.to_tensor(image).type(floatTensor)
-        segmentation = self.to_tensor(segmentation).type(floatTensor)
-        # segmentation = self.to_tensor(segmentation).type(floatTensor).squeeze(0)
+        image = self.to_tensor(image).type(torch.FloatTensor)
+        segmentation = self.to_tensor(segmentation).type(torch.FloatTensor)
+        # segmentation = self.to_tensor(segmentation).type(torch.FloatTensor).squeeze(0)
         return image, segmentation
 
 
@@ -92,7 +92,7 @@ class Normalize(object):
     def __call__(self, sample: tuple) -> tuple:
         return self.normalize(sample[0], sample[1])
 
-    def normalize(self, image: floatTensor, segmentation: longTensor):
+    def normalize(self, image: torch.FloatTensor, segmentation: torch.FloatTensor):
         segmentation = segmentation / 255
         return self._normalize(image), segmentation
 

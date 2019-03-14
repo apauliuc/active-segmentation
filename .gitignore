@@ -105,6 +105,6 @@ venv.bak/
 
 # my folders
 .idea/
-data/
+/data/
 data_preprocessing/
 runs/

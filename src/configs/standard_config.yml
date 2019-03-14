@@ -1,8 +1,9 @@
+run_name:
 data:
   dataset: AMC
   train_split: train
   val_split: val
-  batch_size: 4
+  batch_size: 1
   num_workers: 0
 training:
   seed:
@@ -22,4 +23,6 @@ model:
   resume_from:
   saved_model: 'final_model_1'
   saved_optimizer: 'final_optimizer_1'
-  network_params: {}
+  network_params:
+    batch_norm: False
+    up_conv: True

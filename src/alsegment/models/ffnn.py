@@ -3,7 +3,7 @@ import torch.nn as nn
 
 class FeedFwdNeuralNet(nn.Module):
 
-    def __init__(self,  n_classes=2):
+    def __init__(self):
         super(FeedFwdNeuralNet, self).__init__()
 
         self.linear = nn.Sequential(

@@ -1,6 +1,6 @@
 import os
-import random
 import yaml
+import random
 import shutil
 import argparse
 
@@ -13,13 +13,13 @@ from ignite.engine import Engine, Events, create_supervised_trainer, create_supe
 from ignite.handlers import ModelCheckpoint, Timer, TerminateOnNan
 from ignite.metrics import Loss, RunningAverage
 
-from models import get_model
-from losses import get_loss_fn
-from definitions import DATA_DIR_AT_AMC, CONFIG_STANDARD
-from helpers.utils import setup_logger, timer_to_str
-from helpers.types import device
-from dataloader import create_data_loader
-from helpers.paths import get_dataset_path, get_new_run_path, get_model_optimizer_path
+from alsegment.models import get_model
+from alsegment.losses import get_loss_fn
+from definitions import DATA_DIR, CONFIG_STANDARD
+from alsegment.helpers.utils import setup_logger, timer_to_str
+from alsegment.helpers.types import device
+from alsegment.data.dataloader import create_data_loader
+from alsegment.helpers.paths import get_dataset_path, get_new_run_path, get_model_optimizer_path
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -71,15 +71,15 @@ def train(cfg, save_dir):
 
     # Setup learning rate scheduler (to add more options)
     lr_scheduler = None
-    if train_cfg['scheduler'] is 'step':
+    if train_cfg['scheduler'] == 'step':
         lr_scheduler = StepLR(optimizer, step_size=train_cfg['lr_cycle'], gamma=0.1)
         logger.info(f'LR scheduler set to type {train_cfg["scheduler"]}')
 
     # Create engines
-    trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
+    trainer = create_supervised_trainer(model, optimizer, criterion, device=device, non_blocking=True)
     evaluator = create_supervised_evaluator(model,
                                             metrics={'eval_loss': Loss(get_loss_fn(train_cfg['loss_fn']))},
-                                            device=device)
+                                            device=device, non_blocking=True)
 
     # Configure Ignite objects
     epoch_timer = Timer(average=False)
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default=CONFIG_STANDARD,
                         help='Configuration file to use')
-    parser.add_argument('--ds_path', type=str, default=DATA_DIR_AT_AMC,
+    parser.add_argument('--ds_path', type=str, default=DATA_DIR,
                         help='Path to main data directory')
 
     args = parser.parse_args()
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     config['data']['path'] = args.ds_path
 
     # Create logger, writer
-    logging_dir = get_new_run_path()
+    logging_dir = get_new_run_path(config['run_name'])
     shutil.copy(args.config, logging_dir)
 
     train(config, logging_dir)
