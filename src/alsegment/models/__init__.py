@@ -1,5 +1,6 @@
 from alsegment.models.unet import UNet
 from alsegment.models.ffnn import FeedFwdNeuralNet
+from alsegment.models.ternausnet import TernausNet
 
 
 def get_model(model_dict, n_channels=1, n_classes=1):
@@ -9,6 +10,9 @@ def get_model(model_dict, n_channels=1, n_classes=1):
 
     if model_name == 'unet':
         model = model(n_channels=n_channels, n_classes=n_classes, **param_dict)
+
+    elif model_name == 'ternaus_net':
+        model = model(**param_dict)
 
     # elif model_name == 'ffnn':
     #     model = model()
@@ -20,6 +24,7 @@ def _get_model_instance(name: str):
     try:
         return {
             'unet': UNet,
+            'ternaus_net': TernausNet,
             'ffnn': FeedFwdNeuralNet
         }[name]
     except KeyError:

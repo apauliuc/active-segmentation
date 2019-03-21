@@ -1,4 +1,4 @@
-run_name:
+run_name: Combined_losses
 data:
   dataset: AMC
   train_split: train
@@ -17,12 +17,12 @@ training:
   save_model_interval: 20
   ignite_history_size: 4
   loss_fn:
-    name: bce_loss
+    name: bce_and_jaccard
 model:
   name: unet
   resume_from:
   saved_model: 'final_model_1'
   saved_optimizer: 'final_optimizer_1'
   network_params:
-    batch_norm: False
+    batch_norm: True
     up_conv: True
