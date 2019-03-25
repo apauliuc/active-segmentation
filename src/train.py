@@ -42,12 +42,13 @@ def train(cfg, save_dir):
 
     # Create train dataloader
     train_path = get_dataset_path(data_cfg['path'], data_cfg['dataset'], data_cfg['train_split'])
-    train_loader = create_data_loader(data_cfg, train_path)
+    train_loader = create_data_loader(data_cfg, train_path, batch_size=data_cfg['batch_size'])
     logger.info(f'Train data loader created from {train_path}')
 
     # Create validation dataloader
     val_path = get_dataset_path(data_cfg['path'], data_cfg['dataset'], data_cfg['val_split'])
-    val_loader = create_data_loader(data_cfg, val_path)
+    val_loader = create_data_loader(data_cfg, val_path, batch_size=data_cfg['batch_size_val'])
+    val_train_loader = create_data_loader(data_cfg, train_path, batch_size=data_cfg['batch_size_val'])
     logger.info(f'Validation data loader created from {val_path}')
 
     # Create model, loss function and optimizer
@@ -129,12 +130,13 @@ def train(cfg, save_dir):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_evaluation_results(train_engine: Engine):
-        evaluator.run(train_loader)
-        evaluation_loss = evaluator.state.metrics['eval_loss']
-        msg = f'Eval. on train_loader - Epoch:{train_engine.state.epoch:2d}/{train_engine.state.max_epochs}. ' \
-            f'Avg loss: {evaluation_loss:.4f}'
-        logger.info(msg)
-        writer.add_scalar('training_eval/avg_loss', evaluation_loss, train_engine.state.epoch)
+        if data_cfg['run_val_on_train']:
+            evaluator.run(val_train_loader)
+            evaluation_loss = evaluator.state.metrics['eval_loss']
+            msg = f'Eval. on val_train_loader - Epoch:{train_engine.state.epoch:2d}/{train_engine.state.max_epochs}. ' \
+                f'Avg loss: {evaluation_loss:.4f}'
+            logger.info(msg)
+            writer.add_scalar('training_eval/avg_loss', evaluation_loss, train_engine.state.epoch)
 
         evaluator.run(val_loader)
         evaluation_loss = evaluator.state.metrics['eval_loss']

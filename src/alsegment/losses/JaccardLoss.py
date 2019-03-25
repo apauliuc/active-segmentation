@@ -40,3 +40,6 @@ class JaccardLoss(nn.Module):
         #
         # loss = torch.log((intersection + eps) / (union - intersection + eps))
         # return loss
+
+    def __repr__(self):
+        return "Jaccard Loss"

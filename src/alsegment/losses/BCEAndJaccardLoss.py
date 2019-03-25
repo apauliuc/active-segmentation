@@ -20,3 +20,6 @@ class BCEAndJaccardLoss(nn.Module):
             total_loss = bce_loss + jacc_loss
 
         return total_loss
+
+    def __repr__(self):
+        return "BCE and Jaccard Loss"
