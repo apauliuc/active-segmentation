@@ -8,7 +8,7 @@ def nanmean(x):
     return torch.mean(x[x == x])
 
 
-def _cf_matrix(true, prediction, num_classes=1):
+def _cf_matrix(true, prediction, num_classes=2):
     mask = (true >= 0) & (true < num_classes)
     confusion_matrix = torch.bincount(
         num_classes * true[mask] + prediction[mask],
@@ -48,12 +48,12 @@ def f1_score(cf_matrix):
     return nanmean(f1)
 
 
-def evaluation_metrics(true, prediction, num_classes=1):
+def evaluation_metrics(prediction, true, num_classes=2):
     """"
     Compute segmentation metrics for 2D images
 
-    :param true: ground truth tensor of shape [B, 1, H, W]
     :param prediction: predicted classes of shape [B, 1, H, W]
+    :param true: ground truth tensor of shape [B, 1, H, W]
     :param num_classes: number of classes in segmentation
     :returns tuple of scores
     """
