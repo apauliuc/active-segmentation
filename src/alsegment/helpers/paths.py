@@ -24,10 +24,14 @@ def get_new_run_path(name: str) -> str:
     return path
 
 
-def get_model_optimizer_path(run_dir: str, model_filename: str, optim_filename: str) -> tuple:
+def get_resume_model_path(run_dir: str, model_filename: str) -> str:
     model_path = os.path.join(RUNS_DIR, run_dir, f'{model_filename}.pth')
+    return model_path
+
+
+def get_resume_optimizer_path(run_dir: str, optim_filename: str) -> str:
     optim_path = os.path.join(RUNS_DIR, run_dir, f'{optim_filename}.pth')
-    return model_path, optim_path
+    return optim_path
 
 
 def create_directory(path: str):

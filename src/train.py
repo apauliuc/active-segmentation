@@ -19,7 +19,8 @@ from definitions import DATA_DIR, DATA_DIR_AT_AMC, CONFIG_STANDARD
 from alsegment.helpers.utils import setup_logger, timer_to_str, dice_coefficient
 from alsegment.helpers.types import device
 from alsegment.data.dataloader import create_data_loader
-from alsegment.helpers.paths import get_dataset_path, get_new_run_path, get_model_optimizer_path
+from alsegment.helpers.paths import get_dataset_path, get_new_run_path,\
+    get_resume_model_path, get_resume_optimizer_path
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -33,6 +34,8 @@ def train(cfg, save_dir):
     data_cfg = cfg['data']
     model_cfg = cfg['model']
     train_cfg = cfg['training']
+    optim_cfg = train_cfg['optimizer']
+    resume_cfg = config['resume']
 
     # Set seed
     if train_cfg['seed'] is not None:
@@ -53,17 +56,17 @@ def train(cfg, save_dir):
 
     # Create model, loss function and optimizer
     model = get_model(model_cfg).to(device=device)
-    optimizer = optim.Adam(model.parameters(), lr=train_cfg['lr'],
-                           weight_decay=train_cfg['weight_decay'], amsgrad=train_cfg['amsgrad'])
+    optimizer = optim.Adam(model.parameters(), lr=optim_cfg['lr'],
+                           weight_decay=optim_cfg['weight_decay'], amsgrad=optim_cfg['amsgrad'])
     criterion = get_loss_fn(train_cfg['loss_fn']).to(device=device)
 
     logger.info(f'Using model {model} and loss function {criterion}')
 
     # Load model and optimizer if set in config file
-    if model_cfg['resume_from'] is not None:
-        model_path, optimizer_path = get_model_optimizer_path(model_cfg['resume_from'],
-                                                              model_cfg['saved_model'],
-                                                              model_cfg['saved_optimizer'])
+    if resume_cfg['resume_from'] is not None:
+        model_path = get_resume_model_path(resume_cfg['resume_from'], resume_cfg['saved_model'])
+        optimizer_path = get_resume_optimizer_path(resume_cfg['resume_from'], resume_cfg['saved_optimizer'])
+
         model = torch.load(model_path)
         optimizer = torch.load(optimizer_path)
         for param_group in optimizer.param_groups:
@@ -73,8 +76,8 @@ def train(cfg, save_dir):
 
     # Setup learning rate scheduler (to add more options)
     lr_scheduler = None
-    if train_cfg['scheduler'] == 'step':
-        lr_scheduler = StepLR(optimizer, step_size=train_cfg['lr_cycle'], gamma=0.1)
+    if optim_cfg['scheduler'] == 'step':
+        lr_scheduler = StepLR(optimizer, step_size=optim_cfg['lr_cycle'], gamma=0.1)
         logger.info(f'LR scheduler set to type {train_cfg["scheduler"]}')
 
     # Create engines
