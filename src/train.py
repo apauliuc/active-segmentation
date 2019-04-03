@@ -16,7 +16,7 @@ from ignite.metrics import Loss, RunningAverage
 from alsegment.models import get_model
 from alsegment.losses import get_loss_fn
 from definitions import DATA_DIR, DATA_DIR_AT_AMC, CONFIG_STANDARD
-from alsegment.helpers.utils import setup_logger, timer_to_str
+from alsegment.helpers.utils import setup_logger, timer_to_str, dice_coefficient
 from alsegment.helpers.types import device
 from alsegment.data.dataloader import create_data_loader
 from alsegment.helpers.paths import get_dataset_path, get_new_run_path, get_model_optimizer_path
@@ -27,7 +27,7 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 def train(cfg, save_dir):
     # Initialise writer, logger and configs
     writer = SummaryWriter(log_dir=save_dir)
-    logger = setup_logger(save_dir)
+    logger, log_handler = setup_logger(save_dir)
     logger.info(f'Saving to folder {save_dir}')
 
     data_cfg = cfg['data']
@@ -57,7 +57,7 @@ def train(cfg, save_dir):
                            weight_decay=train_cfg['weight_decay'], amsgrad=train_cfg['amsgrad'])
     criterion = get_loss_fn(train_cfg['loss_fn']).to(device=device)
 
-    logger.info(f'Using model {model} and Loss function: {criterion}')
+    logger.info(f'Using model {model} and loss function {criterion}')
 
     # Load model and optimizer if set in config file
     if model_cfg['resume_from'] is not None:
@@ -66,6 +66,8 @@ def train(cfg, save_dir):
                                                               model_cfg['saved_optimizer'])
         model = torch.load(model_path)
         optimizer = torch.load(optimizer_path)
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = train_cfg['lr']
         logger.info(f'Model loaded from {model_path}')
         logger.info(f'Optimizer loaded from {optimizer_path}')
 
@@ -78,7 +80,8 @@ def train(cfg, save_dir):
     # Create engines
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device, non_blocking=True)
     evaluator = create_supervised_evaluator(model,
-                                            metrics={'eval_loss': Loss(get_loss_fn(train_cfg['loss_fn']))},
+                                            metrics={'eval_loss': Loss(get_loss_fn(train_cfg['loss_fn'])),
+                                                     'dice_score': Loss(dice_coefficient)},
                                             device=device, non_blocking=True)
 
     # Configure Ignite objects
@@ -95,7 +98,8 @@ def train(cfg, save_dir):
     final_checkpoint_handler = ModelCheckpoint(save_dir, 'final', save_interval=1, n_saved=1, require_empty=False)
     best_model_handler = ModelCheckpoint(save_dir, 'best', save_interval=1, n_saved=1, require_empty=False)
 
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, model_checkpoint_handler, {'model': model})
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, model_checkpoint_handler, {'model': model,
+                                                                                 'optimizer': optimizer})
     trainer.add_event_handler(Events.COMPLETED, final_checkpoint_handler, {'model': model,
                                                                            'optimizer': optimizer})
 
@@ -126,7 +130,7 @@ def train(cfg, save_dir):
             f'Duration: {train_duration}. Avg loss: {avg_loss:.4f}'
         logger.info(msg)
         writer.add_scalar('training/avg_loss', avg_loss, train_engine.state.epoch)
-        writer.add_scalar('timer/train_timer', network_pass_timer.value(), train_engine.state.epoch)
+        writer.add_scalar('training/train_timer', network_pass_timer.value(), train_engine.state.epoch)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_evaluation_results(train_engine: Engine):
@@ -136,14 +140,16 @@ def train(cfg, save_dir):
             msg = f'Eval. on val_train_loader - Epoch:{train_engine.state.epoch:2d}/{train_engine.state.max_epochs}. ' \
                 f'Avg loss: {evaluation_loss:.4f}'
             logger.info(msg)
-            writer.add_scalar('training_eval/avg_loss', evaluation_loss, train_engine.state.epoch)
+            writer.add_scalar('validation_eval/train_loss', evaluation_loss, train_engine.state.epoch)
 
         evaluator.run(val_loader)
         evaluation_loss = evaluator.state.metrics['eval_loss']
+        dice_score = evaluator.state.metrics['dice_score']
         msg = f'Eval. on val_loader - Epoch:{train_engine.state.epoch:2d}/{train_engine.state.max_epochs}. ' \
-            f'Avg loss: {evaluation_loss:.4f}'
+            f'Avg loss: {evaluation_loss:.4f}. Dice: {dice_score:.4f}'
         logger.info(msg)
         writer.add_scalar('validation_eval/avg_loss', evaluation_loss, train_engine.state.epoch)
+        # writer.add_scalar('validation_eval/dice_score', dice_score, train_engine.state.epoch)
 
         if evaluation_loss < evaluator.best_loss:
             best_model_handler(train_engine, {'model': model, 'optimizer': optimizer})
@@ -155,6 +161,7 @@ def train(cfg, save_dir):
         if isinstance(e, KeyboardInterrupt):
             train_engine.terminate()
             model_checkpoint_handler(train_engine, {'model': model})
+            close_writer(train_engine)
         raise e
 
     @trainer.on(Events.COMPLETED)
@@ -163,8 +170,11 @@ def train(cfg, save_dir):
         writer.close()
 
     # Run engine
-    logger.info('All set. Start training!')
+    logger.info(f'All set. Starting training on {device}.')
     trainer.run(train_loader, max_epochs=train_cfg['num_epochs'])
+
+    # Close
+    logger.removeHandler(log_handler)
 
 
 if __name__ == '__main__':
@@ -185,6 +195,6 @@ if __name__ == '__main__':
 
     # Create logger, writer
     logging_dir = get_new_run_path(config['run_name'])
-    shutil.copy(args.config, logging_dir)
+    copied_cfg = shutil.copy(args.config, os.path.join(logging_dir, 'cfg_file.yml'))
 
     train(config, logging_dir)

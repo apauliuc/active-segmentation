@@ -1,30 +1,31 @@
-run_name: New_UNet
+run_name: UNet_64_BCE_Jacc
 data:
   dataset: AMC
   train_split: train
   val_split: val
   batch_size: 4
   num_workers: 4
-  run_val_on_train: True
-  batch_size_val: 10
+  run_val_on_train: False
+  batch_size_val: 8
 training:
   seed:
-  num_epochs: 75
-  lr: 0.001
+  num_epochs: 200
+  lr: 0.01
   weight_decay: 0.0001
   amsgrad: True
   scheduler: step
-  lr_cycle: 30
+  lr_cycle: 50
   log_interval: 20
-  save_model_interval: 20
-  ignite_history_size: 4
+  save_model_interval: 50
+  ignite_history_size: 1
   loss_fn:
     name: bce_and_jaccard
 model:
   name: unet_v2
   resume_from:
-  saved_model: 'final_model_1'
-  saved_optimizer: 'final_optimizer_1'
+  saved_model:
+  saved_optimizer:
   network_params:
+    filters_base: 64
 #    batch_norm: True
 #    up_conv: True

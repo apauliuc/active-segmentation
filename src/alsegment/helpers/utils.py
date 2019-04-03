@@ -16,17 +16,17 @@ def setup_logger(logdir):
 
     logging.getLogger("ignite.engine.engine.Engine").setLevel(logging.WARNING)
 
-    return logger
+    return logger, handler
 
 
-def dice_coefficient(prediction, target):
-    smooth = 1.
-    batch_size = prediction.size(0)
+def dice_coefficient(prediction, target) -> float:
+    smooth = 1e-5
+    batch_size = prediction.shape[0]
     m1 = prediction.view(batch_size, -1)
     m2 = target.view(batch_size, -1)
-    intersection = (m1 * m2).sum()
-
-    return (2. * intersection + smooth) / (m1.sum() + m2.sum() + smooth)
+    score_per_item = (2. * (m1 * m2).sum(dim=1) + smooth) / \
+                     (m1.sum(dim=1) + m2.sum(dim=1) + smooth)
+    return score_per_item.mean()
 
 
 def timer_to_str(value):

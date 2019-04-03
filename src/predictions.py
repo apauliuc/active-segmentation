@@ -22,17 +22,19 @@ def prepare_batch(batch, device_local=None, non_blocking=False):
     return convert_tensor(batch, device=device_local, non_blocking=non_blocking)
 
 
-def make_predictions(model_path):
+def make_predictions(model_path, name=''):
     model = torch.load(model_path)
     model.to(device)
 
     pred_data_path = get_dataset_path(DATA_DIR_AT_AMC, dataset_type='predict')
-    scans_list = [x for x in os.listdir(pred_data_path) if 'scan.npy' in x]
+    dir_list = [x for x in os.listdir(pred_data_path)
+                if os.path.isdir(os.path.join(pred_data_path, x))]
 
-    batch_size = 10
+    batch_size = 8
 
-    for s_name in scans_list:
-        scan_no = s_name.split("_")[0]
+    for dir_id in dir_list:
+        scan_dir = os.path.join(pred_data_path, dir_id)
+        s_name = os.path.join(dir_id, f'{dir_id}_scan.npy')
 
         data_loader = create_prediction_loader(pred_data_path, s_name, batch_size=batch_size)
 
@@ -52,18 +54,25 @@ def make_predictions(model_path):
 
         segmentation = segmentation.squeeze(1)
         segmentation *= 255
+        segmentation = segmentation.astype(np.uint8)
         sitk.WriteImage(sitk.GetImageFromArray(segmentation),
-                        os.path.join(pred_data_path, f'{scan_no}_predicted_comb_losses_255.mha'))
+                        os.path.join(scan_dir, f'{dir_id}_predicted_{name}.mha'))
 
     print('Done!')
 
 
 if __name__ == '__main__':
-    run_dir_prev = os.path.join(RUNS_DIR, 'Combined_losses_03-20_19-43-19')
-    # cfg_path = os.path.join(run_dir_prev, 'unet_1.yml')
-    model_load_path = os.path.join(run_dir_prev, 'best_model_14.pth')
+    load_directory = os.path.join(RUNS_DIR, 'UNet_V2_Base32_BCE_Jacc_04-01_13-26-28')
+    file_list = os.listdir(load_directory)
 
+    model_load_file = 'best_model_1.pth'
+    for f in file_list:
+        if 'best_model_' in f:
+            model_load_file = f
+    model_load_path = os.path.join(load_directory, model_load_file)
+
+    # cfg_path = os.path.join(run_dir_prev, 'old_1.yml')
     # with open(cfg_path) as f:
     #     config = yaml.load(f)
 
-    make_predictions(model_load_path)
+    make_predictions(model_load_path, 'V2_32_BCE_Jacc')
