@@ -101,12 +101,6 @@ class UNet(nn.Module):
         # Final conv layer 1x1
         self.output_conv = nn.Conv2d(filter_sizes[0], n_classes, kernel_size=1)
 
-        # Initialisation of weights with paper method
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-
     def forward(self, in_image):
         conv1_out = self.conv1(in_image)
         conv2_out = self.conv2(self.maxpool1(conv1_out))

@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -34,6 +36,18 @@ class UNetModule(nn.Module):
         return x
 
 
+class Interpolate(nn.Module):
+    def __init__(self, scale_factor, mode):
+        super(Interpolate, self).__init__()
+        self.interp = F.interpolate
+        self.scale_factor = scale_factor
+        self.mode = mode
+
+    def forward(self, x):
+        x = self.interp(x, scale_factor=self.scale_factor, mode=self.mode, align_corners=False)
+        return x
+
+
 class UNetV2(nn.Module):
     """
     Vanilla UNet.
@@ -44,7 +58,7 @@ class UNetV2(nn.Module):
 
     def __init__(self,
                  input_channels: int = 1,
-                 filters_base: int = 64,
+                 filters_base: int = 32,
                  down_filter_factors=(1, 2, 4, 8, 16),
                  up_filter_factors=(1, 2, 4, 8, 16),
                  bottom_s=4,
@@ -70,8 +84,8 @@ class UNetV2(nn.Module):
         pool = nn.MaxPool2d(2, 2)
         pool_bottom = nn.MaxPool2d(bottom_s, bottom_s)
 
-        upsample = nn.Upsample(scale_factor=2, mode='bilinear')
-        upsample_bottom = nn.Upsample(scale_factor=bottom_s, mode='bilinear')
+        upsample = Interpolate(scale_factor=2, mode='bilinear')
+        upsample_bottom = Interpolate(scale_factor=bottom_s, mode='bilinear')
 
         self.downsamplers = [None] + [pool] * (len(self.down) - 1)
         self.downsamplers[-1] = pool_bottom
@@ -80,6 +94,10 @@ class UNetV2(nn.Module):
         self.add_output = add_output
         if add_output:
             self.conv_final = nn.Conv2d(up_filter_sizes[0], num_classes, 1)
+
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv2d):
+        #         nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
 
     def forward(self, x):
         xs = []
@@ -100,3 +118,6 @@ class UNetV2(nn.Module):
                 x_out = F.log_softmax(x_out, dim=1)
 
         return x_out
+
+    def __repr__(self):
+        return 'U-Net V2'
