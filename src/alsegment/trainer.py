@@ -13,6 +13,7 @@ from ignite import metrics
 from alsegment.data.dataloader import create_data_loader
 from alsegment.losses import get_loss_fn
 from alsegment.models import get_model
+from alsegment.helpers.segmentation_metrics import SegmentationMetrics
 from alsegment.helpers.utils import timer_to_str, setup_logger
 from alsegment.helpers.paths import get_resume_model_path, get_resume_optimizer_path, get_dataset_path
 
@@ -40,7 +41,10 @@ class Trainer(object):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.eval_train_loader = data_cfg['run_val_on_train']
 
-        self.metrics = {'loss': metrics.Loss(get_loss_fn(train_cfg['loss_fn']))}
+        self.metrics = {
+            'loss': metrics.Loss(get_loss_fn(train_cfg['loss_fn'])),
+            'segment_metrics': SegmentationMetrics()
+        }
 
         self.train_loader, self.val_loader, self.val_train_loader = self.__init_data_loaders(data_cfg)
 
@@ -159,10 +163,14 @@ class Trainer(object):
     def _run_evaluation(self, _train_engine: engine.Engine) -> None:
         self.evaluator.run(self.val_loader)
         eval_loss = self.evaluator.state.metrics['loss']
+        eval_metrics = self.evaluator.state.metrics['segment_metrics']
         msg = f'Eval. on val_loader - Epoch:{_train_engine.state.epoch:2d}/{_train_engine.state.max_epochs}. ' \
             f'Avg loss: {eval_loss:.4f}'
         self.logger.info(msg)
         self.writer.add_scalar('validation_eval/avg_loss', eval_loss, _train_engine.state.epoch)
+
+        for key, value in eval_metrics:
+            self.writer.add_scalar(f'val_metrics/{key}', value, _train_engine.state.epoch)
 
     def _on_events_completed(self, _engine: engine.Engine) -> None:
         self.writer.export_scalars_to_json(os.path.join(self.save_dir, 'tensorboardX.json'))

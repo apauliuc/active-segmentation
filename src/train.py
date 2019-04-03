@@ -13,6 +13,7 @@ from ignite.engine import Engine, Events, create_supervised_trainer, create_supe
 from ignite.handlers import ModelCheckpoint, Timer, TerminateOnNan
 from ignite.metrics import Loss, RunningAverage
 
+from alsegment.helpers.segmentation_metrics import SegmentationMetrics
 from alsegment.models import get_model
 from alsegment.losses import get_loss_fn
 from definitions import DATA_DIR, DATA_DIR_AT_AMC, CONFIG_STANDARD
@@ -84,7 +85,7 @@ def train(cfg, save_dir):
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device, non_blocking=True)
     evaluator = create_supervised_evaluator(model,
                                             metrics={'eval_loss': Loss(get_loss_fn(train_cfg['loss_fn'])),
-                                                     'dice_score': Loss(dice_coefficient)},
+                                                     'segment_metrics': SegmentationMetrics()},
                                             device=device, non_blocking=True)
 
     # Configure Ignite objects
@@ -147,12 +148,15 @@ def train(cfg, save_dir):
 
         evaluator.run(val_loader)
         evaluation_loss = evaluator.state.metrics['eval_loss']
-        dice_score = evaluator.state.metrics['dice_score']
+        eval_metrics = evaluator.state.metrics['segment_metrics']
         msg = f'Eval. on val_loader - Epoch:{train_engine.state.epoch:2d}/{train_engine.state.max_epochs}. ' \
-            f'Avg loss: {evaluation_loss:.4f}. Dice: {dice_score:.4f}'
+            f'Avg loss: {evaluation_loss:.4f}'
         logger.info(msg)
         writer.add_scalar('validation_eval/avg_loss', evaluation_loss, train_engine.state.epoch)
         # writer.add_scalar('validation_eval/dice_score', dice_score, train_engine.state.epoch)
+
+        for key, value in eval_metrics:
+            writer.add_scalar(f'val_metrics/{key}', value, train_engine.state.epoch)
 
         if evaluation_loss < evaluator.best_loss:
             best_model_handler(train_engine, {'model': model, 'optimizer': optimizer})
