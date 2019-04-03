@@ -25,9 +25,13 @@ class SegmentationMetrics(Metric):
         else:
             y_pred, y, kwargs = output
 
-        total_acc, avg_class_acc, iou, f1 = evaluation_metrics(y_pred, y, self._num_examples)
+        y = y.cpu().type(torch.LongTensor)
+        y_pred = torch.sigmoid(y_pred)
+        y_pred = y_pred.cpu().type(torch.LongTensor)
 
-        if len(total_acc) != 0 or len(avg_class_acc) != 0 or len(iou) != 0 or len(f1) != 0:
+        total_acc, avg_class_acc, iou, f1 = evaluation_metrics(y_pred, y, self._num_classes(y_pred))
+
+        if len(total_acc.shape) != 0 or len(avg_class_acc.shape) != 0 or len(iou.shape) != 0 or len(f1.shape) != 0:
             raise ValueError('evaluation_metrics did not return the average loss')
 
         n = self._num_classes(y)

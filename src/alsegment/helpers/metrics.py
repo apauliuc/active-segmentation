@@ -1,6 +1,6 @@
 import torch
 
-EPS = 1e-10
+EPS = 1e-5
 
 
 def nanmean(x):

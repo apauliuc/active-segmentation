@@ -128,7 +128,7 @@ class Trainer(object):
         }
 
         best_checkpoint_handler = handlers.ModelCheckpoint(self.save_dir, 'best', n_saved=1, require_empty=False,
-                                                           score_function=self.val_loss, score_name='val_loss')
+                                                           score_function=self.val_loss)
 
         final_checkpoint_handler = handlers.ModelCheckpoint(self.save_dir, 'final', save_interval=1, n_saved=1,
                                                             require_empty=False)
@@ -164,12 +164,11 @@ class Trainer(object):
         self.evaluator.run(self.val_loader)
         eval_loss = self.evaluator.state.metrics['loss']
         eval_metrics = self.evaluator.state.metrics['segment_metrics']
-        msg = f'Eval. on val_loader - Epoch:{_train_engine.state.epoch:2d}/{_train_engine.state.max_epochs}. ' \
-            f'Avg loss: {eval_loss:.4f}'
+        msg = f'Eval. on val_loader - Avg loss: {eval_loss:.4f}'
         self.logger.info(msg)
         self.writer.add_scalar('validation_eval/avg_loss', eval_loss, _train_engine.state.epoch)
 
-        for key, value in eval_metrics:
+        for key, value in eval_metrics.items():
             self.writer.add_scalar(f'val_metrics/{key}', value, _train_engine.state.epoch)
 
     def _on_events_completed(self, _engine: engine.Engine) -> None:
@@ -177,13 +176,14 @@ class Trainer(object):
         self.writer.close()
 
     def _on_exception_raised(self, _engine: engine.Engine, e: Exception) -> None:
+        self.logger.info(f'Exception at epoch {_engine.state.epoch}')
         self.logger.info(e)
         self._on_events_completed(_engine)
         raise e
 
     # noinspection PyMethodMayBeStatic
     def val_loss(self, _engine: engine.Engine) -> float:
-        return round(_engine.state.metrics['loss'], 6)
+        return -round(_engine.state.metrics['loss'], 6)
 
     def run(self) -> None:
         self.logger.info(f'All set. Starting training on {self.device}.')
