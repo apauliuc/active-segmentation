@@ -195,6 +195,9 @@ if __name__ == '__main__':
 
     # Create logger, writer
     logging_dir = get_new_run_path(config['run_name'])
-    copied_cfg = shutil.copy(args.config, os.path.join(logging_dir, 'cfg_file.yml'))
+
+    with open(os.path.join(logging_dir, 'cfg_file.yml')) as f:
+        yaml.dump(config, f)
+    # copied_cfg = shutil.copy(args.config, os.path.join(logging_dir, 'cfg_file.yml'))
 
     train(config, logging_dir)
