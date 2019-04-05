@@ -110,3 +110,4 @@ data_preprocessing/
 runs/
 src/configs/archive/
 src/notebooks/
+runs*/

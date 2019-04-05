@@ -75,20 +75,22 @@ class Trainer(object):
         return train_loader, val_loader, val_train_loader
 
     def __init__model(self, model_cfg: dict):
-        model = get_model(model_cfg).to(device=self.device)
         if self.resume_cfg['resume_from'] is not None:
             model_path = get_resume_model_path(self.resume_cfg['resume_from'], self.resume_cfg['saved_model'])
             self.logger.info(f'Loading model loaded from {model_path}')
             model = torch.load(model_path)
+        else:
+            model = get_model(model_cfg).to(device=self.device)
         return model
 
     def __init_optimizer(self, optim_cfg: dict):
-        optimizer = optim.Adam(self.model.parameters(), lr=optim_cfg['lr'],
-                               weight_decay=optim_cfg['weight_decay'], amsgrad=optim_cfg['amsgrad'])
         if self.resume_cfg['resume_from'] is not None:
             optimizer_path = get_resume_optimizer_path(self.resume_cfg['resume_from'], self.resume_cfg['saved_optimizer'])
             self.logger.info(f'Loading optimizer from {optimizer_path}')
             optimizer = torch.load(optimizer_path)
+        else:
+            optimizer = optim.Adam(self.model.parameters(), lr=optim_cfg['lr'],
+                                   weight_decay=optim_cfg['weight_decay'], amsgrad=optim_cfg['amsgrad'])
         return optimizer
 
     def __init_criterion(self, train_cfg: dict):
