@@ -11,6 +11,7 @@ from ignite import engine, handlers
 from ignite import metrics
 
 from alsegment.data.medical_dataset import create_data_loader
+from alsegment.helpers.config import ConfigClass
 from alsegment.losses import get_loss_fn
 from alsegment.models import get_model
 from alsegment.helpers.segment_metrics import SegmentationMetrics
@@ -20,29 +21,29 @@ from alsegment.helpers.paths import get_resume_model_path, get_resume_optimizer_
 
 class Trainer(object):
 
-    def __init__(self, config: dict, save_dir: str):
+    def __init__(self, config: ConfigClass, save_dir: str):
         self.save_dir = save_dir
         self.logger, self.log_handler = setup_logger(save_dir)
         self.logger.info(f'Saving to folder {save_dir}')
         self.writer = SummaryWriter(log_dir=save_dir)
 
-        data_cfg = config['data']
-        model_cfg = config['model']
-        train_cfg = config['training']
-        optim_cfg = train_cfg['optimizer']
-        self.resume_cfg = config['resume']
+        data_cfg = config.data
+        model_cfg = config.model
+        train_cfg = config.training
+        optim_cfg = train_cfg.optimizer
+        self.resume_cfg = config.resume
 
-        if train_cfg['seed'] is not None:
-            torch.manual_seed(train_cfg['seed'])
-            random.seed(train_cfg['seed'])
-            self.logger.info(f'Seed set on {train_cfg["seed"]}')
+        if train_cfg.seed is not None:
+            torch.manual_seed(train_cfg.seed)
+            random.seed(train_cfg.seed)
+            self.logger.info(f'Seed set on {train_cfg.seed}')
 
-        self.epochs = train_cfg['num_epochs']
+        self.epochs = train_cfg.num_epochs
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.eval_train_loader = data_cfg['run_val_on_train']
+        self.eval_train_loader = data_cfg.run_val_on_train
 
         self.metrics = {
-            'loss': metrics.Loss(get_loss_fn(train_cfg['loss_fn'])),
+            'loss': metrics.Loss(get_loss_fn(train_cfg.loss_fn)),
             'segment_metrics': SegmentationMetrics()
         }
 
@@ -58,48 +59,48 @@ class Trainer(object):
 
         self.__init_handlers()
 
-    def __init_data_loaders(self, data_cfg: dict):
-        train_path = get_dataset_path(data_cfg['path'], data_cfg['dataset'], data_cfg['train_split'])
-        train_loader = create_data_loader(data_cfg, train_path, batch_size=data_cfg['batch_size'])
+    def __init_data_loaders(self, data_cfg: ConfigClass):
+        train_path = get_dataset_path(data_cfg.path, data_cfg.dataset, data_cfg.train_split)
+        train_loader = create_data_loader(data_cfg, train_path, batch_size=data_cfg.batch_size)
         self.logger.info(f'Train data loader created from {train_path}')
 
-        val_path = get_dataset_path(data_cfg['path'], data_cfg['dataset'], data_cfg['val_split'])
-        val_loader = create_data_loader(data_cfg, val_path, batch_size=data_cfg['batch_size_val'])
+        val_path = get_dataset_path(data_cfg.path, data_cfg.dataset, data_cfg.val_split)
+        val_loader = create_data_loader(data_cfg, val_path, batch_size=data_cfg.batch_size_val)
         self.logger.info(f'Validation data loader created from {val_path}')
 
         if self.eval_train_loader:
-            val_train_loader = create_data_loader(data_cfg, train_path, batch_size=data_cfg['batch_size_val'])
+            val_train_loader = create_data_loader(data_cfg, train_path, batch_size=data_cfg.batch_size_val)
         else:
             val_train_loader = None
 
         return train_loader, val_loader, val_train_loader
 
-    def __init__model(self, model_cfg: dict):
+    def __init__model(self, model_cfg: ConfigClass):
         model = get_model(model_cfg).to(device=self.device)
-        if self.resume_cfg['resume_from'] is not None:
-            model_path = get_resume_model_path(self.resume_cfg['resume_from'], self.resume_cfg['saved_model'])
+        if self.resume_cfg.resume_from is not None:
+            model_path = get_resume_model_path(self.resume_cfg.resume_from, self.resume_cfg.saved_model)
             self.logger.info(f'Loading model loaded from {model_path}')
             model.load_state_dict(torch.load(model_path))
         return model
 
-    def __init_optimizer(self, optim_cfg: dict):
-        optimizer = optim.Adam(self.model.parameters(), lr=optim_cfg['lr'],
-                               weight_decay=optim_cfg['weight_decay'], amsgrad=optim_cfg['amsgrad'])
+    def __init_optimizer(self, optim_cfg: ConfigClass):
+        optimizer = optim.Adam(self.model.parameters(), lr=optim_cfg.lr,
+                               weight_decay=optim_cfg.weight_decay, amsgrad=optim_cfg.amsgrad)
 
-        if self.resume_cfg['resume_from'] is not None:
-            optimizer_path = get_resume_optimizer_path(self.resume_cfg['resume_from'], self.resume_cfg['saved_optimizer'])
+        if self.resume_cfg.resume_from is not None:
+            optimizer_path = get_resume_optimizer_path(self.resume_cfg.resume_from, self.resume_cfg.saved_optimizer)
             self.logger.info(f'Loading optimizer from {optimizer_path}')
             optimizer.load_state_dict(torch.load(optimizer_path))
         return optimizer
 
-    def __init_criterion(self, train_cfg: dict):
-        criterion = get_loss_fn(train_cfg['loss_fn']).to(device=self.device)
+    def __init_criterion(self, train_cfg: ConfigClass):
+        criterion = get_loss_fn(train_cfg.loss_fn).to(device=self.device)
         return criterion
 
-    def __init_lr_scheduler(self, optim_cfg: dict):
+    def __init_lr_scheduler(self, optim_cfg: ConfigClass):
         lr_scheduler = None
-        if optim_cfg['scheduler'] == 'step':
-            lr_scheduler = StepLR(self.optimizer, step_size=optim_cfg['lr_cycle'], gamma=0.1)
+        if optim_cfg.scheduler == 'step':
+            lr_scheduler = StepLR(self.optimizer, step_size=optim_cfg.lr_cycle, gamma=0.1)
         return lr_scheduler
 
     def __init_engines(self) -> Tuple[engine.Engine, engine.Engine]:

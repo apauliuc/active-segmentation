@@ -4,10 +4,10 @@ from alsegment.models.unet_v2 import UNetV2
 from alsegment.models.segnet import SegNet
 
 
-def get_model(model_dict, n_channels=1, n_classes=1):
-    model_name = model_dict['name']
+def get_model(model_cfg, n_channels=1, n_classes=1):
+    model_name = model_cfg.name
     model = _get_model_instance(model_name)
-    param_dict = model_dict['network_params'] if model_dict['network_params'] is not None else {}
+    param_dict = {k: v for k, v in model_cfg.network_params.items()}
 
     if model_name == 'unet':
         model = model(n_channels=n_channels, n_classes=n_classes, **param_dict)

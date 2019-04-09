@@ -58,7 +58,7 @@ def create_data_loader(cfg, path, batch_size=4, shuffle=True, dataset=MedicalSca
     data_loader = DataLoader(dataset(path, transf),
                              batch_size=batch_size,
                              shuffle=shuffle,
-                             num_workers=cfg['num_workers'],
+                             num_workers=cfg.num_workers,
                              pin_memory=torch.cuda.is_available())
 
     return data_loader

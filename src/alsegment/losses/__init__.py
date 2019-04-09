@@ -15,12 +15,12 @@ loss2class = {
 }
 
 
-def get_loss_fn(loss_dict):
-    if loss_dict['name'] is None:
+def get_loss_fn(loss_cfg):
+    if loss_cfg.name is None:
         return nn.BCEWithLogitsLoss()
     else:
-        loss_name = loss_dict['name']
-        loss_params = {k: v for k, v in loss_dict.items() if k != "name"}
+        loss_name = loss_cfg.name
+        loss_params = {k: v for k, v in loss_cfg.items() if k != "name"}
 
         if loss_name not in loss2class:
             raise NotImplementedError("Loss {} not implemented".format(loss_name))
