@@ -13,14 +13,14 @@ from ignite import metrics
 from alsegment.data.medical_dataset import create_data_loader
 from alsegment.losses import get_loss_fn
 from alsegment.models import get_model
-from alsegment.helpers.segmentation_metrics import SegmentationMetrics
+from alsegment.helpers.segment_metrics import SegmentationMetrics
 from alsegment.helpers.utils import timer_to_str, setup_logger
 from alsegment.helpers.paths import get_resume_model_path, get_resume_optimizer_path, get_dataset_path
 
 
 class Trainer(object):
 
-    def __init__(self, config, save_dir):
+    def __init__(self, config: dict, save_dir: str):
         self.save_dir = save_dir
         self.logger, self.log_handler = setup_logger(save_dir)
         self.logger.info(f'Saving to folder {save_dir}')
