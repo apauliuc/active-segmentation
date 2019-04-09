@@ -109,5 +109,6 @@ venv.bak/
 data_preprocessing/
 runs/
 src/configs/archive/
+src/old/
 src/notebooks/
 runs*/

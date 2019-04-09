@@ -6,6 +6,7 @@ import SimpleITK as SiTK
 
 from alsegment.data.prediction_loader import create_prediction_loader
 from alsegment.helpers.paths import get_dataset_path
+from alsegment.models import get_model
 from definitions import RUNS_DIR
 from alsegment.helpers.types import device
 # noinspection PyProtectedMember
@@ -33,7 +34,8 @@ def prediction_main(run_dir_name, config, name='', use_best_model=True):
     model_filepath = os.path.join(load_directory, model_filename)
 
     # Load model
-    model = torch.load(model_filepath)
+    model = get_model(config['model'])
+    model.load_state_dict(torch.load(model_filepath))
     model.to(device)
 
     # Create dataloader

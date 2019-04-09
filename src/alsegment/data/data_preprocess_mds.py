@@ -4,10 +4,11 @@ import shutil
 import numpy as np
 import os
 
+from PIL import Image
 import SimpleITK as SiTK
 
 
-def preprocess_scans(root_dir, max_clip=100, clip_max_to_0=False):
+def mds_preprocess_scans(root_dir, max_clip=100, clip_max_to_0=False):
     scans_name = 'arr_scan_no_skull.npy'
 
     if not clip_max_to_0:
@@ -36,7 +37,7 @@ def preprocess_scans(root_dir, max_clip=100, clip_max_to_0=False):
     return f'{clipped_scan_name}.npy'
 
 
-def process_scans_from_list(root_dir, save_path, scan_name, scans_to_separate):
+def mds_process_scans_from_list(root_dir, save_path, scan_name, scans_to_separate):
     count = 0
     file_list = []
 
@@ -67,7 +68,7 @@ def process_scans_from_list(root_dir, save_path, scan_name, scans_to_separate):
     return count, loaded_scans
 
 
-def prepare_prediction_dir(root_dir, save_path, npy_scan_name, predict_list):
+def mds_prepare_prediction_dir(root_dir, save_path, npy_scan_name, predict_list):
     old_names = [npy_scan_name, f'{npy_scan_name[4:-4]}.mha', 'segmentation.mha']
     for acc_nr in predict_list:
         acc_dir = os.path.join(root_dir, acc_nr)
@@ -83,7 +84,7 @@ def prepare_prediction_dir(root_dir, save_path, npy_scan_name, predict_list):
                 os.rename(os.path.join(prediction_save_dir, old), os.path.join(prediction_save_dir, new))
 
 
-def separate_scans_to_slices(root_dir, save_path, scan_name, dummy_dataset=False):
+def mds_separate_scans_to_slices(root_dir, save_path, scan_name, dummy_dataset=False):
     # Delete and recreate folders
     train_path = os.path.join(save_path, 'train')
     val_path = os.path.join(save_path, 'val')
@@ -107,9 +108,9 @@ def separate_scans_to_slices(root_dir, save_path, scan_name, dummy_dataset=False
         train_patients = ['1025819']
         val_patients = train_patients
 
-    train_count, train_scans = process_scans_from_list(root_dir, train_path, scan_name, train_patients)
-    val_count, val_scans = process_scans_from_list(root_dir, val_path, scan_name, val_patients)
-    prepare_prediction_dir(root_dir, predict_path, scan_name, val_patients)
+    train_count, train_scans = mds_process_scans_from_list(root_dir, train_path, scan_name, train_patients)
+    val_count, val_scans = mds_process_scans_from_list(root_dir, val_path, scan_name, val_patients)
+    mds_prepare_prediction_dir(root_dir, predict_path, scan_name, val_patients)
 
     print("Saved %i images to train" % train_count)
     print("Saved %i images to val" % val_count)

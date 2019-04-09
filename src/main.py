@@ -2,11 +2,11 @@ import os
 import yaml
 import argparse
 
-from alsegment.data.data_preprocess import preprocess_scans, separate_scans_to_slices
+from alsegment.data.data_preprocess_mds import mds_preprocess_scans, mds_separate_scans_to_slices
 from alsegment.predict import prediction_main
 from alsegment.trainer import Trainer
 from alsegment.helpers.paths import get_new_run_path
-from definitions import CONFIG_STANDARD, DATA_DIR_AT_AMC, DATA_DIR
+from definitions import CONFIG_STANDARD, DATA_DIR_AT_AMC, DATA_DIR, RUNS_DIR
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -14,10 +14,10 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 def main(args):
     if args.run_type == 'preprocess':
         data_root_dir = os.path.join('C:', 'Andrei', 'MHA and NPY')
+        dataset_path = os.path.join(DATA_DIR_AT_AMC, 'AMC NEW')
 
-        scan_names = preprocess_scans(data_root_dir, max_clip=255, clip_max_to_0=True)
-        dir_test = os.path.join(DATA_DIR_AT_AMC, 'AMC Dummy')
-        separate_scans_to_slices(data_root_dir, dir_test, scan_names, dummy_dataset=True)
+        scan_names = mds_preprocess_scans(data_root_dir, max_clip=255, clip_max_to_0=True)
+        mds_separate_scans_to_slices(data_root_dir, dataset_path, scan_names, dummy_dataset=False)
 
     elif args.run_type == 'train':
         with open(args.config, 'r') as f:
@@ -35,10 +35,10 @@ def main(args):
             prediction_main(run_dir_name=run_dir, config=config, name=config['run_name'])
 
     elif args.run_type == 'predict':
-        with open(os.path.join(args.run_dir, 'cfg_file.yml')) as f:
+        with open(os.path.join(RUNS_DIR, args.run_dir, 'cfg_file.yml')) as f:
             config = yaml.load(f)
 
-        prediction_main(args.run_dir, config)
+        prediction_main(args.run_dir, config, name=config['run_name'])
 
 
 if __name__ == '__main__':

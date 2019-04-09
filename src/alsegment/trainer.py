@@ -10,7 +10,7 @@ from tensorboardX import SummaryWriter
 from ignite import engine, handlers
 from ignite import metrics
 
-from alsegment.data.dataloader import create_data_loader
+from alsegment.data.medical_dataset import create_data_loader
 from alsegment.losses import get_loss_fn
 from alsegment.models import get_model
 from alsegment.helpers.segmentation_metrics import SegmentationMetrics
@@ -75,22 +75,21 @@ class Trainer(object):
         return train_loader, val_loader, val_train_loader
 
     def __init__model(self, model_cfg: dict):
+        model = get_model(model_cfg).to(device=self.device)
         if self.resume_cfg['resume_from'] is not None:
             model_path = get_resume_model_path(self.resume_cfg['resume_from'], self.resume_cfg['saved_model'])
             self.logger.info(f'Loading model loaded from {model_path}')
-            model = torch.load(model_path)
-        else:
-            model = get_model(model_cfg).to(device=self.device)
+            model.load_state_dict(torch.load(model_path))
         return model
 
     def __init_optimizer(self, optim_cfg: dict):
+        optimizer = optim.Adam(self.model.parameters(), lr=optim_cfg['lr'],
+                               weight_decay=optim_cfg['weight_decay'], amsgrad=optim_cfg['amsgrad'])
+
         if self.resume_cfg['resume_from'] is not None:
             optimizer_path = get_resume_optimizer_path(self.resume_cfg['resume_from'], self.resume_cfg['saved_optimizer'])
             self.logger.info(f'Loading optimizer from {optimizer_path}')
-            optimizer = torch.load(optimizer_path)
-        else:
-            optimizer = optim.Adam(self.model.parameters(), lr=optim_cfg['lr'],
-                                   weight_decay=optim_cfg['weight_decay'], amsgrad=optim_cfg['amsgrad'])
+            optimizer.load_state_dict(torch.load(optimizer_path))
         return optimizer
 
     def __init_criterion(self, train_cfg: dict):
@@ -130,10 +129,10 @@ class Trainer(object):
         }
 
         best_checkpoint_handler = handlers.ModelCheckpoint(self.save_dir, 'best', n_saved=1, require_empty=False,
-                                                           score_function=self.val_loss)
+                                                           score_function=self.val_loss, save_as_state_dict=True)
 
         final_checkpoint_handler = handlers.ModelCheckpoint(self.save_dir, 'final', save_interval=1, n_saved=1,
-                                                            require_empty=False)
+                                                            require_empty=False, save_as_state_dict=True)
 
         self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_checkpoint_handler, checkpoint_save)
         self.trainer.add_event_handler(engine.Events.COMPLETED, final_checkpoint_handler, checkpoint_save)
