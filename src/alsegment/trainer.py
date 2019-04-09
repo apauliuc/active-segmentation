@@ -14,7 +14,7 @@ from alsegment.data.medical_dataset import create_data_loader
 from alsegment.helpers.config import ConfigClass
 from alsegment.losses import get_loss_fn
 from alsegment.models import get_model
-from alsegment.helpers.segment_metrics import SegmentationMetrics
+from alsegment.helpers.metrics import SegmentationMetrics
 from alsegment.helpers.utils import timer_to_str, setup_logger
 from alsegment.helpers.paths import get_resume_model_path, get_resume_optimizer_path, get_dataset_path
 
