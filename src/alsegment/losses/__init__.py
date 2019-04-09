@@ -1,16 +1,16 @@
-from alsegment.losses.BinaryCrossEntropyLoss2D import BinaryCrossEntropyLoss2D
-from alsegment.losses.SoftDiceLoss import SoftDiceLoss
-from alsegment.losses.JaccardLoss import JaccardLoss
-from alsegment.losses.BCEAndJaccardLoss import BCEAndJaccardLoss
+from alsegment.losses.bce_2d import BinaryCrossEntropyLoss2D
+from alsegment.losses.soft_dice import SoftDiceLoss
+from alsegment.losses.jaccard import JaccardLoss
+from alsegment.losses.bce_and_jaccard import BCEAndJaccardLoss
 import torch.nn as nn
 
 
 loss2class = {
     'bce_loss': nn.BCEWithLogitsLoss,
     'jaccard_loss': JaccardLoss,
-    'bce_and_jaccard': BCEAndJaccardLoss
+    'bce_and_jaccard': BCEAndJaccardLoss,
+    'cross_entropy_loss': nn.CrossEntropyLoss
     # 'bce_loss_2d': BinaryCrossEntropyLoss2D,
-    # 'cross_entropy_loss': nn.CrossEntropyLoss,
     # 'soft_dice_loss': SoftDiceLoss,
 }
 
