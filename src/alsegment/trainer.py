@@ -42,13 +42,13 @@ class Trainer(object):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.eval_train_loader = data_cfg.run_val_on_train
 
-        self.metrics = {
-            'loss': metrics.Loss(get_loss_fn(train_cfg.loss_fn)),
-            'segment_metrics': SegmentationMetrics()
-        }
-
         self.data_loaders = get_dataloaders(data_cfg)
         self.logger.info(self.data_loaders.msg)
+
+        self.metrics = {
+            'loss': metrics.Loss(get_loss_fn(train_cfg.loss_fn)),
+            'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes)
+        }
 
         model_cfg.network_params.input_channels = self.data_loaders.input_channels
         model_cfg.network_params.num_classes = self.data_loaders.num_classes
