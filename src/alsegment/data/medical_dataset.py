@@ -2,13 +2,13 @@ import os
 import pickle
 import numpy as np
 from os.path import join
+from PIL import Image
 
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
 from alsegment.data.base_loader import BaseLoader
-from alsegment.data.data_transforms import ToPILImage
 from alsegment.data.data_transforms import ToTensor
 from alsegment.data.data_transforms import Normalize
 from alsegment.helpers.config import ConfigClass
@@ -24,10 +24,9 @@ class MedicalScanDataset(Dataset):
         :param data_dir: path to folder containing images
         :param transform: optional transform to apply on samples
         """
-        self.n_channels = 1
-        self.n_classes = 1
-
         self.data_dir = data_dir
+        self.image_dir = os.path.join(data_dir, 'image')
+        self.segment_dir = os.path.join(data_dir, 'segment')
 
         with open(join(data_dir, 'file_list.pkl'), 'rb') as f:
             self.file_list = pickle.load(f)
@@ -40,8 +39,8 @@ class MedicalScanDataset(Dataset):
     def __getitem__(self, item: int):
         img_name = self.file_list[item]
 
-        image = np.load(join(self.data_dir, img_name + '.npy'))
-        segmentation = np.load(join(self.data_dir, img_name + '_seg.npy'))
+        image = Image.open(join(self.image_dir, img_name))
+        segmentation = Image.open(join(self.segment_dir, img_name))
 
         image, segmentation = self.transform((image, segmentation))
 
@@ -62,7 +61,6 @@ class MDSDataLoaders(BaseLoader):
             ds_statistics = pickle.load(f)
 
         self.train_transform = transforms.Compose([
-            ToPILImage(),
             ToTensor(),
             Normalize(ds_statistics['mean'], ds_statistics['std'])
         ])

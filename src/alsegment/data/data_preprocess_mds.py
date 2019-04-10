@@ -37,7 +37,7 @@ def mds_preprocess_scans(root_dir, max_clip=100, clip_max_to_0=False):
     return f'{clipped_scan_name}.npy'
 
 
-def mds_process_scans_from_list(root_dir, save_path, scan_name, scans_to_separate):
+def mds_process_scans_from_list(root_dir, save_path, save_path_img, save_path_seg, scan_name, scans_to_separate):
     count = 0
     file_list = []
 
@@ -51,14 +51,19 @@ def mds_process_scans_from_list(root_dir, save_path, scan_name, scans_to_separat
 
             loaded_scans.extend(np.split(scan, scan.shape[0]))
 
-            for i in np.arange(scan.shape[0]):
-                in_name = '%s_%i' % (acc_nr, i)
-                out_name = '%s_%i_seg' % (acc_nr, i)
+            for i in np.arange(11, 29):
+                f_name = '%s_%i.png' % (acc_nr, i)
 
-                file_list.append(in_name)
+                file_list.append(f_name)
 
-                np.save(os.path.join(save_path, in_name), scan[i, :, :])
-                np.save(os.path.join(save_path, out_name), segment[i, :, :])
+                scan_img = Image.fromarray(np.uint8(scan[i, :, :]))
+                segment_img = Image.fromarray(np.uint8(segment[i, :, :]))
+
+                scan_img.save(os.path.join(save_path_img, f_name))
+                segment_img.save(os.path.join(save_path_seg, f_name))
+
+                # np.save(os.path.join(save_path, in_name), scan[i, :, :])
+                # np.save(os.path.join(save_path, out_name), segment[i, :, :])
 
                 count += 1
 
@@ -87,17 +92,24 @@ def mds_prepare_prediction_dir(root_dir, save_path, npy_scan_name, predict_list)
 def mds_separate_scans_to_slices(root_dir, save_path, scan_name, dummy_dataset=False):
     # Delete and recreate folders
     train_path = os.path.join(save_path, 'train')
+    train_path_img = os.path.join(train_path, 'image')
+    train_path_seg = os.path.join(train_path, 'segment')
+
     val_path = os.path.join(save_path, 'val')
+    val_path_img = os.path.join(val_path, 'image')
+    val_path_seg = os.path.join(val_path, 'segment')
+
     predict_path = os.path.join(save_path, 'predict')
+
+    paths = [train_path_img, train_path_seg, val_path_img, val_path_seg, predict_path]
 
     if os.path.isdir(train_path):
         shutil.rmtree(train_path)
     if os.path.isdir(val_path):
         shutil.rmtree(val_path)
 
-    os.makedirs(train_path)
-    os.makedirs(val_path)
-    os.makedirs(predict_path, exist_ok=True)
+    for p in paths:
+        os.makedirs(p, exist_ok=True)
 
     # Preparation
     all_patients = os.listdir(root_dir)
@@ -108,8 +120,10 @@ def mds_separate_scans_to_slices(root_dir, save_path, scan_name, dummy_dataset=F
         train_patients = ['1025819']
         val_patients = train_patients
 
-    train_count, train_scans = mds_process_scans_from_list(root_dir, train_path, scan_name, train_patients)
-    val_count, val_scans = mds_process_scans_from_list(root_dir, val_path, scan_name, val_patients)
+    train_count, train_scans = mds_process_scans_from_list(root_dir, train_path, train_path_img, train_path_seg,
+                                                           scan_name, train_patients)
+    val_count, val_scans = mds_process_scans_from_list(root_dir, val_path, val_path_img, val_path_seg,
+                                                       scan_name, val_patients)
     mds_prepare_prediction_dir(root_dir, predict_path, scan_name, val_patients)
 
     print("Saved %i images to train" % train_count)

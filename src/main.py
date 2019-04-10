@@ -16,10 +16,11 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 def main(args):
     if args.run_type == 'preprocess':
         data_root_dir = os.path.join('C:', 'Andrei', 'MHA and NPY')
-        dataset_path = os.path.join(DATA_DIR_AT_AMC, 'AMC NEW')
+        dataset_path = os.path.join(DATA_DIR_AT_AMC, 'AMC Dummy')
 
-        scan_names = mds_preprocess_scans(data_root_dir, max_clip=255, clip_max_to_0=True)
-        mds_separate_scans_to_slices(data_root_dir, dataset_path, scan_names, dummy_dataset=False)
+        # scan_names = mds_preprocess_scans(data_root_dir, max_clip=255, clip_max_to_0=True)
+        scan_names = 'arr_scan_eroded_1.npy'
+        mds_separate_scans_to_slices(data_root_dir, dataset_path, scan_names, dummy_dataset=True)
 
     elif args.run_type == 'train':
         with open(args.config, 'r') as f:
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--run_type', type=str, default='train',
                         help='Type of run', choices=['train', 'predict', 'preprocess'])
-    parser.add_argument('--config', type=str, default=CONFIG_VOC,
+    parser.add_argument('--config', type=str, default=CONFIG_STANDARD,
                         help='Configuration file to use')
     parser.add_argument('--ds_path', type=str, default=DATA_DIR_AT_AMC,
                         help='Path to main data directory')
