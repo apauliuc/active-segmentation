@@ -6,7 +6,6 @@ from alsegment.data.data_preprocess_mds import mds_preprocess_scans, mds_separat
 from alsegment.helpers.config import ConfigClass
 from alsegment.predict import prediction_main
 from alsegment.trainer import Trainer
-# from alsegment.trainer_voc import TrainerVOC
 from alsegment.helpers.paths import get_new_run_path
 from definitions import CONFIG_STANDARD, DATA_DIR_AT_AMC, DATA_DIR, RUNS_DIR, CONFIG_DIR, CONFIG_VOC
 
@@ -26,6 +25,7 @@ def main(args):
         with open(args.config, 'r') as f:
             config = ConfigClass(yaml.load(f))
 
+        config.data.mode = 'train'
         config.data.path = args.ds_path
         run_dir = get_new_run_path(config.run_name)
 
@@ -35,11 +35,13 @@ def main(args):
         Trainer(config, run_dir).run()
 
         if args.train_predict:
+            config.data.mode = 'predict'
             prediction_main(run_dir_name=run_dir, config=config, name=config.run_name)
 
     elif args.run_type == 'predict':
         with open(os.path.join(RUNS_DIR, args.run_dir, 'cfg_file.yml')) as f:
             config = ConfigClass(yaml.load(f))
+        config.data.mode = 'predict'
 
         prediction_main(args.run_dir, config, name=config.run_name)
 

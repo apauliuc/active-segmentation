@@ -47,11 +47,30 @@ class MedicalScanDataset(Dataset):
         return image, segmentation
 
 
+class MDSPrediction(Dataset):
+    """Medical Scans Dataset"""
+
+    def __init__(self, file_path, transform=lambda x: x):
+        self.scan = np.load(file_path)
+        self.scan = transform(np.transpose(self.scan, (1, 2, 0))).type(torch.FloatTensor)
+        self.scan = self.scan.unsqueeze(1)
+
+        self.shape = self.scan.shape
+
+    def __len__(self) -> int:
+        return len(self.scan)
+
+    def __getitem__(self, item: int):
+        image = self.scan[item, :, :]
+        return image
+
+
 class MDSDataLoaders(BaseLoader):
 
     def __init__(self, config: ConfigClass, shuffle=True):
         assert config.mode in ['train', 'predict']
 
+        self.config = config
         self.input_channels = 1
         self.num_classes = 1
 
@@ -63,6 +82,11 @@ class MDSDataLoaders(BaseLoader):
         self.train_transform = transforms.Compose([
             ToTensor(),
             Normalize(ds_statistics['mean'], ds_statistics['std'])
+        ])
+
+        self.predict_transf = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([ds_statistics['mean']], [ds_statistics['std']]),
         ])
 
         if config.mode == 'train':
@@ -91,6 +115,17 @@ class MDSDataLoaders(BaseLoader):
                                                    pin_memory=torch.cuda.is_available())
 
         elif config.mode == 'predict':
-            pass
+            self.predict_path = get_dataset_path(config.path, config.dataset, 'predict')
+            self.dir_list = [x for x in os.listdir(self.predict_path)
+                             if os.path.isdir(os.path.join(self.predict_path, x))]
         else:
             raise Exception('Data loading mode not found')
+
+    def get_predict_loader(self, file_name):
+        predict_dataset = MDSPrediction(os.path.join(self.predict_path, file_name), self.predict_transf)
+
+        return DataLoader(predict_dataset,
+                          batch_size=self.config.batch_size_val,
+                          shuffle=False,
+                          num_workers=self.config.num_workers,
+                          pin_memory=torch.cuda.is_available())

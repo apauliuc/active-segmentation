@@ -1,11 +1,9 @@
 import os
-import yaml
 import numpy as np
 import torch
 import SimpleITK as SiTK
 
-from alsegment.data.prediction_loader import create_prediction_loader
-from alsegment.helpers.paths import get_dataset_path
+from alsegment.data import MDSDataLoaders
 from alsegment.models import get_model
 from definitions import RUNS_DIR
 from alsegment.helpers.types import device
@@ -34,24 +32,18 @@ def prediction_main(run_dir_name, config, name='', use_best_model=True):
     model_filepath = os.path.join(load_directory, model_filename)
 
     # Load model
-    model = get_model(config['model'])
+    model = get_model(config.model)
     model.load_state_dict(torch.load(model_filepath))
     model.to(device)
 
-    # Create dataloader
-    data_cfg = config['data']
-    data_path = get_dataset_path(data_cfg['path'], data_cfg['dataset'], 'predict')
-    dir_list = [x for x in os.listdir(data_path)
-                if os.path.isdir(os.path.join(data_path, x))]
-
-    batch_size = 8
+    # Create dataloader wrapper
+    loader_wrapper = MDSDataLoaders(config.data)
 
     # Predict
-    for dir_id in dir_list:
-        scan_dir = os.path.join(data_path, dir_id)
+    for dir_id in loader_wrapper.dir_list:
         s_name = os.path.join(dir_id, f'{dir_id}_scan.npy')
 
-        data_loader = create_prediction_loader(data_path, s_name, batch_size=batch_size)
+        data_loader = loader_wrapper.get_predict_loader(s_name)
 
         model.eval()
         segmentation = np.zeros(data_loader.dataset.shape)
@@ -64,13 +56,13 @@ def prediction_main(run_dir_name, config, name='', use_best_model=True):
                 y_pred = model(x)
                 y_pred = torch.sigmoid(y_pred.cpu())
 
-                segmentation[idx:idx + batch_size] = y_pred.numpy()
-                idx += batch_size
+                segmentation[idx:idx + config.data.batch_size_val] = y_pred.numpy()
+                idx += config.data.batch_size_val
 
         segmentation = segmentation.squeeze(1)
         segmentation *= 255
         segmentation = segmentation.astype(np.uint8)
         SiTK.WriteImage(SiTK.GetImageFromArray(segmentation),
-                        os.path.join(scan_dir, f'{dir_id}_predicted_{name}.mha'))
+                        os.path.join(loader_wrapper.predict_path, dir_id, f'{dir_id}_predicted_{name}.mha'))
 
     print('Done!')

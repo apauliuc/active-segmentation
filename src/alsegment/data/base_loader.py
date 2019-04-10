@@ -8,3 +8,5 @@ class BaseLoader:
     msg: str
     input_channels: int
     num_classes: int
+    predict_path: str
+    dir_list: list
