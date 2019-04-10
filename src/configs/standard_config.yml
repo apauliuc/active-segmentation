@@ -1,21 +1,20 @@
-run_name: UNet_64_BCE_Jacc
+run_name:
 data:
-  dataset: AMC
-  train_split: train
-  val_split: val
+  dataset: AMC NEW
+  mode: train
   batch_size: 4
+  batch_size_val: 8
   num_workers: 4
   run_val_on_train: False
-  batch_size_val: 8
 training:
   seed:
-  num_epochs: 200
+  num_epochs: 150
   optimizer:
-    lr: 0.01
+    lr: 0.001
     weight_decay: 0.0001
     amsgrad: True
     scheduler: step
-    lr_cycle: 50
+    lr_cycle: 75
   log_interval: 20
   save_model_interval: 50
   ignite_history_size: 1

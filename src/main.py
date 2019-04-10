@@ -8,7 +8,7 @@ from alsegment.predict import prediction_main
 from alsegment.trainer import Trainer
 # from alsegment.trainer_voc import TrainerVOC
 from alsegment.helpers.paths import get_new_run_path
-from definitions import CONFIG_STANDARD, DATA_DIR_AT_AMC, DATA_DIR, RUNS_DIR, CONFIG_DIR
+from definitions import CONFIG_STANDARD, DATA_DIR_AT_AMC, DATA_DIR, RUNS_DIR, CONFIG_DIR, CONFIG_VOC
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--run_type', type=str, default='train',
                         help='Type of run', choices=['train', 'predict', 'preprocess'])
-    parser.add_argument('--config', type=str, default=CONFIG_STANDARD,
+    parser.add_argument('--config', type=str, default=CONFIG_VOC,
                         help='Configuration file to use')
     parser.add_argument('--ds_path', type=str, default=DATA_DIR_AT_AMC,
                         help='Path to main data directory')

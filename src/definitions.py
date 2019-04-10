@@ -10,3 +10,4 @@ DATA_DIR_AT_AMC = os.path.join('C:', 'Andrei', 'data')
 VOC_ROOT = os.path.join(DATA_DIR_AT_AMC, 'VOC')
 
 CONFIG_STANDARD = os.path.join(CONFIG_DIR, 'standard_config.yml')
+CONFIG_VOC = os.path.join(CONFIG_DIR, 'voc_config.yml')

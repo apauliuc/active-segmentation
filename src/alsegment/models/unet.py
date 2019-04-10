@@ -71,13 +71,13 @@ class UNet(nn.Module):
     Implementation of the U-Net neural network for segmentation
     """
 
-    def __init__(self, n_channels=1, n_classes=1, batch_norm=True, up_conv=True):
+    def __init__(self, input_channels=1, n_classes=1, batch_norm=True, up_conv=True):
         super(UNet, self).__init__()
 
         filter_sizes = [64, 128, 256, 512, 1024]
 
         # Down sampling layers (1 to 4)
-        self.conv1 = UNetConvStack(n_channels, filter_sizes[0], batch_norm)
+        self.conv1 = UNetConvStack(input_channels, filter_sizes[0], batch_norm)
         self.maxpool1 = nn.MaxPool2d(kernel_size=2)
 
         self.conv2 = UNetConvStack(filter_sizes[0], filter_sizes[1], batch_norm)

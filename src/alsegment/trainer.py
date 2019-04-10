@@ -10,7 +10,7 @@ from tensorboardX import SummaryWriter
 from ignite import engine, handlers
 from ignite import metrics
 
-from alsegment.data.medical_dataset import create_data_loader
+from alsegment.data import get_dataloaders
 from alsegment.helpers.config import ConfigClass
 from alsegment.losses import get_loss_fn
 from alsegment.models import get_model
@@ -47,7 +47,11 @@ class Trainer(object):
             'segment_metrics': SegmentationMetrics()
         }
 
-        self.train_loader, self.val_loader, self.val_train_loader = self.__init_data_loaders(data_cfg)
+        self.data_loaders = get_dataloaders(data_cfg)
+        self.logger.info(self.data_loaders.msg)
+
+        model_cfg.network_params.input_channels = self.data_loaders.input_channels
+        model_cfg.network_params.num_classes = self.data_loaders.num_classes
 
         self.model = self.__init__model(model_cfg)
         self.optimizer = self.__init_optimizer(optim_cfg)
@@ -58,22 +62,6 @@ class Trainer(object):
         self.trainer, self.evaluator = self.__init_engines()
 
         self.__init_handlers()
-
-    def __init_data_loaders(self, data_cfg: ConfigClass):
-        train_path = get_dataset_path(data_cfg.path, data_cfg.dataset, data_cfg.train_split)
-        train_loader = create_data_loader(data_cfg, train_path, batch_size=data_cfg.batch_size)
-        self.logger.info(f'Train data loader created from {train_path}')
-
-        val_path = get_dataset_path(data_cfg.path, data_cfg.dataset, data_cfg.val_split)
-        val_loader = create_data_loader(data_cfg, val_path, batch_size=data_cfg.batch_size_val)
-        self.logger.info(f'Validation data loader created from {val_path}')
-
-        if self.eval_train_loader:
-            val_train_loader = create_data_loader(data_cfg, train_path, batch_size=data_cfg.batch_size_val)
-        else:
-            val_train_loader = None
-
-        return train_loader, val_loader, val_train_loader
 
     def __init__model(self, model_cfg: ConfigClass):
         model = get_model(model_cfg).to(device=self.device)
@@ -163,7 +151,7 @@ class Trainer(object):
         self.writer.add_scalar('training/train_timer', self.timer.value(), _train_engine.state.epoch)
 
     def _run_evaluation(self, _train_engine: engine.Engine) -> None:
-        self.evaluator.run(self.val_loader)
+        self.evaluator.run(self.data_loaders.val_loader)
         eval_loss = self.evaluator.state.metrics['loss']
         eval_metrics = self.evaluator.state.metrics['segment_metrics']
         msg = f'Eval. on val_loader - Avg loss: {eval_loss:.4f}'
@@ -189,6 +177,6 @@ class Trainer(object):
 
     def run(self) -> None:
         self.logger.info(f'All set. Starting training on {self.device}.')
-        self.trainer.run(self.train_loader, max_epochs=self.epochs)
+        self.trainer.run(self.data_loaders.train_loader, max_epochs=self.epochs)
 
         self.logger.removeHandler(self.log_handler)
