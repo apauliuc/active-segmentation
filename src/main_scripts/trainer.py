@@ -167,21 +167,23 @@ class Trainer(object):
             self.writer.add_scalar(f'val_metrics/{key}', value, _train_engine.state.epoch)
 
     def _on_events_completed(self, _engine: engine.Engine) -> None:
-        self.writer.export_scalars_to_json(os.path.join(self.save_dir, 'tensorboardX.json'))
-        self.writer.close()
+        self.finalize()
 
     def _on_exception_raised(self, _engine: engine.Engine, e: Exception) -> None:
         self.logger.info(f'Exception at epoch {_engine.state.epoch}')
         self.logger.info(e)
-        self._on_events_completed(_engine)
+        self.finalize()
         raise e
 
     # noinspection PyMethodMayBeStatic
     def val_loss(self, _engine: engine.Engine) -> float:
         return -round(_engine.state.metrics['loss'], 6)
 
+    def finalize(self) -> None:
+        self.writer.export_scalars_to_json(os.path.join(self.save_dir, 'tensorboardX.json'))
+        self.writer.close()
+        self.logger.removeHandler(self.log_handler)
+
     def run(self) -> None:
         self.logger.info(f'All set. Starting training on {self.device}.')
         self.trainer.run(self.data_loaders.train_loader, max_epochs=self.epochs)
-
-        self.logger.removeHandler(self.log_handler)

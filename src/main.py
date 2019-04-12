@@ -12,6 +12,11 @@ from definitions import CONFIG_STANDARD, DATA_DIR, RUNS_DIR, CONFIG_DIR
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 
+def predict_config(config: ConfigClass, run_dir: str):
+    config.data.mode = 'predict'
+    prediction_main(config=config, load_directory=run_dir, name=config.run_name)
+
+
 def train_config(args, config_path: str):
     with open(config_path, 'r') as f:
         config = ConfigClass(yaml.load(f))
@@ -27,8 +32,7 @@ def train_config(args, config_path: str):
     trainer.run()
 
     if args.train_predict:
-        config.data.mode = 'predict'
-        prediction_main(run_dir_name=run_dir, config=config, name=config.run_name)
+        predict_config(config, run_dir)
 
 
 def main(args):
@@ -43,17 +47,24 @@ def main(args):
         train_config(args, args.config)
 
     elif args.run_type == 'train_all_configs':
-        configs_list = [os.path.join(args.configs_dir, x) for x in os.listdir(args.configs_dir)]
+        configs_list = [os.path.join(args.configs_dir, x)
+                        for x in os.listdir(args.configs_dir) if 'config_' in x]
+
+        print(f'Running training on {len(configs_list)} configs')
 
         for config in configs_list:
-            train_config(args, config)
+            try:
+                train_config(args, config)
+            except Exception as e:
+                print(f'Error: {e}')
+                print('\nSomething went wrong. Moving to next config file\n')
 
     elif args.run_type == 'predict':
-        with open(os.path.join(RUNS_DIR, args.run_dir, 'cfg_file.yml')) as f:
+        run_dir = os.path.join(RUNS_DIR, args.run_dir)
+        with open(os.path.join(run_dir, 'cfg_file.yml')) as f:
             config = ConfigClass(yaml.load(f))
-        config.data.mode = 'predict'
 
-        prediction_main(args.run_dir, config, name=config.run_name)
+        predict_config(config, run_dir)
 
 
 if __name__ == '__main__':
@@ -69,7 +80,7 @@ if __name__ == '__main__':
                         help='Path to main data directory')
     parser.add_argument('--train_predict', type=bool, default=True,
                         help='Indicate whether to predict after training is finished')
-    parser.add_argument('--run_dir', type=str, default='',
+    parser.add_argument('--run_dir', type=str, default='FCN8_Dummy_Test_04-12_18-20-11',
                         help='Previous run directory to load model from (works only for run_type = predict)')
 
     arguments = parser.parse_args()

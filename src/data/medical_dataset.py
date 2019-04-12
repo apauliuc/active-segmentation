@@ -86,6 +86,7 @@ class MDSDataLoaders(BaseLoader):
 
         self.predict_transf = transforms.Compose([
             transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.float().div(255)),
             transforms.Normalize([ds_statistics['mean']], [ds_statistics['std']]),
         ])
 
