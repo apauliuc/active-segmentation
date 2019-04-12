@@ -9,13 +9,11 @@ from models.common import get_upsampling_weight
 class FCN32(nn.Module):
 
     def __init__(self,
-                 input_channels=1,
                  num_classes=1,
                  use_pretrained=False,
                  learn_upconv=False):
         super(FCN32, self).__init__()
         self.learn_upconv = learn_upconv
-        self.in_channels = input_channels
         self.num_classes = num_classes
 
         self.conv_block1 = nn.Sequential(

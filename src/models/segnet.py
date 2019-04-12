@@ -34,11 +34,9 @@ class _DecoderBlock(nn.Module):
 class SegNet(nn.Module):
 
     def __init__(self,
-                 input_channels=1,
                  num_classes=1,
                  pretrained=True):
         super(SegNet, self).__init__()
-        self.in_channels = input_channels
         self.num_classes = num_classes
 
         vgg = models.vgg19_bn(pretrained)

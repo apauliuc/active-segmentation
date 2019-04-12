@@ -49,7 +49,6 @@ class DecoderBlock(nn.Module):
 
 class TernausNet(nn.Module):
     def __init__(self,
-                 input_channels=1,
                  num_classes=1,
                  num_filters=32,
                  pretrained=False):
@@ -62,7 +61,6 @@ class TernausNet(nn.Module):
         Implementation from https://github.com/ternaus/robot-surgery-segmentation/blob/master/models.py
         """
         super().__init__()
-        self.in_channels = input_channels
         self.num_classes = num_classes
 
         self.pool = nn.MaxPool2d(2, 2)
