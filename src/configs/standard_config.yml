@@ -1,6 +1,6 @@
-run_name:
+run_name: FCN8_Dummy
 data:
-  dataset: AMC NEW
+  dataset: AMC Dummy
   mode: train
   batch_size: 4
   batch_size_val: 8
@@ -8,22 +8,24 @@ data:
   run_val_on_train: False
 training:
   seed:
-  num_epochs: 150
+  num_epochs: 50
   optimizer:
+    name: Adam
     lr: 0.001
     weight_decay: 0.0001
     amsgrad: True
     scheduler: step
-    lr_cycle: 75
+    lr_cycle: 20
+  loss_fn:
+    name: bce_and_jaccard
   log_interval: 20
   save_model_interval: 50
   ignite_history_size: 1
-  loss_fn:
-    name: bce_and_jaccard
 model:
-  name: unet_v2
+  name: fcn8
   network_params:
-    filters_base: 64
+    learn_upconv: True
+    use_pretrained: False
 resume:
   resume_from:
   saved_model:

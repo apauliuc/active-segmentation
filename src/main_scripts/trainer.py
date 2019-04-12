@@ -118,8 +118,7 @@ class Trainer(object):
         }
 
         best_checkpoint_handler = handlers.ModelCheckpoint(self.save_dir, 'best', n_saved=1, require_empty=False,
-                                                           score_function=self.val_loss, save_as_state_dict=True,
-                                                           atomic=False)
+                                                           score_function=self.val_loss, save_as_state_dict=True)
 
         final_checkpoint_handler = handlers.ModelCheckpoint(self.save_dir, 'final', save_interval=1, n_saved=1,
                                                             require_empty=False, save_as_state_dict=True)

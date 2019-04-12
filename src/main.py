@@ -2,12 +2,12 @@ import os
 import yaml
 import argparse
 
-from data.data_preprocess_mds import mds_separate_scans_to_slices
+from data.data_preprocess_mds import mds_separate_scans_to_slices, mds_preprocess_scans
 from helpers.config import ConfigClass
 from main_scripts.predict import prediction_main
 from main_scripts.trainer import Trainer
 from helpers.paths import get_new_run_path
-from definitions import CONFIG_STANDARD, DATA_DIR_AT_AMC, DATA_DIR, RUNS_DIR
+from definitions import CONFIG_STANDARD, DATA_DIR, RUNS_DIR
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -15,10 +15,10 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 def main(args):
     if args.run_type == 'preprocess':
         data_root_dir = os.path.join('C:', 'Andrei', 'MHA and NPY')
-        dataset_path = os.path.join(DATA_DIR_AT_AMC, 'AMC Dummy')
+        dataset_path = os.path.join(DATA_DIR, 'AMC Dummy')
 
-        # scan_names = mds_preprocess_scans(data_root_dir, max_clip=255, clip_max_to_0=True)
-        scan_names = 'arr_scan_eroded_1.npy'
+        scan_names = mds_preprocess_scans(data_root_dir, max_clip=255, clip_max_to_0=False)
+        # scan_names = 'arr_scan_eroded_1.npy'
         mds_separate_scans_to_slices(data_root_dir, dataset_path, scan_names, dummy_dataset=True)
 
     elif args.run_type == 'train':
