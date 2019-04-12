@@ -6,13 +6,17 @@ from models.fcn8 import FCN8
 from models.fcn16 import FCN16
 from models.fcn32 import FCN32
 
+from helpers.utils import retrieve_class_init_parameters
+
 
 def get_model(model_cfg):
     model_name = model_cfg.name
-    model = _get_model_instance(model_name)
-    param_dict = {k: v for k, v in model_cfg.network_params.items()}
+    model_cls = _get_model_instance(model_name)
 
-    model = model(**param_dict)
+    init_param_names = retrieve_class_init_parameters(model_cls)
+    param_dict = {k: v for k, v in model_cfg.network_params.items() if k in init_param_names}
+
+    model = model_cls(**param_dict)
 
     return model
 

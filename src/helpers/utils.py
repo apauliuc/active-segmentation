@@ -1,6 +1,8 @@
 import os
 import sys
+import inspect
 import logging
+from typing import List
 
 
 def setup_logger(logdir):
@@ -19,17 +21,12 @@ def setup_logger(logdir):
     return logger, handler
 
 
-def dice_coefficient(prediction, target) -> float:
-    smooth = 1e-5
-    batch_size = prediction.shape[0]
-    m1 = prediction.view(batch_size, -1)
-    m2 = target.view(batch_size, -1)
-    score_per_item = (2. * (m1 * m2).sum(dim=1) + smooth) / \
-                     (m1.sum(dim=1) + m2.sum(dim=1) + smooth)
-    return score_per_item.mean()
-
-
 def timer_to_str(value):
     m, s = divmod(value, 60)
     h, m = divmod(m, 60)
     return "%02i:%02i:%02i" % (h, m, s)
+
+
+def retrieve_class_init_parameters(class_instance) -> List:
+    class_signature = inspect.signature(class_instance.__init__)
+    return list(class_signature.parameters)

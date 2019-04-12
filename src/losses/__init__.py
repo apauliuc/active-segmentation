@@ -1,7 +1,9 @@
 from losses.soft_dice import SoftDiceLoss
 from losses.jaccard import JaccardLoss
 from losses.bce_and_jaccard import BCEAndJaccardLoss
+
 import torch.nn as nn
+from helpers.utils import retrieve_class_init_parameters
 
 
 loss2class = {
@@ -14,15 +16,20 @@ loss2class = {
 }
 
 
-def get_loss_fn(loss_cfg):
-    if loss_cfg.name is None:
+def get_loss_function(loss_cfg):
+    loss_name = loss_cfg.name
+
+    if loss_name is None:
         return nn.BCEWithLogitsLoss()
     else:
-        loss_name = loss_cfg.name
-        loss_params = {k: v for k, v in loss_cfg.items() if k != "name"}
-
         if loss_name not in loss2class:
-            raise NotImplementedError("Loss {} not implemented".format(loss_name))
+            raise NotImplementedError(f"Loss {loss_name} not implemented")
 
-        loss_fn = loss2class[loss_name](**loss_params)
-        return loss_fn
+        loss_cls = loss2class[loss_name]
+
+        init_param_names = retrieve_class_init_parameters(loss_cls)
+        loss_params = {k: v for k, v in loss_cfg.items() if k in init_param_names}
+
+        loss = loss_cls(**loss_params)
+
+        return loss

@@ -3,7 +3,6 @@ import random
 from typing import Tuple
 
 import torch
-import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 from tensorboardX import SummaryWriter
 
@@ -12,10 +11,11 @@ from ignite import metrics
 
 from data import get_dataloaders
 from models import get_model
-from losses import get_loss_fn
+from losses import get_loss_function
+from optimizers import get_optimizer
 from helpers.config import ConfigClass
 from helpers.metrics import SegmentationMetrics
-from helpers.utils import timer_to_str, setup_logger
+from helpers.utils import timer_to_str, setup_logger, retrieve_class_init_parameters
 from helpers.paths import get_resume_model_path, get_resume_optimizer_path
 
 
@@ -46,7 +46,7 @@ class Trainer(object):
         self.logger.info(self.data_loaders.msg)
 
         self.metrics = {
-            'loss': metrics.Loss(get_loss_fn(train_cfg.loss_fn)),
+            'loss': metrics.Loss(get_loss_function(train_cfg.loss_fn)),
             'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes)
         }
 
@@ -72,8 +72,13 @@ class Trainer(object):
         return model
 
     def __init_optimizer(self, optim_cfg: ConfigClass):
-        optimizer = optim.Adam(self.model.parameters(), lr=optim_cfg.lr,
-                               weight_decay=optim_cfg.weight_decay, amsgrad=optim_cfg.amsgrad)
+        optimizer_cls = get_optimizer(optim_cfg)
+
+        init_param_names = retrieve_class_init_parameters(optimizer_cls)
+        optimizer_params = {k: v for k, v in optim_cfg.items() if k in init_param_names}
+
+        optimizer = optimizer_cls(self.model.parameters(), **optimizer_params)
+        self.logger.info(f'Using optimizer {optimizer}')
 
         if self.resume_cfg.resume_from is not None:
             optimizer_path = get_resume_optimizer_path(self.resume_cfg.resume_from, self.resume_cfg.saved_optimizer)
@@ -82,7 +87,7 @@ class Trainer(object):
         return optimizer
 
     def __init_criterion(self, train_cfg: ConfigClass):
-        criterion = get_loss_fn(train_cfg.loss_fn).to(device=self.device)
+        criterion = get_loss_function(train_cfg.loss_fn).to(device=self.device)
         return criterion
 
     def __init_lr_scheduler(self, optim_cfg: ConfigClass):
