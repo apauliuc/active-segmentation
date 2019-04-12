@@ -93,7 +93,9 @@ class Normalize(object):
         return self.normalize(sample[0], sample[1])
 
     def normalize(self, image: torch.FloatTensor, segmentation: torch.FloatTensor):
-        segmentation = segmentation / 255
+        if segmentation.max() == 255:
+            segmentation = segmentation / 255
+
         return self._normalize(image), segmentation
 
 
