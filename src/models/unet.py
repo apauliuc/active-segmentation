@@ -71,8 +71,14 @@ class UNet(nn.Module):
     Implementation of the U-Net neural network for segmentation
     """
 
-    def __init__(self, input_channels=1, n_classes=1, batch_norm=True, up_conv=True):
+    def __init__(self,
+                 input_channels=1,
+                 num_classes=1,
+                 batch_norm=True,
+                 up_conv=True):
         super(UNet, self).__init__()
+        self.in_channels = input_channels
+        self.num_classes = num_classes
 
         filter_sizes = [64, 128, 256, 512, 1024]
 
@@ -99,7 +105,7 @@ class UNet(nn.Module):
         self.upsample4 = UNetUpConvStack(filter_sizes[1], filter_sizes[0], up_conv)
 
         # Final conv layer 1x1
-        self.output_conv = nn.Conv2d(filter_sizes[0], n_classes, kernel_size=1)
+        self.output_conv = nn.Conv2d(filter_sizes[0], self.num_classes, kernel_size=1)
 
     def forward(self, in_image):
         conv1_out = self.conv1(in_image)

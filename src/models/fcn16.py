@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 from torchvision import models
 
-from alsegment.models.common import get_upsampling_weight
+from models.common import get_upsampling_weight
 
 
 class FCN16(nn.Module):
@@ -158,3 +158,6 @@ class FCN16(nn.Module):
 
             fcn_layer.weight.data = vgg_layer.weight.data[:self.num_classes, :].view(fcn_layer.weight.size())
             fcn_layer.bias.data = vgg_layer.weight.data[:self.num_classes]
+
+    def __repr__(self):
+        return 'FCN16'

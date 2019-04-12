@@ -1,5 +1,5 @@
-from alsegment.data.medical_dataset import MDSDataLoaders
-from alsegment.data.voc import VOCDataLoader
+from data.medical_dataset import MDSDataLoaders
+from data.voc import VOCDataLoader
 
 
 def get_dataloaders(data_cfg, shuffle=True):

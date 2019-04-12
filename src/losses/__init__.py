@@ -1,7 +1,6 @@
-from alsegment.losses.bce_2d import BinaryCrossEntropyLoss2D
-from alsegment.losses.soft_dice import SoftDiceLoss
-from alsegment.losses.jaccard import JaccardLoss
-from alsegment.losses.bce_and_jaccard import BCEAndJaccardLoss
+from losses.soft_dice import SoftDiceLoss
+from losses.jaccard import JaccardLoss
+from losses.bce_and_jaccard import BCEAndJaccardLoss
 import torch.nn as nn
 
 

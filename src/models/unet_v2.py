@@ -1,8 +1,8 @@
-import math
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from models.common import initialize_weights
 
 
 def conv3x3(in_, out):
@@ -58,13 +58,14 @@ class UNetV2(nn.Module):
 
     def __init__(self,
                  input_channels: int = 1,
-                 filters_base: int = 32,
+                 num_classes=1,
+                 filters_base: int = 64,
                  down_filter_factors=(1, 2, 4, 8, 16),
                  up_filter_factors=(1, 2, 4, 8, 16),
                  bottom_s=4,
-                 num_classes=1,
                  add_output=True):
         super().__init__()
+        self.in_channels = input_channels
         self.num_classes = num_classes
 
         assert len(down_filter_factors) == len(up_filter_factors)
@@ -74,7 +75,7 @@ class UNetV2(nn.Module):
         up_filter_sizes = [filters_base * s for s in up_filter_factors]
 
         self.down, self.up = nn.ModuleList(), nn.ModuleList()
-        self.down.append(self.module(input_channels, down_filter_sizes[0]))
+        self.down.append(self.module(self.in_channels, down_filter_sizes[0]))
         for prev_i, nf in enumerate(down_filter_sizes[1:]):
             self.down.append(self.module(down_filter_sizes[prev_i], nf))
         for prev_i, nf in enumerate(up_filter_sizes[1:]):
@@ -95,9 +96,8 @@ class UNetV2(nn.Module):
         if add_output:
             self.conv_final = nn.Conv2d(up_filter_sizes[0], num_classes, 1)
 
-        # for m in self.modules():
-        #     if isinstance(m, nn.Conv2d):
-        #         nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
+        # TODO: test this
+        # initialize_weights(*self.modules())
 
     def forward(self, x):
         xs = []

@@ -10,9 +10,9 @@ from torch.utils import data
 from torch.utils.data import DataLoader, TensorDataset
 import torchvision.transforms as standard_transforms
 
-import alsegment.data.voc_utils as extended_transforms
-from alsegment.data.base_loader import BaseLoader
-from alsegment.data.voc_utils import make_dataset
+import data.voc_utils as extended_transforms
+from data.base_loader import BaseLoader
+from data.voc_utils import make_dataset
 from definitions import VOC_ROOT
 
 

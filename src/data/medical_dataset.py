@@ -8,11 +8,11 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
-from alsegment.data.base_loader import BaseLoader
-from alsegment.data.data_transforms import ToTensor
-from alsegment.data.data_transforms import Normalize
-from alsegment.helpers.config import ConfigClass
-from alsegment.helpers.paths import get_dataset_path
+from data.base_loader import BaseLoader
+from data.data_transforms import ToTensor
+from data.data_transforms import Normalize
+from helpers.config import ConfigClass
+from helpers.paths import get_dataset_path
 
 
 class MedicalScanDataset(Dataset):

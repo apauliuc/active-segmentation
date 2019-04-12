@@ -48,7 +48,11 @@ class DecoderBlock(nn.Module):
 
 
 class TernausNet(nn.Module):
-    def __init__(self, num_filters=32, pretrained=False):
+    def __init__(self,
+                 input_channels=1,
+                 num_classes=1,
+                 num_filters=32,
+                 pretrained=False):
         """
         :param num_filters:
         :param pretrained:
@@ -58,6 +62,9 @@ class TernausNet(nn.Module):
         Implementation from https://github.com/ternaus/robot-surgery-segmentation/blob/master/models.py
         """
         super().__init__()
+        self.in_channels = input_channels
+        self.num_classes = num_classes
+
         self.pool = nn.MaxPool2d(2, 2)
 
         self.encoder = models.vgg11(pretrained=pretrained).features
@@ -79,9 +86,12 @@ class TernausNet(nn.Module):
         self.dec2 = DecoderBlock(num_filters * (4 + 2), num_filters * 2 * 2, num_filters)
         self.dec1 = ConvRelu(num_filters * (2 + 1), num_filters)
 
-        self.final = nn.Conv2d(num_filters, 1, kernel_size=1)
+        self.final = nn.Conv2d(num_filters, self.num_classes, kernel_size=1)
 
     def forward(self, x):
+        if x.shape[1] == 1:
+            x = x.repeat(1, 3, 1, 1)
+
         conv1 = self.relu(self.conv1(x))
         conv2 = self.relu(self.conv2(self.pool(conv1)))
         conv3s = self.relu(self.conv3s(self.pool(conv2)))
@@ -99,3 +109,6 @@ class TernausNet(nn.Module):
         dec2 = self.dec2(torch.cat((dec3, conv2), 1))
         dec1 = self.dec1(torch.cat((dec2, conv1), 1))
         return self.final(dec1)
+
+    def __repr__(self):
+        return 'TernausNet'

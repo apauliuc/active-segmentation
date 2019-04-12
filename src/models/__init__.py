@@ -1,10 +1,10 @@
-from alsegment.models.unet import UNet
-from alsegment.models.ternausnet import TernausNet
-from alsegment.models.unet_v2 import UNetV2
-from alsegment.models.segnet import SegNet
-from alsegment.models.fcn8 import FCN8
-from alsegment.models.fcn16 import FCN16
-from alsegment.models.fcn32 import FCN32
+from models.unet import UNet
+from models.ternausnet import TernausNet
+from models.unet_v2 import UNetV2
+from models.segnet import SegNet
+from models.fcn8 import FCN8
+from models.fcn16 import FCN16
+from models.fcn32 import FCN32
 
 
 def get_model(model_cfg):

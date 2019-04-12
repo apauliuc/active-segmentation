@@ -2,12 +2,12 @@ import os
 import yaml
 import argparse
 
-from alsegment.data.data_preprocess_mds import mds_preprocess_scans, mds_separate_scans_to_slices
-from alsegment.helpers.config import ConfigClass
-from alsegment.predict import prediction_main
-from alsegment.trainer import Trainer
-from alsegment.helpers.paths import get_new_run_path
-from definitions import CONFIG_STANDARD, DATA_DIR_AT_AMC, DATA_DIR, RUNS_DIR, CONFIG_DIR, CONFIG_VOC
+from data.data_preprocess_mds import mds_separate_scans_to_slices
+from helpers.config import ConfigClass
+from main_scripts.predict import prediction_main
+from main_scripts.trainer import Trainer
+from helpers.paths import get_new_run_path
+from definitions import CONFIG_STANDARD, DATA_DIR_AT_AMC, DATA_DIR, RUNS_DIR
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -53,7 +53,7 @@ if __name__ == '__main__':
                         help='Type of run', choices=['train', 'predict', 'preprocess'])
     parser.add_argument('--config', type=str, default=CONFIG_STANDARD,
                         help='Configuration file to use')
-    parser.add_argument('--ds_path', type=str, default=DATA_DIR_AT_AMC,
+    parser.add_argument('--ds_path', type=str, default=DATA_DIR,
                         help='Path to main data directory')
     parser.add_argument('--train_predict', type=bool, default=True,
                         help='Indicate whether to predict after training is finished')

@@ -1,4 +1,4 @@
-from alsegment.losses.jaccard import JaccardLoss
+from losses import JaccardLoss
 import torch.nn as nn
 
 

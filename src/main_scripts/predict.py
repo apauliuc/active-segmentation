@@ -3,10 +3,10 @@ import numpy as np
 import torch
 import SimpleITK as SiTK
 
-from alsegment.data import MDSDataLoaders
-from alsegment.models import get_model
+from data import MDSDataLoaders
+from models import get_model
 from definitions import RUNS_DIR
-from alsegment.helpers.types import device
+from helpers.types import device
 # noinspection PyProtectedMember
 from ignite._utils import convert_tensor
 

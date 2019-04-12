@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
-from alsegment.models.common import initialize_weights
+from models.common import initialize_weights
 
 
 class _DecoderBlock(nn.Module):
@@ -33,8 +33,14 @@ class _DecoderBlock(nn.Module):
 
 class SegNet(nn.Module):
 
-    def __init__(self, num_classes=1, pretrained=True):
+    def __init__(self,
+                 input_channels=1,
+                 num_classes=1,
+                 pretrained=True):
         super(SegNet, self).__init__()
+        self.in_channels = input_channels
+        self.num_classes = num_classes
+
         vgg = models.vgg19_bn(pretrained)
         features = list(vgg.features.children())
         self.enc1 = nn.Sequential(*features[0:7])
@@ -52,7 +58,7 @@ class SegNet(nn.Module):
         self.dec4 = _DecoderBlock(1024, 256, 4)
         self.dec3 = _DecoderBlock(512, 128, 4)
         self.dec2 = _DecoderBlock(256, 64, 2)
-        self.dec1 = _DecoderBlock(128, num_classes, 2)
+        self.dec1 = _DecoderBlock(128, self.num_classes, 2)
         initialize_weights(self.dec5, self.dec4, self.dec3, self.dec2, self.dec1)
 
     def forward(self, x):
@@ -72,3 +78,6 @@ class SegNet(nn.Module):
         dec2 = self.dec2(torch.cat((enc2, dec3), 1))
         dec1 = self.dec1(torch.cat((enc1, dec2), 1))
         return dec1
+
+    def __repr__(self):
+        return 'SegNet'
