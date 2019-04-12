@@ -77,13 +77,13 @@ class FCN8(nn.Module):
         self.score_conv4 = nn.Conv2d(512, self.num_classes, kernel_size=1)
 
         if self.learn_upconv:
-            self.upconv_score2 = nn.ConvTranspose2d(
+            self.upscore2 = nn.ConvTranspose2d(
                 self.num_classes, self.num_classes, kernel_size=4, stride=2, bias=False
             )
-            self.upconv_score4 = nn.ConvTranspose2d(
+            self.upscore4 = nn.ConvTranspose2d(
                 self.num_classes, self.num_classes, kernel_size=4, stride=2, bias=False
             )
-            self.upconv_score8 = nn.ConvTranspose2d(
+            self.upscore8 = nn.ConvTranspose2d(
                 self.num_classes, self.num_classes, kernel_size=16, stride=8, bias=False
             )
 
@@ -110,17 +110,17 @@ class FCN8(nn.Module):
         score = self.classifier(conv5)
 
         if self.learn_upconv:
-            upscore2 = self.upconv_score2(score)
+            upscore2 = self.upscore2(score)
             score_pool4c = self.score_conv4(conv4)[
                 :, :, 5:(5 + upscore2.size()[2]), 5:(5 + upscore2.size()[3])
             ]
-            upscore_pool4 = self.upconv_score4(upscore2 + score_pool4c)
+            upscore_pool4 = self.upscore4(upscore2 + score_pool4c)
 
             score_pool3c = self.score_conv3(conv3)[
                 :, :, 9:(9 + upscore_pool4.size()[2]), 9:(9 + upscore_pool4.size()[3])
             ]
 
-            out = self.upconv_score8(score_pool3c + upscore_pool4)[
+            out = self.upscore8(score_pool3c + upscore_pool4)[
                 :, :, 31:(31 + x_size[2]), 31:(31 + x_size[3])
             ]
 
