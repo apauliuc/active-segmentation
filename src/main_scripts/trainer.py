@@ -65,6 +65,7 @@ class Trainer(object):
 
     def __init__model(self, model_cfg: ConfigClass):
         model = get_model(model_cfg).to(device=self.device)
+        self.logger.info(f'Using model {model}')
         if self.resume_cfg.resume_from is not None:
             model_path = get_resume_model_path(self.resume_cfg.resume_from, self.resume_cfg.saved_model)
             self.logger.info(f'Loading model loaded from {model_path}')
@@ -78,7 +79,7 @@ class Trainer(object):
         optimizer_params = {k: v for k, v in optim_cfg.items() if k in init_param_names}
 
         optimizer = optimizer_cls(self.model.parameters(), **optimizer_params)
-        self.logger.info(f'Using optimizer {optimizer}')
+        self.logger.info(f'Using optimizer {optimizer.__class__.__name__}')
 
         if self.resume_cfg.resume_from is not None:
             optimizer_path = get_resume_optimizer_path(self.resume_cfg.resume_from, self.resume_cfg.saved_optimizer)
@@ -88,6 +89,7 @@ class Trainer(object):
 
     def __init_criterion(self, train_cfg: ConfigClass):
         criterion = get_loss_function(train_cfg.loss_fn).to(device=self.device)
+        self.logger.info(f'Using loss function {criterion}')
         return criterion
 
     def __init_lr_scheduler(self, optim_cfg: ConfigClass):

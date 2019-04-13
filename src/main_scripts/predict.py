@@ -4,8 +4,8 @@ import torch
 import SimpleITK as SiTK
 
 from data import MDSDataLoaders
+from helpers.config import ConfigClass
 from models import get_model
-from definitions import RUNS_DIR
 from helpers.types import device
 # noinspection PyProtectedMember
 from ignite._utils import convert_tensor
@@ -18,7 +18,7 @@ def prepare_batch(batch, device_local=None, non_blocking=False):
     return convert_tensor(batch, device=device_local, non_blocking=non_blocking)
 
 
-def prediction_main(config, load_directory=None, name='', use_best_model=True):
+def prediction_main(config: ConfigClass, load_directory=None, name='', use_best_model=True):
     # Find model file to load from
     files_list = os.listdir(load_directory)
     model_filename = 'best_model_1.pth'
@@ -59,6 +59,8 @@ def prediction_main(config, load_directory=None, name='', use_best_model=True):
                 idx += config.data.batch_size_val
 
         segmentation = segmentation.squeeze(1)
+        segmentation[segmentation > 0.5] = 1
+        segmentation[segmentation <= 0.5] = 0
         segmentation *= 255
         segmentation = segmentation.astype(np.uint8)
         SiTK.WriteImage(SiTK.GetImageFromArray(segmentation),

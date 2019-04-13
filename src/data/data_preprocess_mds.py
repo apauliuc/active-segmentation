@@ -50,7 +50,7 @@ def mds_process_scans_from_list(root_dir, save_path, save_path_img, save_path_se
 
             loaded_scans.extend(np.split(scan, scan.shape[0]))
 
-            for i in np.arange(11, 29):
+            for i in np.arange(scan.shape[0]):
                 f_name = '%s_%i.png' % (acc_nr, i)
 
                 file_list.append(f_name)

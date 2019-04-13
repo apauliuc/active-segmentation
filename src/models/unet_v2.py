@@ -75,9 +75,12 @@ class UNetV2(nn.Module):
         up_filter_sizes = [filters_base * s for s in up_filter_factors]
 
         self.down, self.up = nn.ModuleList(), nn.ModuleList()
+
         self.down.append(self.module(self.in_channels, down_filter_sizes[0]))
+
         for prev_i, nf in enumerate(down_filter_sizes[1:]):
             self.down.append(self.module(down_filter_sizes[prev_i], nf))
+
         for prev_i, nf in enumerate(up_filter_sizes[1:]):
             self.up.append(self.module(
                 down_filter_sizes[prev_i] + nf, up_filter_sizes[prev_i]))
