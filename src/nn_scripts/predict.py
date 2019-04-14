@@ -18,7 +18,9 @@ def prepare_batch(batch, device_local=None, non_blocking=False):
     return convert_tensor(batch, device=device_local, non_blocking=non_blocking)
 
 
-def prediction_main(config: ConfigClass, load_directory=None, name='', use_best_model=True):
+def main_predict(config: ConfigClass, load_directory=None, name='', use_best_model=True):
+    config.data.mode = 'predict'
+
     # Find model file to load from
     files_list = os.listdir(load_directory)
     model_filename = 'best_model_1.pth'

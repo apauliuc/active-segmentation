@@ -3,6 +3,7 @@ import random
 from typing import Tuple
 
 import torch
+import yaml
 from torch.optim.lr_scheduler import StepLR
 from tensorboardX import SummaryWriter
 
@@ -12,13 +13,15 @@ from ignite import metrics
 from data import get_dataloaders
 from models import get_model
 from losses import get_loss_function
+from nn_scripts.predict import main_predict
 from optimizers import get_optimizer
 from helpers.config import ConfigClass
 from helpers.metrics import SegmentationMetrics
 from helpers.utils import timer_to_str, setup_logger, retrieve_class_init_parameters
-from helpers.paths import get_resume_model_path, get_resume_optimizer_path
+from helpers.paths import get_resume_model_path, get_resume_optimizer_path, get_new_run_path
 
 
+# noinspection PyUnresolvedReferences
 class Trainer(object):
 
     def __init__(self, config: ConfigClass, save_dir: str):
@@ -189,3 +192,22 @@ class Trainer(object):
     def run(self) -> None:
         self.logger.info(f'All set. Starting training on {self.device}.')
         self.trainer.run(self.data_loaders.train_loader, max_epochs=self.epochs)
+
+
+def main_train_new_model(args, config_path: str):
+    """Entry point for training a new model"""
+    with open(config_path, 'r') as f:
+        config = ConfigClass(yaml.load(f))
+
+    config.data.mode = 'train'
+    config.data.path = args.ds_path
+    run_dir = get_new_run_path(config.run_name)
+
+    with open(os.path.join(run_dir, 'cfg_file.yml'), 'w+') as f:
+        yaml.dump(config, f)
+
+    trainer = Trainer(config, run_dir)
+    trainer.run()
+
+    if args.train_predict:
+        main_predict(config, run_dir)

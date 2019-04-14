@@ -10,7 +10,7 @@ def setup_logger(logdir):
     logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
 
     formatter = logging.Formatter(log_format)
-    logger = logging.getLogger('main_scripts')
+    logger = logging.getLogger('nn_scripts')
     handler = logging.FileHandler(os.path.join(logdir, "LOGGING_FILE.log"))
     handler.setFormatter(formatter)
     logger.addHandler(handler)

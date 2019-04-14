@@ -1,41 +1,17 @@
 import os
+import yaml
+import argparse
 import subprocess
 
 import torch
-import yaml
-import argparse
 
 from data.data_preprocess_mds import mds_separate_scans_to_slices, mds_preprocess_scans
 from helpers.config import ConfigClass
-from main_scripts.predict import prediction_main
-from main_scripts.trainer import Trainer
-from helpers.paths import get_new_run_path
+from nn_scripts.predict import main_predict
+from nn_scripts.train import main_train_new_model
 from definitions import CONFIG_STANDARD, DATA_DIR, RUNS_DIR, CONFIG_DIR
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-
-
-def predict_config(config: ConfigClass, run_dir: str):
-    config.data.mode = 'predict'
-    prediction_main(config=config, load_directory=run_dir, name=f'{config.run_name}')
-
-
-def train(args, config_path: str):
-    with open(config_path, 'r') as f:
-        config = ConfigClass(yaml.load(f))
-
-    config.data.mode = 'train'
-    config.data.path = args.ds_path
-    run_dir = get_new_run_path(config.run_name)
-
-    with open(os.path.join(run_dir, 'cfg_file.yml'), 'w+') as f:
-        yaml.dump(config, f)
-
-    trainer = Trainer(config, run_dir)
-    trainer.run()
-
-    if args.train_predict:
-        predict_config(config, run_dir)
 
 
 def main(args):
@@ -48,7 +24,7 @@ def main(args):
 
     elif args.run_type == 'train':
         print(f'Using config {args.config}')
-        train(args, os.path.join(args.configs_dir, args.config))
+        main_train_new_model(args, os.path.join(args.configs_dir, args.config))
 
     elif args.run_type == 'train_all_configs':
         configs_list = sorted([x for x in os.listdir(args.configs_dir) if 'config_' in x])
@@ -57,6 +33,7 @@ def main(args):
         for config in configs_list:
             torch.cuda.empty_cache()
             try:
+                # Start new process which goes on 'train' branch
                 subprocess.run(['python', 'main.py', '-r', 'train', '-c', config])
             except Exception as e:
                 print(f'Error: {e}')
@@ -67,7 +44,11 @@ def main(args):
         with open(os.path.join(run_dir, 'cfg_file.yml')) as f:
             config = ConfigClass(yaml.load(f))
 
-        predict_config(config, run_dir)
+        main_predict(config, run_dir)
+
+    elif args.run_type == 'active_learning':
+        print("Prepare yourself to do amazing stuff!")
+        # Implement logic and call main AL script
 
     else:
         raise ValueError('Run type not known')
@@ -77,7 +58,8 @@ if __name__ == '__main__':
     "Main starting point of the application"
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--run_type', type=str, default='train_all_configs',
-                        help='Type of run', choices=['train', 'predict', 'preprocess', 'train_all_configs'])
+                        help='Type of run',
+                        choices=['train', 'predict', 'preprocess', 'train_all_configs', 'active_learning'])
     parser.add_argument('-c', '--config', type=str, default=CONFIG_STANDARD,
                         help='Configuration file to use')
     parser.add_argument('--configs_dir', type=str, default=CONFIG_DIR,
