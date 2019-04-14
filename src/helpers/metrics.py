@@ -105,3 +105,26 @@ class SegmentationMetrics(Metric):
             'avg_f1': f1_score(self._confusion_matrix)
         }
         return metrics_dict
+
+
+class AverageMeter(object):
+    sum: float
+    avg: float
+    count: float
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.count = 0
+        self.sum = 0
+        self.avg = 0
+
+    def update(self, value, n=1):
+        self.count += n
+        self.sum += value * n
+        self.avg = self.sum / self.count
+
+    @property
+    def average(self):
+        return self.avg

@@ -7,8 +7,8 @@ import torch
 
 from data.data_preprocess_mds import mds_separate_scans_to_slices, mds_preprocess_scans
 from helpers.config import ConfigClass
-from nn_scripts.predict import main_predict
-from nn_scripts.train import main_train_new_model
+from scripts.predict import main_predict
+from scripts.train import main_train_new_model
 from definitions import CONFIG_STANDARD, DATA_DIR, RUNS_DIR, CONFIG_DIR
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"

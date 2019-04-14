@@ -13,7 +13,7 @@ from ignite import metrics
 from data import get_dataloaders
 from models import get_model
 from losses import get_loss_function
-from nn_scripts.predict import main_predict
+from scripts.predict import main_predict
 from optimizers import get_optimizer
 from helpers.config import ConfigClass
 from helpers.metrics import SegmentationMetrics
