@@ -15,7 +15,7 @@ from models import get_model
 from losses import get_loss_function
 from scripts.predict import main_predict
 from optimizers import get_optimizer
-from helpers.config import ConfigClass
+from helpers.config import ConfigClass, get_config_from_path
 from helpers.metrics import SegmentationMetrics
 from helpers.utils import timer_to_str, setup_logger, retrieve_class_init_parameters
 from helpers.paths import get_resume_model_path, get_resume_optimizer_path, get_new_run_path
@@ -196,8 +196,7 @@ class Trainer(object):
 
 def main_train_new_model(args, config_path: str):
     """Entry point for training a new model"""
-    with open(config_path, 'r') as f:
-        config = ConfigClass(yaml.load(f))
+    config = get_config_from_path(config_path)
 
     config.data.mode = 'train'
     config.data.path = args.ds_path

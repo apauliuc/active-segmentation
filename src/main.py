@@ -6,16 +6,17 @@ import subprocess
 import torch
 
 from data.data_preprocess_mds import mds_separate_scans_to_slices, mds_preprocess_scans
-from helpers.config import ConfigClass
+from helpers.config import ConfigClass, get_config_from_path
 from scripts.predict import main_predict
 from scripts.train import main_train_new_model
-from definitions import CONFIG_STANDARD, DATA_DIR, RUNS_DIR, CONFIG_DIR
+from definitions import CONFIG_DEFAULT, DATA_DIR, RUNS_DIR, CONFIG_DIR
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 
 def main(args):
     if args.run_type == 'preprocess':
+        # Some data preprocessing and writing slices to separate files
         data_root_dir = os.path.join('C:', 'Andrei', 'MHA and NPY')
         dataset_path = os.path.join(DATA_DIR, 'AMC New')
 
@@ -23,11 +24,13 @@ def main(args):
         mds_separate_scans_to_slices(data_root_dir, dataset_path, scan_names, dummy_dataset=False)
 
     elif args.run_type == 'train':
+        # Run training using 1 config file
         print(f'Using config {args.config}')
         main_train_new_model(args, os.path.join(args.configs_dir, args.config))
 
     elif args.run_type == 'train_all_configs':
-        configs_list = sorted([x for x in os.listdir(args.configs_dir) if 'config_' in x])
+        # Run training for multiple config files given file name patter
+        configs_list = sorted([x for x in os.listdir(args.configs_dir) if args.configs_pattern in x])
         print(f'Running training on {len(configs_list)} configs')
 
         for config in configs_list:
@@ -40,15 +43,16 @@ def main(args):
                 print('\nSomething went wrong. Moving to next config file\n')
 
     elif args.run_type == 'predict':
+        # Run prediction on the val dataset using previous run directory
         run_dir = os.path.join(RUNS_DIR, args.run_dir)
-        with open(os.path.join(run_dir, 'cfg_file.yml')) as f:
-            config = ConfigClass(yaml.load(f))
+        config = get_config_from_path(os.path.join(run_dir, 'cfg_file.yml'))
 
         main_predict(config, run_dir)
 
     elif args.run_type == 'active_learning':
+        # Run Active Learning training algorithm
         print("Prepare yourself to do amazing stuff!")
-        # Implement logic and call main AL script
+        # TODO: Implement everything
 
     else:
         raise ValueError('Run type not known')
@@ -60,10 +64,12 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--run_type', type=str, default='train_all_configs',
                         help='Type of run',
                         choices=['train', 'predict', 'preprocess', 'train_all_configs', 'active_learning'])
-    parser.add_argument('-c', '--config', type=str, default=CONFIG_STANDARD,
+    parser.add_argument('-c', '--config', type=str, default=CONFIG_DEFAULT,
                         help='Configuration file to use')
     parser.add_argument('--configs_dir', type=str, default=CONFIG_DIR,
-                        help='Directory of all configurations to train on')
+                        help='Directory of all configurations to train on (run_type = train_all_configs)')
+    parser.add_argument('--configs_pattern', type=str, default='config_',
+                        help='File name pattern for config files (run_type = train_all_configs)')
     parser.add_argument('-ds', '--ds_path', type=str, default=DATA_DIR,
                         help='Path to main data directory')
     parser.add_argument('-tp', '--train_predict', type=bool, default=True,

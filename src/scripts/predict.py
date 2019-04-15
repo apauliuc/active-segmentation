@@ -6,7 +6,7 @@ import SimpleITK as SiTK
 from data import MDSDataLoaders
 from helpers.config import ConfigClass
 from models import get_model
-from helpers.types import device
+from helpers.torch_utils import device
 # noinspection PyProtectedMember
 from ignite._utils import convert_tensor
 

@@ -6,7 +6,7 @@ ROOT_DIR = os.path.dirname(SOURCES_DIR)
 
 # Config constants
 CONFIG_DIR = os.path.join(SOURCES_DIR, 'configs')
-CONFIG_STANDARD = os.path.join(CONFIG_DIR, 'standard_config.yml')
+CONFIG_DEFAULT = os.path.join(CONFIG_DIR, 'standard_config.yml')
 CONFIG_VOC = os.path.join(CONFIG_DIR, 'voc_config.yml')
 
 if os.environ.get('COMPUTERNAME', default='MacBook Air') == '19-002464':
