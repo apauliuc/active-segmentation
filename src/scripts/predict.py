@@ -8,6 +8,7 @@ from helpers.config import ConfigClass
 from helpers.utils import binarize_nparray
 from models import get_model
 from helpers.torch_utils import device
+from helpers.metrics import SegmentationMetrics
 # noinspection PyProtectedMember
 from ignite._utils import convert_tensor
 
@@ -16,7 +17,9 @@ def prepare_batch(batch, device_local=None, non_blocking=False):
     """Prepare batch for training: pass to a device with options
 
     """
-    return convert_tensor(batch, device=device_local, non_blocking=non_blocking)
+    x, y = batch
+    return (convert_tensor(x, device=device_local, non_blocking=non_blocking),
+            convert_tensor(y, device=device_local, non_blocking=non_blocking))
 
 
 def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_model=True):
@@ -42,12 +45,12 @@ def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_m
 
     # Create dataloader wrapper
     loader_wrapper = MDSDataLoaders(config.data)
+    segment_metrics = SegmentationMetrics(num_classes=loader_wrapper.num_classes,
+                                          threshold=config.binarize_threshold)
 
     # Predict
     for dir_id in loader_wrapper.dir_list:
-        s_name = os.path.join(dir_id, f'{dir_id}_scan.npy')
-
-        data_loader = loader_wrapper.get_predict_loader(s_name)
+        data_loader = loader_wrapper.get_predict_loader(dir_id)
 
         model.eval()
         segmentation = np.zeros(data_loader.dataset.shape)
@@ -56,11 +59,12 @@ def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_m
 
         with torch.no_grad():
             for batch in data_loader:
-                x = prepare_batch(batch, device_local=device, non_blocking=True)
+                x, y = prepare_batch(batch, device_local=device, non_blocking=True)
                 y_pred = model(x)
-                y_pred = torch.sigmoid(y_pred.cpu())
 
-                segmentation[idx:idx + config.data.batch_size_val] = y_pred.numpy()
+                segment_metrics.update((y_pred, y))
+
+                segmentation[idx:idx + config.data.batch_size_val] = torch.sigmoid(y_pred.cpu()).numpy()
                 idx += config.data.batch_size_val
 
         segmentation = segmentation.squeeze(1)
@@ -70,4 +74,7 @@ def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_m
         SiTK.WriteImage(SiTK.GetImageFromArray(segmentation),
                         os.path.join(loader_wrapper.predict_path, dir_id, f'{dir_id}_predicted_{name}.mha'))
 
-    print('Done!')
+    print('Predictions done. Segmentation metrics:')
+
+    metrics = segment_metrics.compute()
+    print(metrics)

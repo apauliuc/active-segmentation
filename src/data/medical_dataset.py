@@ -50,10 +50,18 @@ class MedicalScanDataset(Dataset):
 class MDSPrediction(Dataset):
     """Medical Scans Dataset"""
 
-    def __init__(self, file_path, transform=lambda x: x):
-        self.scan = np.load(file_path)
-        self.scan = transform(np.transpose(self.scan, (1, 2, 0))).type(torch.FloatTensor)
+    def __init__(self, predict_path, dir_name, in_transform=lambda x: x, out_transform=lambda x: x):
+        dir_path = os.path.join(predict_path, dir_name)
+        in_name = os.path.join(dir_path, f'{dir_name}_scan.npy')
+        out_name = os.path.join(dir_path, f'{dir_name}_segmentation.npy')
+
+        self.scan = np.load(in_name)
+        self.scan = in_transform(np.transpose(self.scan, (1, 2, 0))).type(torch.FloatTensor)
         self.scan = self.scan.unsqueeze(1)
+
+        self.segment = np.load(out_name)
+        self.segment = out_transform(np.transpose(self.segment, (1, 2, 0))).type(torch.FloatTensor)
+        self.segment = self.segment.unsqueeze(1)
 
         self.shape = self.scan.shape
 
@@ -62,7 +70,8 @@ class MDSPrediction(Dataset):
 
     def __getitem__(self, item: int):
         image = self.scan[item, :, :]
-        return image
+        segment = self.segment[item, :, :]
+        return image, segment
 
 
 class MDSDataLoaders(BaseLoader):
@@ -84,10 +93,15 @@ class MDSDataLoaders(BaseLoader):
             Normalize(ds_statistics['mean'], ds_statistics['std'])
         ])
 
-        self.predict_transf = transforms.Compose([
+        self.predict_in_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x.float().div(255)),
             transforms.Normalize([ds_statistics['mean']], [ds_statistics['std']]),
+        ])
+
+        self.predict_out_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.float().div(255))
         ])
 
         if config.mode == 'train':
@@ -122,8 +136,10 @@ class MDSDataLoaders(BaseLoader):
         else:
             raise Exception('Data loading mode not found')
 
-    def get_predict_loader(self, file_name):
-        predict_dataset = MDSPrediction(os.path.join(self.predict_path, file_name), self.predict_transf)
+    def get_predict_loader(self, dir_name):
+        predict_dataset = MDSPrediction(self.predict_path, dir_name,
+                                        in_transform=self.predict_in_transform,
+                                        out_transform=self.predict_out_transform)
 
         return DataLoader(predict_dataset,
                           batch_size=self.config.batch_size_val,

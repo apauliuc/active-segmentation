@@ -61,9 +61,6 @@ def mds_process_scans_from_list(root_dir, save_path, save_path_img, save_path_se
                 scan_img.save(os.path.join(save_path_img, f_name))
                 segment_img.save(os.path.join(save_path_seg, f_name))
 
-                # np.save(os.path.join(save_path, in_name), scan[i, :, :])
-                # np.save(os.path.join(save_path, out_name), segment[i, :, :])
-
                 count += 1
 
     with open(os.path.join(save_path, 'file_list.pkl'), 'wb') as f:
@@ -73,19 +70,26 @@ def mds_process_scans_from_list(root_dir, save_path, save_path_img, save_path_se
 
 
 def mds_prepare_prediction_dir(root_dir, save_path, npy_scan_name, predict_list):
-    old_names = [npy_scan_name, f'{npy_scan_name[4:-4]}.mha', 'segmentation.mha']
+    old_names = [npy_scan_name, 'arr_segment.npy',
+                 f'{npy_scan_name[4:-4]}.mha', 'segmentation.mha']
+
     for acc_nr in predict_list:
         acc_dir = os.path.join(root_dir, acc_nr)
+
         prediction_save_dir = os.path.join(save_path, acc_nr)
         os.makedirs(prediction_save_dir, exist_ok=True)
+
         if os.path.isdir(acc_dir):
-            new_names = [f'{acc_nr}_scan.npy', f'{acc_nr}.mha', f'{acc_nr}_segmentation.mha']
-            for old, new in zip(old_names, new_names):
-                new_path = os.path.join(os.path.join(prediction_save_dir, new))
-                if os.path.exists(new_path):
-                    os.remove(new_path)
-                shutil.copy(os.path.join(acc_dir, old), prediction_save_dir)
-                os.rename(os.path.join(prediction_save_dir, old), os.path.join(prediction_save_dir, new))
+            new_names = [f'{acc_nr}_scan.npy', f'{acc_nr}_segmentation.npy',
+                         f'{acc_nr}.mha', f'{acc_nr}_segmentation.mha']
+
+            for old_name, new_name in zip(old_names, new_names):
+                new_file_path = os.path.join(os.path.join(prediction_save_dir, new_name))
+                if os.path.exists(new_file_path):
+                    os.remove(new_file_path)
+
+                shutil.copy(os.path.join(acc_dir, old_name), prediction_save_dir)
+                os.rename(os.path.join(prediction_save_dir, old_name), os.path.join(prediction_save_dir, new_name))
 
 
 def mds_separate_scans_to_slices(root_dir, save_path, scan_name, dummy_dataset=False):
