@@ -1,6 +1,6 @@
-run_name: FCN8_Dummy
+run_name: Ternaus
 data:
-  dataset: AMC Dummy
+  dataset: AMC New
   mode: train
   batch_size: 4
   batch_size_val: 8
@@ -8,9 +8,9 @@ data:
   run_val_on_train: False
 training:
   seed:
-  num_epochs: 50
+  num_epochs: 75
   optimizer:
-    name: Adam
+    name: adam
     lr: 0.001
     weight_decay: 0.0001
     amsgrad: True
@@ -22,10 +22,9 @@ training:
   save_model_interval: 50
   ignite_history_size: 1
 model:
-  name: fcn8
+  name: ternaus_net
   network_params:
-    learn_upconv: True
-    use_pretrained: False
+    pretrained: True
 resume:
   resume_from:
   saved_model:
