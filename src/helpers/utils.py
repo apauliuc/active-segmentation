@@ -30,3 +30,8 @@ def timer_to_str(value):
 def retrieve_class_init_parameters(class_instance) -> List:
     class_signature = inspect.signature(class_instance.__init__)
     return list(class_signature.parameters)
+
+
+def binarize_tensor(x, threshold=0.5):
+    cond = (x > threshold).float()
+    return (cond * 1) + ((1-cond) * 0)

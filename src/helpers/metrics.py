@@ -3,6 +3,8 @@ import torch
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric
 
+from helpers.utils import binarize_tensor
+
 EPS = 1e-5
 
 
@@ -47,12 +49,12 @@ def f1_score(cf_matrix):
     return nanmean(f1)
 
 
-def evaluation_metrics_per_batch(prediction, true, num_classes=2):
+def evaluation_metrics_per_batch(true, prediction, num_classes=2):
     """"
     Compute segmentation metrics for 2D images
 
-    :param prediction: predicted classes of shape [B, 1, H, W]
     :param true: ground truth tensor of shape [B, 1, H, W]
+    :param prediction: predicted classes of shape [B, 1, H, W]
     :param num_classes: number of classes in segmentation
     :returns tuple of scores
     """
@@ -70,8 +72,9 @@ def evaluation_metrics_per_batch(prediction, true, num_classes=2):
 # noinspection PyAttributeOutsideInit
 class SegmentationMetrics(Metric):
 
-    def __init__(self, num_classes=2):
+    def __init__(self, num_classes=2, threshold=0.5):
         self._num_classes = 2 if num_classes == 1 else num_classes
+        self._thres = threshold
         super(SegmentationMetrics, self).__init__()
 
     def reset(self):
@@ -83,12 +86,12 @@ class SegmentationMetrics(Metric):
         else:
             y_pred, y, kwargs = output
 
-        y = y.cpu().type(torch.LongTensor)
         if self._num_classes == 2:
-            y_pred = torch.sigmoid(y_pred)
+            y_pred = binarize_tensor(torch.sigmoid(y_pred), self._thres)
         else:
             y_pred = y_pred.argmax(dim=1)
 
+        y = y.cpu().type(torch.LongTensor)
         y_pred = y_pred.cpu().type(torch.LongTensor)
 
         for t, p in zip(y, y_pred):

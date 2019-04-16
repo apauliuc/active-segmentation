@@ -1,6 +1,6 @@
 run_name: Ternaus
 data:
-  dataset: AMC New
+  dataset: AMC
   mode: train
   batch_size: 4
   batch_size_val: 8
@@ -18,9 +18,6 @@ training:
     lr_cycle: 20
   loss_fn:
     name: bce_and_jaccard
-  log_interval: 20
-  save_model_interval: 50
-  ignite_history_size: 1
 model:
   name: ternaus_net
   network_params:
@@ -29,3 +26,4 @@ resume:
   resume_from:
   saved_model:
   saved_optimizer:
+binarize_threshold: 0.5

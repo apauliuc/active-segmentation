@@ -50,7 +50,8 @@ class Trainer(object):
 
         self.metrics = {
             'loss': metrics.Loss(get_loss_function(train_cfg.loss_fn)),
-            'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes)
+            'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
+                                                   threshold=config.binarize_threshold)
         }
 
         model_cfg.network_params.input_channels = self.data_loaders.input_channels

@@ -6,7 +6,7 @@ import subprocess
 import torch
 
 from data.data_preprocess_mds import mds_separate_scans_to_slices, mds_preprocess_scans
-from helpers.config import ConfigClass, get_config_from_path
+from helpers.config import get_config_from_path
 from scripts.predict import main_predict
 from scripts.train import main_train_new_model
 from definitions import CONFIG_DEFAULT, DATA_DIR, RUNS_DIR, CONFIG_DIR
@@ -61,7 +61,7 @@ def main(args):
 if __name__ == '__main__':
     "Main starting point of the application"
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--run_type', type=str, default='train_all_configs',
+    parser.add_argument('-r', '--run_type', type=str, default='train',
                         help='Type of run',
                         choices=['train', 'predict', 'preprocess', 'train_all_configs', 'active_learning'])
     parser.add_argument('-c', '--config', type=str, default=CONFIG_DEFAULT,

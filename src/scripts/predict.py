@@ -5,6 +5,7 @@ import SimpleITK as SiTK
 
 from data import MDSDataLoaders
 from helpers.config import ConfigClass
+from helpers.utils import binarize_tensor
 from models import get_model
 from helpers.torch_utils import device
 # noinspection PyProtectedMember
@@ -18,7 +19,9 @@ def prepare_batch(batch, device_local=None, non_blocking=False):
     return convert_tensor(batch, device=device_local, non_blocking=non_blocking)
 
 
-def main_predict(config: ConfigClass, load_directory=None, name='', use_best_model=True):
+def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_model=True):
+    if name is None:
+        name = config.run_name
     config.data.mode = 'predict'
 
     # Find model file to load from
@@ -61,8 +64,7 @@ def main_predict(config: ConfigClass, load_directory=None, name='', use_best_mod
                 idx += config.data.batch_size_val
 
         segmentation = segmentation.squeeze(1)
-        segmentation[segmentation > 0.5] = 1
-        segmentation[segmentation <= 0.5] = 0
+        segmentation = binarize_tensor(segmentation, threshold=config.binarize_threshold)
         segmentation *= 255
         segmentation = segmentation.astype(np.uint8)
         SiTK.WriteImage(SiTK.GetImageFromArray(segmentation),
