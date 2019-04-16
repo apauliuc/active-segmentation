@@ -2,6 +2,7 @@ import os
 import sys
 import inspect
 import logging
+import numpy as np
 from typing import List
 
 
@@ -34,4 +35,10 @@ def retrieve_class_init_parameters(class_instance) -> List:
 
 def binarize_tensor(x, threshold=0.5):
     cond = (x > threshold).float()
-    return (cond * 1) + ((1-cond) * 0)
+    return (cond * 1.) + ((1. - cond) * 0.)
+
+
+def binarize_nparray(x, threshold=0.5):
+    cond = (x > threshold).astype(np.float)
+    return (cond * 1.) + ((1. - cond) * 0.)
+

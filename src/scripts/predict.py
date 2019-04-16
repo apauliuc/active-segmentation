@@ -5,7 +5,7 @@ import SimpleITK as SiTK
 
 from data import MDSDataLoaders
 from helpers.config import ConfigClass
-from helpers.utils import binarize_tensor
+from helpers.utils import binarize_nparray
 from models import get_model
 from helpers.torch_utils import device
 # noinspection PyProtectedMember
@@ -64,7 +64,7 @@ def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_m
                 idx += config.data.batch_size_val
 
         segmentation = segmentation.squeeze(1)
-        segmentation = binarize_tensor(segmentation, threshold=config.binarize_threshold)
+        segmentation = binarize_nparray(segmentation, threshold=config.binarize_threshold)
         segmentation *= 255
         segmentation = segmentation.astype(np.uint8)
         SiTK.WriteImage(SiTK.GetImageFromArray(segmentation),
