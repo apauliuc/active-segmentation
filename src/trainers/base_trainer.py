@@ -129,13 +129,19 @@ class BaseTrainer(abc.ABC):
             'optimizer': self.optimizer
         }
 
-        best_checkpoint_handler = handlers.ModelCheckpoint(save_dir, 'best', n_saved=1, require_empty=False,
-                                                           score_function=self.val_loss, save_as_state_dict=True)
+        best_loss_ckpoint = handlers.ModelCheckpoint(save_dir, 'best_loss', n_saved=1, require_empty=False,
+                                                     score_function=self.val_loss, save_as_state_dict=True)
+        best_iou_ckpoint = handlers.ModelCheckpoint(save_dir, 'best_iou', n_saved=1, require_empty=False,
+                                                    score_function=self.iou_score, save_as_state_dict=True)
+        best_f1_ckpoint = handlers.ModelCheckpoint(save_dir, 'best_f1', n_saved=1, require_empty=False,
+                                                   score_function=self.f1_score, save_as_state_dict=True)
 
         final_checkpoint_handler = handlers.ModelCheckpoint(save_dir, 'final', save_interval=1, n_saved=1,
                                                             require_empty=False, save_as_state_dict=True)
 
-        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_checkpoint_handler, checkpoint_save)
+        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_loss_ckpoint, checkpoint_save)
+        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_iou_ckpoint, checkpoint_save)
+        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_f1_ckpoint, checkpoint_save)
         self.trainer.add_event_handler(engine.Events.COMPLETED, final_checkpoint_handler, checkpoint_save)
 
     def _on_epoch_started(self, _engine: engine.Engine) -> None:
@@ -183,6 +189,14 @@ class BaseTrainer(abc.ABC):
     @staticmethod
     def val_loss(_engine: engine.Engine) -> float:
         return -round(_engine.state.metrics['loss'], 6)
+
+    @staticmethod
+    def iou_score(_engine: engine.Engine) -> float:
+        return round(_engine.state.metrics['segment_metrics']['avg_iou'], 6)
+
+    @staticmethod
+    def f1_score(_engine: engine.Engine) -> float:
+        return round(_engine.state.metrics['segment_metrics']['avg_f1'], 6)
 
     @abc.abstractmethod
     def _init_handlers(self) -> None:
