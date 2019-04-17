@@ -7,7 +7,7 @@ from typing import List
 
 
 def setup_logger(logdir, name=''):
-    log_format = '[%(levelname)s: %(filename)s: %(lineno)4d]: %(message)s'
+    log_format = '[%(levelname)s: %(name)s: %(lineno)4d]: %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout)
 
     formatter = logging.Formatter(log_format)

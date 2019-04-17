@@ -45,13 +45,13 @@ class BaseTrainer(abc.ABC):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.eval_train_loader = config.data.run_val_on_train
 
+    def _init_train_components(self):
         self.metrics = {
             'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn)),
             'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
-                                                   threshold=config.binarize_threshold)
+                                                   threshold=self.config.binarize_threshold)
         }
 
-    def _init_train_components(self):
         self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
         self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
 

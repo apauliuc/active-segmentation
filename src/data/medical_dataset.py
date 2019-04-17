@@ -112,7 +112,7 @@ class MDSDataLoaders(BaseLoader):
             val_path = get_dataset_path(config.path, config.dataset, 'val')
 
             train_dataset = MDSMain(self.train_path, file_list=file_list, transform=self.train_transform)
-            val_dataset = MDSMain(val_path, self.train_transform)
+            val_dataset = MDSMain(val_path, transform=self.train_transform)
 
             self.train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=shuffle,
                                            num_workers=config.num_workers,
