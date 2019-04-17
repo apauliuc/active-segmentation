@@ -1,5 +1,4 @@
 import os
-import yaml
 import argparse
 import subprocess
 
@@ -8,7 +7,7 @@ import torch
 from data.data_preprocess_mds import mds_separate_scans_to_slices, mds_preprocess_scans
 from helpers.config import get_config_from_path
 from scripts.predict import main_predict
-from scripts.train import main_train_new_model
+from scripts.train_new import main_train_model
 from definitions import CONFIG_DEFAULT, DATA_DIR, RUNS_DIR, CONFIG_DIR
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
@@ -26,7 +25,7 @@ def main(args):
     elif args.run_type == 'train':
         # Run training using 1 config file
         print(f'Using config {args.config}')
-        main_train_new_model(args, os.path.join(args.configs_dir, args.config))
+        main_train_model(args, os.path.join(args.configs_dir, args.config))
 
     elif args.run_type == 'train_all_configs':
         # Run training for multiple config files given file name patter

@@ -22,11 +22,11 @@ from helpers.paths import get_resume_model_path, get_resume_optimizer_path, get_
 
 
 # noinspection PyUnresolvedReferences
-class Trainer(object):
+class Trainer:
 
     def __init__(self, config: ConfigClass, save_dir: str):
         self.save_dir = save_dir
-        self.logger, self.log_handler = setup_logger(save_dir)
+        self.logger, self.log_handler = setup_logger(save_dir, 'scripts.train')
         self.logger.info(f'Saving to folder {save_dir}')
         self.writer = SummaryWriter(log_dir=save_dir)
 

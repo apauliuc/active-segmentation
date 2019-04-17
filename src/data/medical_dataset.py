@@ -15,21 +15,23 @@ from helpers.config import ConfigClass
 from helpers.paths import get_dataset_path
 
 
-class MedicalScanDataset(Dataset):
+class MDSMain(Dataset):
     """Medical Scans Dataset"""
 
-    def __init__(self, data_dir, transform=lambda x: x):
+    def __init__(self, data_dir, file_list=None, transform=lambda x: x):
         """
-
         :param data_dir: path to folder containing images
+        :param file_list: list of train files to use (optional, used for active learning)
         :param transform: optional transform to apply on samples
         """
-        self.data_dir = data_dir
+        if file_list is None:
+            with open(join(data_dir, 'file_list.pkl'), 'rb') as f:
+                file_list = pickle.load(f)
+
+        self.file_list = file_list
+
         self.image_dir = os.path.join(data_dir, 'image')
         self.segment_dir = os.path.join(data_dir, 'segment')
-
-        with open(join(data_dir, 'file_list.pkl'), 'rb') as f:
-            self.file_list = pickle.load(f)
 
         self.transform = transform
 
@@ -48,7 +50,7 @@ class MedicalScanDataset(Dataset):
 
 
 class MDSPrediction(Dataset):
-    """Medical Scans Dataset"""
+    """Prediction Medical Scans Dataset"""
 
     def __init__(self, predict_path, dir_name, in_transform=lambda x: x, out_transform=lambda x: x):
         dir_path = os.path.join(predict_path, dir_name)
@@ -76,10 +78,11 @@ class MDSPrediction(Dataset):
 
 class MDSDataLoaders(BaseLoader):
 
-    def __init__(self, config: ConfigClass, shuffle=True):
+    def __init__(self, config: ConfigClass, file_list=None, shuffle=True):
         assert config.mode in ['train', 'predict']
 
         self.config = config
+        self.shuffle = shuffle
         self.input_channels = 1
         self.num_classes = 1
 
@@ -105,11 +108,11 @@ class MDSDataLoaders(BaseLoader):
         ])
 
         if config.mode == 'train':
-            train_path = get_dataset_path(config.path, config.dataset, 'train')
+            self.train_path = get_dataset_path(config.path, config.dataset, 'train')
             val_path = get_dataset_path(config.path, config.dataset, 'val')
 
-            train_dataset = MedicalScanDataset(train_path, self.train_transform)
-            val_dataset = MedicalScanDataset(val_path, self.train_transform)
+            train_dataset = MDSMain(self.train_path, file_list=file_list, transform=self.train_transform)
+            val_dataset = MDSMain(val_path, self.train_transform)
 
             self.train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=shuffle,
                                            num_workers=config.num_workers,
@@ -119,10 +122,12 @@ class MDSDataLoaders(BaseLoader):
                                          num_workers=config.num_workers,
                                          pin_memory=torch.cuda.is_available())
 
-            self.train_iterations = (len(train_dataset) + config.batch_size) // config.batch_size
-            self.val_iterations = (len(val_dataset) + config.batch_size) // config.batch_size
-
-            self.msg = f'Train data loader created from {train_path}. Validation data loader created from {val_path}'
+            if file_list is None:
+                self.msg = f'Train data loader created from {self.train_path}.' \
+                    f'Validation data loader created from {val_path}'
+            else:
+                self.msg = f'AL train data loader created from {self.train_path}.' \
+                    f'Validation data loader created from {val_path}'
 
             if config.run_val_on_train:
                 self.val_train_loader = DataLoader(train_dataset, batch_size=config.batch_size_val,
@@ -136,7 +141,7 @@ class MDSDataLoaders(BaseLoader):
         else:
             raise Exception('Data loading mode not found')
 
-    def get_predict_loader(self, dir_name):
+    def get_predict_loader(self, dir_name) -> DataLoader:
         predict_dataset = MDSPrediction(self.predict_path, dir_name,
                                         in_transform=self.predict_in_transform,
                                         out_transform=self.predict_out_transform)
@@ -146,3 +151,12 @@ class MDSDataLoaders(BaseLoader):
                           shuffle=False,
                           num_workers=self.config.num_workers,
                           pin_memory=torch.cuda.is_available())
+
+    def update_train_loader(self, new_file_list: list) -> None:
+        new_train_dataset = MDSMain(self.train_path, file_list=new_file_list, transform=self.train_transform)
+
+        self.train_loader = DataLoader(new_train_dataset,
+                                       batch_size=self.config.batch_size,
+                                       shuffle=self.shuffle,
+                                       num_workers=self.config.num_workers,
+                                       pin_memory=torch.cuda.is_available())
