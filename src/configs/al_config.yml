@@ -1,0 +1,33 @@
+run_name: Ternaus
+data:
+  dataset: AMC
+  mode: train
+  batch_size: 4
+  batch_size_val: 8
+  num_workers: 4
+  run_val_on_train: False
+training:
+  seed:
+  num_epochs: 75
+  optimizer:
+    name: adam
+    lr: 0.001
+    weight_decay: 0.0001
+    amsgrad: True
+    scheduler: step
+    lr_cycle: 20
+  loss_fn:
+    name: bce_and_jaccard
+model:
+  name: ternaus_net
+  network_params:
+    pretrained: True
+resume:
+  resume_from:
+  saved_model:
+  saved_optimizer:
+binarize_threshold: 0.5
+active_learn:
+  init_pool_size: 50
+  budget: 50
+  acquisition_steps: 10

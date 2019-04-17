@@ -1,6 +1,7 @@
 import abc
-import os
 import random
+from logging import Logger
+
 import numpy as np
 from typing import Tuple
 
@@ -17,7 +18,7 @@ from losses import get_loss_function
 from optimizers import get_optimizer
 from helpers.config import ConfigClass
 from helpers.metrics import SegmentationMetrics
-from helpers.utils import setup_logger, retrieve_class_init_parameters
+from helpers.utils import setup_logger, retrieve_class_init_parameters, timer_to_str
 from helpers.paths import get_resume_model_path, get_resume_optimizer_path
 
 
@@ -26,9 +27,9 @@ class BaseTrainer(abc.ABC):
 
     def __init__(self, config: ConfigClass, save_dir: str, log_name=''):
         self.save_dir = save_dir
-        self.logger, self.log_handler = setup_logger(save_dir, log_name)
-        self.logger.info(f'Saving to folder {save_dir}')
-        self.train_writer = SummaryWriter(log_dir=save_dir)
+        self.main_logger, self.main_log_handler = setup_logger(save_dir, log_name)
+        self.main_logger.info(f'Saving to folder {save_dir}')
+        self.main_writer = SummaryWriter(log_dir=save_dir)
 
         self.config = config
         self.model_cfg = config.model
@@ -40,7 +41,7 @@ class BaseTrainer(abc.ABC):
             torch.manual_seed(self.train_cfg.seed)
             random.seed(self.train_cfg.seed)
             np.random.seed(self.train_cfg.seed)
-            self.logger.info(f'Seed set on {self.train_cfg.seed}')
+            self.main_logger.info(f'Seed set on {self.train_cfg.seed}')
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.eval_train_loader = config.data.run_val_on_train
@@ -67,11 +68,11 @@ class BaseTrainer(abc.ABC):
 
     def _init_model(self):
         model = get_model(self.model_cfg).to(device=self.device)
-        self.logger.info(f'Using model {model}')
+        self.main_logger.info(f'Using model {model}')
 
         if self.resume_cfg.resume_from is not None:
             model_path = get_resume_model_path(self.resume_cfg.resume_from, self.resume_cfg.saved_model)
-            self.logger.info(f'Loading model loaded from {model_path}')
+            self.main_logger.info(f'Loading model loaded from {model_path}')
             model.load_state_dict(torch.load(model_path))
 
         return model
@@ -83,18 +84,18 @@ class BaseTrainer(abc.ABC):
         optimizer_params = {k: v for k, v in self.optim_cfg.items() if k in init_param_names}
 
         optimizer = optimizer_cls(self.model.parameters(), **optimizer_params)
-        self.logger.info(f'Using optimizer {optimizer.__class__.__name__}')
+        self.main_logger.info(f'Using optimizer {optimizer.__class__.__name__}')
 
         if self.resume_cfg.resume_from is not None:
             optimizer_path = get_resume_optimizer_path(self.resume_cfg.resume_from, self.resume_cfg.saved_optimizer)
-            self.logger.info(f'Loading optimizer from {optimizer_path}')
+            self.main_logger.info(f'Loading optimizer from {optimizer_path}')
             optimizer.load_state_dict(torch.load(optimizer_path))
 
         return optimizer
 
     def _init_criterion(self):
         criterion = get_loss_function(self.train_cfg.loss_fn).to(device=self.device)
-        self.logger.info(f'Using loss function {criterion}')
+        self.main_logger.info(f'Using loss function {criterion}')
 
         return criterion
 
@@ -141,19 +142,43 @@ class BaseTrainer(abc.ABC):
         if self.lr_scheduler is not None:
             self.lr_scheduler.step(_engine.state.epoch)
 
+    def _on_epoch_completed(self, _engine: engine.Engine) -> None:
+        pass
+
     def _on_events_completed(self, _engine: engine.Engine) -> None:
         self._finalize()
 
     def _on_exception_raised(self, _engine: engine.Engine, e: Exception) -> None:
-        self.logger.info(f'Exception at epoch {_engine.state.epoch}')
-        self.logger.info(e)
+        self.main_logger.info(f'Exception at epoch {_engine.state.epoch}')
+        self.main_logger.info(e)
         self._finalize()
+        self._finalize_trainer()
         raise e
 
     def _finalize(self) -> None:
-        self.train_writer.export_scalars_to_json(os.path.join(self.save_dir, 'tensorboardX.json'))
-        self.train_writer.close()
-        self.logger.removeHandler(self.log_handler)
+        pass
+
+    def _finalize_trainer(self) -> None:
+        pass
+
+    def _log_training_results(self, _train_engine: engine.Engine, logger: Logger, writer: SummaryWriter) -> None:
+        train_duration = timer_to_str(self.timer.value())
+        avg_loss = _train_engine.state.metrics['train_loss']
+        msg = f'Training results - Epoch:{_train_engine.state.epoch:2d}/{_train_engine.state.max_epochs}. ' \
+            f'Duration: {train_duration}. Avg loss: {avg_loss:.4f}'
+        logger.info(msg)
+        writer.add_scalar('training/avg_loss', avg_loss, _train_engine.state.epoch)
+
+    def _evaluate_on_val(self, _train_engine: engine.Engine, logger: Logger, writer: SummaryWriter) -> None:
+        self.evaluator.run(self.data_loaders.val_loader)
+        eval_loss = self.evaluator.state.metrics['loss']
+        eval_metrics = self.evaluator.state.metrics['segment_metrics']
+        msg = f'Eval. on val_loader - Avg loss: {eval_loss:.4f}'
+        logger.info(msg)
+        writer.add_scalar('validation_eval/avg_loss', eval_loss, _train_engine.state.epoch)
+
+        for key, value in eval_metrics.items():
+            writer.add_scalar(f'val_metrics/{key}', value, _train_engine.state.epoch)
 
     @staticmethod
     def val_loss(_engine: engine.Engine) -> float:

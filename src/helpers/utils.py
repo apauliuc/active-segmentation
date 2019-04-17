@@ -12,7 +12,7 @@ def setup_logger(logdir, name=''):
 
     formatter = logging.Formatter(log_format)
     logger = logging.getLogger(name)
-    handler = logging.FileHandler(os.path.join(logdir, "LOGGING_FILE.log"))
+    handler = logging.FileHandler(os.path.join(logdir, f"LOGGING_{name}.log"))
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
