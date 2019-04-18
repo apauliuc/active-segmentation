@@ -25,6 +25,7 @@ class PassiveTrainer(BaseTrainer):
     def _init_handlers(self) -> None:
         self._init_epoch_timer()
         self._init_checkpoint_handler()
+        self._init_early_stopping_handler()
 
         self.trainer.add_event_handler(engine.Events.EPOCH_STARTED, self._on_epoch_started)
         self.trainer.add_event_handler(engine.Events.EPOCH_COMPLETED, self._on_epoch_completed)
@@ -35,6 +36,9 @@ class PassiveTrainer(BaseTrainer):
         self.trainer.add_event_handler(engine.Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
 
     def _finalize(self) -> None:
+        if self.trainer.should_terminate:
+            self.main_logger.info(f'Early stopping on epoch {self.trainer.state.epoch}')
+
         self.main_writer.export_scalars_to_json(os.path.join(self.save_dir, 'tensorboardX.json'))
         self.main_writer.close()
         self.main_logger.removeHandler(self.main_log_handler)

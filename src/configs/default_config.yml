@@ -18,6 +18,8 @@ training:
     lr_cycle: 20
   loss_fn:
     name: bce_and_jaccard
+  patience: 15
+  early_stop_fn: val_loss
 model:
   name: ternaus_net
   network_params:

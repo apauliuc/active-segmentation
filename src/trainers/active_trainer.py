@@ -39,9 +39,12 @@ class ActiveTrainer(BaseTrainer):
     def _update_components_on_step(self, value):
         self._create_train_loggers(value=value)
 
+        # Update optimizer learning rate and recreate LR scheduler
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] = self.optim_cfg.lr
+        self.lr_scheduler = self._init_lr_scheduler()
+
         # Recreate Engines and handlers
-        # TODO: check whether model is reinitialised
-        # TODO: check whether optimizer needs to be reinitialised (or lr set back to initial)
         self.trainer, self.evaluator = self._init_engines()
         self._init_handlers()
 
@@ -52,6 +55,7 @@ class ActiveTrainer(BaseTrainer):
     def _init_handlers(self) -> None:
         self._init_epoch_timer()
         self._init_checkpoint_handler(save_dir=self.save_model_dir)
+        self._init_early_stopping_handler()
 
         self.trainer.add_event_handler(engine.Events.EPOCH_STARTED, self._on_epoch_started)
         self.trainer.add_event_handler(engine.Events.EPOCH_COMPLETED, self._on_epoch_completed)
@@ -63,8 +67,6 @@ class ActiveTrainer(BaseTrainer):
 
     def _finalize(self) -> None:
         # Evaluate model and save information
-        # TODO: evaluator already has state information. Rerun on val dataset not necessary
-        # self.evaluator.run(self.data_loaders.val_loader)
         eval_loss = self.evaluator.state.metrics['loss']
         eval_metrics = self.evaluator.state.metrics['segment_metrics']
 
@@ -75,6 +77,9 @@ class ActiveTrainer(BaseTrainer):
             self.main_writer.add_scalar(f'active_learning/{key}', value, self.acquisition_step)
 
         # Close writer and logger related to model training
+        if self.trainer.should_terminate:
+            self.train_logger.info(f'Early stopping on epoch {self.trainer.state.epoch}')
+
         self.train_writer.export_scalars_to_json(os.path.join(self.save_model_dir, 'tensorboardX.json'))
         self.train_writer.close()
         self.train_logger.removeHandler(self.train_log_handler)

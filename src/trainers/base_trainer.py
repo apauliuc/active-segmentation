@@ -144,6 +144,19 @@ class BaseTrainer(abc.ABC):
         self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_f1_ckpoint, checkpoint_save)
         self.trainer.add_event_handler(engine.Events.COMPLETED, final_checkpoint_handler, checkpoint_save)
 
+    def _init_early_stopping_handler(self) -> None:
+        if self.train_cfg.early_stop_fn == 'f1_score':
+            func = self.f1_score
+        elif self.train_cfg.early_stop_fn == 'iou_score':
+            func = self.iou_score
+        else:
+            func = self.val_loss
+
+        early_stop_handler = handlers.EarlyStopping(self.train_cfg.patience,
+                                                    score_function=func,
+                                                    trainer=self.trainer)
+        self.evaluator.add_event_handler(engine.Events.COMPLETED, early_stop_handler)
+
     def _on_epoch_started(self, _engine: engine.Engine) -> None:
         if self.lr_scheduler is not None:
             self.lr_scheduler.step(_engine.state.epoch)
