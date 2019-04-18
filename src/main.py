@@ -6,9 +6,10 @@ import torch
 
 from data.data_preprocess_mds import mds_separate_scans_to_slices, mds_preprocess_scans
 from helpers.config import get_config_from_path
+from scripts.active_learn import main_active_learning
 from scripts.predict import main_predict
 from scripts.train import main_train_model
-from definitions import CONFIG_DEFAULT, DATA_DIR, RUNS_DIR, CONFIG_DIR
+from definitions import CONFIG_DEFAULT, CONFIG_AL, DATA_DIR, RUNS_DIR, CONFIG_DIR
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -50,8 +51,8 @@ def main(args):
 
     elif args.run_type == 'active_learning':
         # Run Active Learning training algorithm
-        print("Prepare yourself to do amazing stuff!")
-        # TODO: Implement everything
+        print(f'Using config {args.config}')
+        main_active_learning(args, os.path.join(args.configs_dir, args.config))
 
     else:
         raise ValueError('Run type not known')
@@ -60,10 +61,10 @@ def main(args):
 if __name__ == '__main__':
     "Main starting point of the application"
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--run_type', type=str, default='train',
+    parser.add_argument('-r', '--run_type', type=str, default='active_learning',
                         help='Type of run',
                         choices=['train', 'predict', 'preprocess', 'train_all_configs', 'active_learning'])
-    parser.add_argument('-c', '--config', type=str, default=CONFIG_DEFAULT,
+    parser.add_argument('-c', '--config', type=str, default=CONFIG_AL,
                         help='Configuration file to use')
     parser.add_argument('--configs_dir', type=str, default=CONFIG_DIR,
                         help='Directory of all configurations to train on (run_type = train_all_configs)')

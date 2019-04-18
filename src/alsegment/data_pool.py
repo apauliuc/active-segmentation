@@ -13,10 +13,12 @@ class ALDataPool:
     def __init__(self, config: ConfigClass):
         self.config = config
         self.al_config = config.active_learn
-        self._train_path = get_dataset_path(config.path, config.dataset, 'train')
+        self._train_path = get_dataset_path(config.data.path, config.data.dataset, 'train')
 
         with open(os.path.join(self._train_path, 'file_list.pkl'), 'rb') as f:
             self._data_pool = pickle.load(f)
+
+        self._create_initial_pool()
 
     def _remove_list_from_data_pool(self, to_remove: list):
         for item in to_remove:
@@ -27,11 +29,11 @@ class ALDataPool:
         # except ValueError:
         #     pass
 
-    def create_initial_pool(self):
+    def _create_initial_pool(self):
         init_pool = np.random.choice(self._data_pool,
                                      size=self.al_config.init_pool_size,
                                      replace=False).tolist()
-        self._labelled_pool.extend(init_pool)
+        self._labelled_pool = init_pool
         self._remove_list_from_data_pool(init_pool)
 
     def update_train_pool(self, item_list: list):

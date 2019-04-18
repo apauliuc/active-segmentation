@@ -158,7 +158,6 @@ class BaseTrainer(abc.ABC):
         self.main_logger.info(f'Exception at epoch {_engine.state.epoch}')
         self.main_logger.info(e)
         self._finalize()
-        self._finalize_trainer()
         raise e
 
     def _finalize(self) -> None:
@@ -192,11 +191,11 @@ class BaseTrainer(abc.ABC):
 
     @staticmethod
     def iou_score(_engine: engine.Engine) -> float:
-        return round(_engine.state.metrics['segment_metrics']['avg_iou'], 6)
+        return round(_engine.state.metrics['segment_metrics']['avg_iou'].item(), 6)
 
     @staticmethod
     def f1_score(_engine: engine.Engine) -> float:
-        return round(_engine.state.metrics['segment_metrics']['avg_f1'], 6)
+        return round(_engine.state.metrics['segment_metrics']['avg_f1'].item(), 6)
 
     @abc.abstractmethod
     def _init_handlers(self) -> None:

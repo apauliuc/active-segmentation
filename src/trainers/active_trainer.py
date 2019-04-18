@@ -90,9 +90,11 @@ class ActiveTrainer(BaseTrainer):
 
     def run(self) -> None:
         self.main_logger.info(f'ActiveTrainer initialised. Starting training on {self.device}.')
+        self.main_logger.info('Training - acquisition step 0')
         self._train()
 
         for i in range(1, self.al_config.acquisition_steps):
+            self.main_logger.info(f'Training - acquisition step {i}')
             self._update_components_on_step(i)
 
             self._query_new_data()

@@ -123,10 +123,10 @@ class MDSDataLoaders(BaseLoader):
                                          pin_memory=torch.cuda.is_available())
 
             if file_list is None:
-                self.msg = f'Train data loader created from {self.train_path}.' \
+                self.msg = f'Train data loader created from {self.train_path}. ' \
                     f'Validation data loader created from {val_path}'
             else:
-                self.msg = f'AL train data loader created from {self.train_path}.' \
+                self.msg = f'AL train data loader created from {self.train_path}. ' \
                     f'Validation data loader created from {val_path}'
 
             if config.run_val_on_train:
