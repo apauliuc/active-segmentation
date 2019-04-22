@@ -1,9 +1,10 @@
 import os
-import numpy as np
+import torch
 
 from ignite import handlers
 from ignite import engine
 from tensorboardX import SummaryWriter
+from torch.utils.data import DataLoader
 
 from trainers.base_trainer import BaseTrainer
 from data import MDSDataLoaders
@@ -13,11 +14,14 @@ from helpers.utils import setup_logger
 
 
 class ActiveTrainer(BaseTrainer):
+    """
+    Base implementation of AL trainer.
+    """
     data_loaders: MDSDataLoaders
     acquisition_step: int
 
-    def __init__(self, config: ConfigClass, save_dir: str):
-        super(ActiveTrainer, self).__init__(config, save_dir, 'ActiveTrainer')
+    def __init__(self, config: ConfigClass, save_dir: str, name='ActiveTrainer'):
+        super(ActiveTrainer, self).__init__(config, save_dir, name)
 
         self.al_config = config.active_learn
         self._create_train_loggers(value=0)
@@ -102,17 +106,36 @@ class ActiveTrainer(BaseTrainer):
             self.main_logger.info(f'Training - acquisition step {i}')
             self._update_components_on_step(i)
 
-            self._query_new_data()
+            self._acquisition_function()
 
             self._train()
 
         self._finalize_trainer()
 
-    def _update_data(self, new_data_points: list):
+    def _update_data_pool(self, new_data_points: list):
         self.data_pool.update_train_pool(new_data_points)
         self.data_loaders.update_train_loader(self.data_pool.train_pool)
 
-    def _query_new_data(self) -> None:
-        # For now, take random
-        new_files = np.random.choice(self.data_pool.data_pool, size=self.al_config.budget, replace=False).tolist()
-        self._update_data(new_files)
+    def _acquisition_function(self) -> None:
+        pass
+
+    def _predict_proba(self):
+        al_loader = DataLoader(self.data_pool,
+                               batch_size=self.config.data.batch_size_val,
+                               shuffle=False,
+                               num_workers=self.config.data.num_workers,
+                               pin_memory=torch.cuda.is_available())
+        predictions = []
+
+        self.model.eval()
+        with torch.no_grad():
+            for batch in al_loader:
+                x, _ = batch
+                x = x.to(self.device)
+
+                out = self.model(x)
+                out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
+
+                predictions.extend(*out_probas.split(out_probas.shape[0]))
+
+        return predictions
