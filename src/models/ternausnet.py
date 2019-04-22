@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torchvision import models
 
 
@@ -25,25 +26,27 @@ class DecoderBlock(nn.Module):
     link https://distill.pub/2016/deconv-checkerboard/
     """
 
-    def __init__(self, in_channels, middle_channels, out_channels, is_deconv=True):
+    def __init__(self, in_channels, middle_channels, out_channels, is_deconv=True, dropout=False, dropout_p=0.2):
         super(DecoderBlock, self).__init__()
-        self.in_channels = in_channels
+        self.is_deconv = is_deconv
+        module_list = [ConvRelu(in_channels, middle_channels)]
 
         if is_deconv:
-            self.block = nn.Sequential(
-                ConvRelu(in_channels, middle_channels),
-                nn.ConvTranspose2d(middle_channels, out_channels, kernel_size=4, stride=2,
-                                   padding=1),
-                nn.ReLU(inplace=True)
-            )
+            module_list.append(nn.ConvTranspose2d(middle_channels, out_channels,
+                                                  kernel_size=4, stride=2, padding=1))
+            module_list.append(nn.ReLU(inplace=True))
         else:
-            self.block = nn.Sequential(
-                nn.Upsample(scale_factor=2, mode='bilinear'),
-                ConvRelu(in_channels, middle_channels),
-                ConvRelu(middle_channels, out_channels),
-            )
+            module_list.append(ConvRelu(middle_channels, out_channels))
+
+        if dropout:
+            module_list.append(nn.Dropout2d(p=dropout_p, inplace=True))
+
+        self.block = nn.Sequential(*module_list)
 
     def forward(self, x):
+        if not self.is_deconv:
+            x = F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=True)
+
         return self.block(x)
 
 
@@ -51,7 +54,9 @@ class TernausNet(nn.Module):
     def __init__(self,
                  num_classes=1,
                  num_filters=32,
-                 pretrained=False):
+                 pretrained=False,
+                 dropout=True,
+                 dropout_p=0.2):
         """
         :param num_filters:
         :param pretrained:
@@ -62,6 +67,7 @@ class TernausNet(nn.Module):
         """
         super().__init__()
         self.num_classes = num_classes
+        self.dropout_p = dropout_p
 
         self.pool = nn.MaxPool2d(2, 2)
         self.relu = nn.ReLU(inplace=True)
@@ -95,11 +101,21 @@ class TernausNet(nn.Module):
             self.relu
         )
 
-        self.center = DecoderBlock(num_filters * 8 * 2, num_filters * 8 * 2, num_filters * 8, is_deconv=True)
-        self.dec5 = DecoderBlock(num_filters * 8 * 3, num_filters * 8 * 2, num_filters * 8, is_deconv=True)
-        self.dec4 = DecoderBlock(num_filters * 8 * 3, num_filters * 8 * 2, num_filters * 4, is_deconv=True)
-        self.dec3 = DecoderBlock(num_filters * 4 * 3, num_filters * 4 * 2, num_filters * 2, is_deconv=True)
-        self.dec2 = DecoderBlock(num_filters * 2 * 3, num_filters * 2 * 2, num_filters, is_deconv=True)
+        if dropout:
+            layers_drop = [self.conv1, self.conv2, self.conv3, self.conv4, self.conv5]
+            for l in layers_drop:
+                l.add_module('dropout', nn.Dropout2d(p=self.dropout_p, inplace=True))
+
+        self.center = DecoderBlock(num_filters * 8 * 2, num_filters * 8 * 2, num_filters * 8,
+                                   dropout=dropout, dropout_p=dropout_p)
+        self.dec5 = DecoderBlock(num_filters * 8 * 3, num_filters * 8 * 2, num_filters * 8,
+                                 dropout=dropout, dropout_p=dropout_p)
+        self.dec4 = DecoderBlock(num_filters * 8 * 3, num_filters * 8 * 2, num_filters * 4,
+                                 dropout=dropout, dropout_p=dropout_p)
+        self.dec3 = DecoderBlock(num_filters * 4 * 3, num_filters * 4 * 2, num_filters * 2,
+                                 dropout=dropout, dropout_p=dropout_p)
+        self.dec2 = DecoderBlock(num_filters * 2 * 3, num_filters * 2 * 2, num_filters,
+                                 dropout=dropout, dropout_p=dropout_p)
         self.dec1 = ConvRelu(num_filters * 3, num_filters)
 
         self.final = nn.Conv2d(num_filters, self.num_classes, kernel_size=1)
