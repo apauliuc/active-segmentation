@@ -23,6 +23,9 @@ class ActiveTrainer(BaseTrainer):
     def __init__(self, config: ConfigClass, save_dir: str, name='ActiveTrainer'):
         super(ActiveTrainer, self).__init__(config, save_dir, name)
 
+        self.main_data_dir = os.path.join(self.save_dir, 'Datasets')
+        os.makedirs(self.main_data_dir)
+
         self.al_config = config.active_learn
         self._create_train_loggers(value=0)
 
@@ -30,12 +33,16 @@ class ActiveTrainer(BaseTrainer):
         self.data_loaders = MDSDataLoaders(self.config.data, file_list=self.data_pool.train_pool)
         self.main_logger.info(self.data_loaders.msg)
 
+        self.data_pool.copy_pool_files_to_dir(self.data_pool.train_pool, self.save_data_dir)
+
         self._init_train_components()
 
     def _create_train_loggers(self, value):
         self.acquisition_step = value
         self.save_model_dir = os.path.join(self.save_dir, f'Step {value}')
         os.makedirs(self.save_model_dir)
+        self.save_data_dir = os.path.join(self.main_data_dir, f'Step {value}')
+        os.makedirs(self.save_data_dir)
 
         self.train_logger, self.train_log_handler = setup_logger(self.save_model_dir, f'Train step {value}')
         self.train_writer = SummaryWriter(log_dir=self.save_model_dir)
@@ -115,6 +122,8 @@ class ActiveTrainer(BaseTrainer):
     def _update_data_pool(self, new_data_points: list):
         self.data_pool.update_train_pool(new_data_points)
         self.data_loaders.update_train_loader(self.data_pool.train_pool)
+
+        self.data_pool.copy_pool_files_to_dir(new_data_points, self.save_data_dir)
 
     def _acquisition_function(self) -> None:
         pass

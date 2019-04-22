@@ -59,10 +59,9 @@ class UNetV2(nn.Module):
     def __init__(self,
                  input_channels: int = 1,
                  num_classes=1,
-                 filters_base: int = 64,
+                 num_filters: int = 64,
                  down_filter_factors=(1, 2, 4, 8, 16),
                  up_filter_factors=(1, 2, 4, 8, 16),
-                 bottom_s=4,
                  add_output=True):
         super().__init__()
         self.in_channels = input_channels
@@ -71,8 +70,8 @@ class UNetV2(nn.Module):
         assert len(down_filter_factors) == len(up_filter_factors)
         assert down_filter_factors[-1] == up_filter_factors[-1]
 
-        down_filter_sizes = [filters_base * s for s in down_filter_factors]
-        up_filter_sizes = [filters_base * s for s in up_filter_factors]
+        down_filter_sizes = [num_filters * s for s in down_filter_factors]
+        up_filter_sizes = [num_filters * s for s in up_filter_factors]
 
         self.down, self.up = nn.ModuleList(), nn.ModuleList()
 
@@ -86,10 +85,10 @@ class UNetV2(nn.Module):
                 down_filter_sizes[prev_i] + nf, up_filter_sizes[prev_i]))
 
         pool = nn.MaxPool2d(2, 2)
-        pool_bottom = nn.MaxPool2d(bottom_s, bottom_s)
+        pool_bottom = nn.MaxPool2d(4, 4)
 
         upsample = Interpolate(scale_factor=2, mode='bilinear')
-        upsample_bottom = Interpolate(scale_factor=bottom_s, mode='bilinear')
+        upsample_bottom = Interpolate(scale_factor=4, mode='bilinear')
 
         self.downsamplers = [None] + [pool] * (len(self.down) - 1)
         self.downsamplers[-1] = pool_bottom

@@ -16,7 +16,7 @@ class LeastConfidentTrainer(ActiveTrainer):
 
     def _acquisition_function(self):
         probas = self._predict_proba()
-        x = torch.stack(probas)
+        x = torch.stack(probas).cpu()
         x = -(x - 0.5).abs().mean(dim=1)
 
         data = np.zeros((2, x.shape[0]))

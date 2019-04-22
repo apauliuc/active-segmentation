@@ -25,7 +25,9 @@ def get_new_run_path(name: str) -> str:
 
 
 def get_resume_model_path(run_dir: str, model_filename: str) -> str:
-    model_path = os.path.join(RUNS_DIR, run_dir, f'{model_filename}.pth')
+    if model_filename[-4:] != '.pth':
+        model_filename = f'{model_filename}.pth'
+    model_path = os.path.join(RUNS_DIR, run_dir, model_filename)
     return model_path
 
 
@@ -35,6 +37,5 @@ def get_resume_optimizer_path(run_dir: str, optim_filename: str) -> str:
 
 
 def create_directory(path: str):
-    if path:
-        if not os.path.exists(path):
+    if path and not os.path.exists(path):
             os.makedirs(path)

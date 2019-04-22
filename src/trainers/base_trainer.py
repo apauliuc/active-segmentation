@@ -70,7 +70,7 @@ class BaseTrainer(abc.ABC):
         model = get_model(self.model_cfg).to(device=self.device)
         self.main_logger.info(f'Using model {model}')
 
-        if self.resume_cfg.resume_from is not None:
+        if self.resume_cfg.resume_from is not None and self.resume_cfg.saved_model is not None:
             model_path = get_resume_model_path(self.resume_cfg.resume_from, self.resume_cfg.saved_model)
             self.main_logger.info(f'Loading model loaded from {model_path}')
             model.load_state_dict(torch.load(model_path))
@@ -86,7 +86,7 @@ class BaseTrainer(abc.ABC):
         optimizer = optimizer_cls(self.model.parameters(), **optimizer_params)
         self.main_logger.info(f'Using optimizer {optimizer.__class__.__name__}')
 
-        if self.resume_cfg.resume_from is not None:
+        if self.resume_cfg.resume_from is not None and self.resume_cfg.saved_optimizer is not None:
             optimizer_path = get_resume_optimizer_path(self.resume_cfg.resume_from, self.resume_cfg.saved_optimizer)
             self.main_logger.info(f'Loading optimizer from {optimizer_path}')
             optimizer.load_state_dict(torch.load(optimizer_path))
@@ -139,9 +139,9 @@ class BaseTrainer(abc.ABC):
         final_checkpoint_handler = handlers.ModelCheckpoint(save_dir, 'final', save_interval=1, n_saved=1,
                                                             require_empty=False, save_as_state_dict=True)
 
-        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_loss_ckpoint, checkpoint_save)
-        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_iou_ckpoint, checkpoint_save)
-        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_f1_ckpoint, checkpoint_save)
+        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_loss_ckpoint, {'model': self.model})
+        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_iou_ckpoint, {'model': self.model})
+        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_f1_ckpoint, {'model': self.model})
         self.trainer.add_event_handler(engine.Events.COMPLETED, final_checkpoint_handler, checkpoint_save)
 
     def _init_early_stopping_handler(self) -> None:

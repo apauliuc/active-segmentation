@@ -1,4 +1,6 @@
 import pickle
+import shutil
+
 import numpy as np
 from os.path import join
 from PIL import Image
@@ -21,6 +23,7 @@ class ALDataPool(Dataset):
         self.al_config = config.active_learn
 
         self._train_path = get_dataset_path(config.data.path, config.data.dataset, 'train')
+        self._image_path = join(self._train_path, 'image')
 
         with open(join(self._train_path, 'file_list.pkl'), 'rb') as f:
             self._data_pool = pickle.load(f)
@@ -66,11 +69,15 @@ class ALDataPool(Dataset):
     def __getitem__(self, index: int):
         img_name = self._data_pool[index]
 
-        image = Image.open(join(self._train_path, img_name))
+        image = Image.open(join(self._image_path, img_name))
 
         image = self.input_transform(image)
 
         return image, index
+
+    def copy_pool_files_to_dir(self, files: list, save_dir: str):
+        for file in files:
+            shutil.copy(join(self._image_path, file), save_dir)
 
     @property
     def train_pool(self):

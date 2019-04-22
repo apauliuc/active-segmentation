@@ -2,32 +2,20 @@ run_name: AL_Test
 data:
   dataset: AMC
   mode: train
-  batch_size: 4
+  batch_size: 3
   batch_size_val: 8
-  num_workers: 4
-  run_val_on_train: False
 training:
-  seed:
-  num_epochs: 5
-  optimizer:
-    name: adam
-    lr: 0.001
-    weight_decay: 0.0001
-    amsgrad: True
-    scheduler: step
-    lr_cycle: 20
-  loss_fn:
-    name: bce_and_jaccard
+  num_epochs: 2
 model:
   name: ternaus_net
   network_params:
     pretrained: True
 resume:
-  resume_from:
-  saved_model:
+  resume_from: 'SAVED MODEL'
+  saved_model: 'best_model_13.pth'
   saved_optimizer:
-binarize_threshold: 0.5
 active_learn:
+  method: least_confident
   init_pool_size: 5
   budget: 5
   acquisition_steps: 5

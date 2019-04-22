@@ -29,9 +29,9 @@ def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_m
 
     # Find model file to load from
     files_list = os.listdir(load_directory)
-    model_filename = 'best_model_1.pth'
+    model_filename = 'final_model_1.pth'
 
-    fname_pattern = 'best_model_' if use_best_model else 'final_model_'
+    fname_pattern = 'best_loss_' if use_best_model else 'final_model_'
     for f in files_list:
         if fname_pattern in f:
             model_filename = f
