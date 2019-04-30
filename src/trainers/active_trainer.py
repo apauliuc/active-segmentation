@@ -114,6 +114,10 @@ class ActiveTrainer(BaseTrainer):
         self._train()
 
         for i in range(1, self.al_config.acquisition_steps + 1):
+            if len(self.data_pool.data_pool) < self.al_config.budget:
+                self.main_logger.info(f'Data pool too small. Stopping training.')
+                break
+
             self.main_logger.info(f'Training - acquisition step {i}')
             self._update_components_on_step(i)
 
