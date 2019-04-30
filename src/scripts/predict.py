@@ -15,7 +15,8 @@ def get_model_path(config: ConfigClass, load_directory=None, use_best_model=True
     # Find model file to load from
     if config.al_mode:
         al_directory = sorted([x for x in os.listdir(load_directory) if 'Step' in x])[-1]
-        files_list = os.listdir(os.path.join(load_directory, al_directory))
+        load_directory = os.path.join(load_directory, al_directory)
+        files_list = os.listdir(load_directory)
     else:
         files_list = os.listdir(load_directory)
 
