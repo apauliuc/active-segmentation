@@ -84,11 +84,14 @@ class ActiveTrainer(BaseTrainer):
         eval_loss = self.evaluator.state.metrics['loss']
         eval_metrics = self.evaluator.state.metrics['segment_metrics']
 
-        msg = f'Step {self.acquisition_step} - Avg. validation loss: {eval_loss:.4f}'
+        msg = f'Step {self.acquisition_step} - Avg. validation loss after' \
+            f'{self.trainer.state.epoch} training epochs: {eval_loss:.4f}'
         self.main_logger.info(msg)
+
         self.main_writer.add_scalar(f'active_learning/avg_val_loss', eval_loss, self.acquisition_step)
         for key, value in eval_metrics.items():
             self.main_writer.add_scalar(f'active_learning/{key}', value, self.acquisition_step)
+        self.main_writer.add_scalar(f'active_learning/epochs_trained', self.trainer.state.epoch, self.acquisition_step)
 
         # Close writer and logger related to model training
         self.train_writer.export_scalars_to_json(os.path.join(self.save_model_dir, 'tensorboardX.json'))

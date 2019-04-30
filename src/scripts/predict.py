@@ -9,17 +9,26 @@ from helpers.utils import binarize_nparray
 from models import get_model
 from helpers.torch_utils import device
 from helpers.metrics import SegmentationMetrics
-# noinspection PyProtectedMember
-from ignite._utils import convert_tensor
 
 
-def prepare_batch(batch, device_local=None, non_blocking=False):
-    """Prepare batch for training: pass to a device with options
+def get_model_path(config: ConfigClass, load_directory=None, use_best_model=True):
+    # Find model file to load from
+    if config.al_mode:
+        al_directory = sorted([x for x in os.listdir(load_directory) if 'Step' in x])[-1]
+        files_list = os.listdir(os.path.join(load_directory, al_directory))
+    else:
+        files_list = os.listdir(load_directory)
 
-    """
-    x, y = batch
-    return (convert_tensor(x, device=device_local, non_blocking=non_blocking),
-            convert_tensor(y, device=device_local, non_blocking=non_blocking))
+    model_filename = 'final_model_1.pth'
+
+    fname_pattern = 'best_model_' if use_best_model else 'final_model_'
+    for f in files_list:
+        if fname_pattern in f:
+            model_filename = f
+
+    model_filepath = os.path.join(load_directory, model_filename)
+
+    return model_filepath
 
 
 def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_model=True):
@@ -27,16 +36,7 @@ def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_m
         name = config.run_name
     config.data.mode = 'predict'
 
-    # Find model file to load from
-    files_list = os.listdir(load_directory)
-    model_filename = 'final_model_1.pth'
-
-    fname_pattern = 'best_loss_' if use_best_model else 'final_model_'
-    for f in files_list:
-        if fname_pattern in f:
-            model_filename = f
-
-    model_filepath = os.path.join(load_directory, model_filename)
+    model_filepath = get_model_path(config, load_directory, use_best_model)
 
     # Load model
     model = get_model(config.model)
@@ -59,7 +59,10 @@ def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_m
 
         with torch.no_grad():
             for batch in data_loader:
-                x, y = prepare_batch(batch, device_local=device, non_blocking=True)
+                x, y = batch
+                x = x.to(device=device, non_blocking=True)
+                y = y.to(device=device, non_blocking=True)
+
                 y_pred = model(x)
 
                 segment_metrics.update((y_pred, y))

@@ -19,7 +19,7 @@ training:
   loss_fn:
     name: bce_and_jaccard
   patience: 15
-  early_stop_fn: val_loss
+  early_stop_fn: iou_score
 model:
   name: ternaus_net
   network_params:
@@ -31,3 +31,4 @@ resume:
   saved_model:
   saved_optimizer:
 binarize_threshold: 0.5
+al_mode: False

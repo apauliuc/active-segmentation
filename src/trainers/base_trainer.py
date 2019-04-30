@@ -46,6 +46,13 @@ class BaseTrainer(abc.ABC):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.eval_train_loader = config.data.run_val_on_train
 
+        if self.train_cfg.early_stop_fn == 'f1_score':
+            self.eval_func = self.f1_score
+        elif self.train_cfg.early_stop_fn == 'iou_score':
+            self.eval_func = self.iou_score
+        else:
+            self.eval_func = self.val_loss
+
     def _init_train_components(self):
         self.metrics = {
             'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn)),
@@ -129,31 +136,18 @@ class BaseTrainer(abc.ABC):
             'optimizer': self.optimizer
         }
 
-        best_loss_ckpoint = handlers.ModelCheckpoint(save_dir, 'best_loss', n_saved=1, require_empty=False,
-                                                     score_function=self.val_loss, save_as_state_dict=True)
-        best_iou_ckpoint = handlers.ModelCheckpoint(save_dir, 'best_iou', n_saved=1, require_empty=False,
-                                                    score_function=self.iou_score, save_as_state_dict=True)
-        best_f1_ckpoint = handlers.ModelCheckpoint(save_dir, 'best_f1', n_saved=1, require_empty=False,
-                                                   score_function=self.f1_score, save_as_state_dict=True)
+        best_ckpoint = handlers.ModelCheckpoint(save_dir, 'best', n_saved=1, require_empty=False,
+                                                score_function=self.eval_func, save_as_state_dict=True)
 
         final_checkpoint_handler = handlers.ModelCheckpoint(save_dir, 'final', save_interval=1, n_saved=1,
                                                             require_empty=False, save_as_state_dict=True)
 
-        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_loss_ckpoint, {'model': self.model})
-        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_iou_ckpoint, {'model': self.model})
-        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_f1_ckpoint, {'model': self.model})
+        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_ckpoint, {'model': self.model})
         self.trainer.add_event_handler(engine.Events.COMPLETED, final_checkpoint_handler, checkpoint_save)
 
     def _init_early_stopping_handler(self) -> None:
-        if self.train_cfg.early_stop_fn == 'f1_score':
-            func = self.f1_score
-        elif self.train_cfg.early_stop_fn == 'iou_score':
-            func = self.iou_score
-        else:
-            func = self.val_loss
-
         early_stop_handler = handlers.EarlyStopping(self.train_cfg.patience,
-                                                    score_function=func,
+                                                    score_function=self.eval_func,
                                                     trainer=self.trainer)
         self.evaluator.add_event_handler(engine.Events.COMPLETED, early_stop_handler)
 
