@@ -6,6 +6,7 @@ from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from trainers.active_trainer import ActiveTrainer
 from trainers.least_confident_trainer import LeastConfidentTrainer
+from trainers.least_confident_mc_trainer import LeastConfidentMonteCarloTrainer
 from trainers.random_sample_trainer import RandomSampleTrainer
 
 
@@ -26,6 +27,8 @@ def main_active_learning(args, config_path: str):
         trainer = RandomSampleTrainer(config, run_dir)
     elif al_method == 'least_confident':
         trainer = LeastConfidentTrainer(config, run_dir)
+    elif al_method == 'least_confident_mc':
+        trainer = LeastConfidentMonteCarloTrainer(config, run_dir)
     else:
         trainer = ActiveTrainer(config, run_dir)
 

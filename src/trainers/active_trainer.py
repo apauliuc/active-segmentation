@@ -77,6 +77,9 @@ class ActiveTrainer(BaseTrainer):
         self.trainer.add_event_handler(engine.Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
 
     def _finalize(self) -> None:
+        if self.trainer.should_terminate:
+            self.train_logger.info(f'Early stopping on epoch {self.trainer.state.epoch}')
+
         # Evaluate model and save information
         eval_loss = self.evaluator.state.metrics['loss']
         eval_metrics = self.evaluator.state.metrics['segment_metrics']
@@ -88,9 +91,6 @@ class ActiveTrainer(BaseTrainer):
             self.main_writer.add_scalar(f'active_learning/{key}', value, self.acquisition_step)
 
         # Close writer and logger related to model training
-        if self.trainer.should_terminate:
-            self.train_logger.info(f'Early stopping on epoch {self.trainer.state.epoch}')
-
         self.train_writer.export_scalars_to_json(os.path.join(self.save_model_dir, 'tensorboardX.json'))
         self.train_writer.close()
         self.train_logger.removeHandler(self.train_log_handler)
@@ -109,7 +109,7 @@ class ActiveTrainer(BaseTrainer):
         self.main_logger.info('Training - acquisition step 0')
         self._train()
 
-        for i in range(1, self.al_config.acquisition_steps):
+        for i in range(1, self.al_config.acquisition_steps + 1):
             self.main_logger.info(f'Training - acquisition step {i}')
             self._update_components_on_step(i)
 
@@ -147,4 +147,28 @@ class ActiveTrainer(BaseTrainer):
 
                 predictions.extend(*out_probas.split(out_probas.shape[0]))
 
-        return predictions
+        return torch.stack(predictions)
+
+    def _predict_proba_mc_dropout(self):
+        al_loader = DataLoader(self.data_pool,
+                               batch_size=self.config.data.batch_size_val,
+                               shuffle=False,
+                               num_workers=self.config.data.num_workers,
+                               pin_memory=torch.cuda.is_available())
+
+        mc_probas = torch.zeros((len(al_loader.dataset), 262144)).to(device=self.device)
+
+        self.model.train()
+        for i in range(self.al_config.mc_passes):
+            with torch.no_grad():
+                for batch in al_loader:
+                    x, idxs = batch
+                    x = x.to(self.device)
+
+                    out = self.model(x)
+                    out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
+
+                    mc_probas[idxs] += out_probas
+
+        mc_probas = mc_probas / self.al_config.mc_passes
+        return mc_probas

@@ -39,7 +39,7 @@ class DecoderBlock(nn.Module):
             module_list.append(ConvRelu(middle_channels, out_channels))
 
         if dropout:
-            module_list.append(nn.Dropout2d(p=dropout_p, inplace=True))
+            module_list.append(nn.Dropout2d(p=dropout_p))
 
         self.block = nn.Sequential(*module_list)
 
@@ -104,7 +104,7 @@ class TernausNet(nn.Module):
         if dropout:
             layers_drop = [self.conv1, self.conv2, self.conv3, self.conv4, self.conv5]
             for l in layers_drop:
-                l.add_module('dropout', nn.Dropout2d(p=self.dropout_p, inplace=True))
+                l.add_module('dropout', nn.Dropout2d(p=self.dropout_p))
 
         self.center = DecoderBlock(num_filters * 8 * 2, num_filters * 8 * 2, num_filters * 8,
                                    dropout=dropout, dropout_p=dropout_p)

@@ -1,4 +1,4 @@
-run_name: Ternaus
+run_name: Ternaus_Dropout
 data:
   dataset: AMC
   mode: train
@@ -23,7 +23,9 @@ training:
 model:
   name: ternaus_net
   network_params:
+    num_filters: 32
     pretrained: True
+    dropout: True
 resume:
   resume_from:
   saved_model:

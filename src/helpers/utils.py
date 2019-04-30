@@ -18,6 +18,7 @@ def setup_logger(logdir, name=''):
     logger.setLevel(logging.INFO)
 
     logging.getLogger("ignite.engine.engine.Engine").setLevel(logging.WARNING)
+    logging.getLogger("ignite.handlers.early_stopping.EarlyStopping").setLevel(logging.WARNING)
 
     return logger, handler
 

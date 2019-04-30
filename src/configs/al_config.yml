@@ -1,21 +1,20 @@
-run_name: AL_Test
+run_name: AL_Ternaus_Random
 data:
   dataset: AMC
   mode: train
-  batch_size: 3
+  batch_size: 4
   batch_size_val: 8
 training:
-  num_epochs: 2
+  num_epochs: 500
 model:
   name: ternaus_net
-  network_params:
-    pretrained: True
-resume:
-  resume_from: 'SAVED MODEL'
-  saved_model: 'best_model_13.pth'
-  saved_optimizer:
+#resume:
+#  resume_from: 'SAVED MODEL'
+#  saved_model: 'ternaus_dropout.pth'
+#  saved_optimizer:
 active_learn:
-  method: least_confident
-  init_pool_size: 5
-  budget: 5
-  acquisition_steps: 5
+  method: random
+  init_pool_size: 100
+  budget: 50
+  acquisition_steps: 8
+  mc_passes: 10
