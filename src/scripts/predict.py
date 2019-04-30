@@ -95,15 +95,15 @@ def predict_monte_carlo(config: ConfigClass, model, name):
 
                 for _ in range(config.prediction.mc_passes):
                     y_pred = model(x)
-                    segmentation[idx:idx + config.data.batch_size_val] += y_pred.cpu()
+                    segmentation[idx:idx + config.data.batch_size_val] += torch.sigmoid(y_pred).cpu()
 
                 ground_truth[idx:idx + config.data.batch_size_val] = y
                 idx += config.data.batch_size_val
 
         segmentation = segmentation / config.prediction.mc_passes
-        segment_metrics.update((segmentation, ground_truth))
+        segment_metrics.update((segmentation, ground_truth), process=False)
 
-        segmentation = torch.sigmoid(segmentation).numpy()
+        segmentation = segmentation.numpy()
 
         save_segmentation_to_file(segmentation, config.binarize_threshold, loader_wrapper.predict_path,
                                   dir_id, name)
