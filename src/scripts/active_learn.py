@@ -5,7 +5,6 @@ import yaml
 from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from scripts.predict import main_predict
-from trainers.active_trainer import ActiveTrainer
 from trainers.least_confident_trainer import LeastConfidentTrainer
 from trainers.least_confident_mc_trainer import LeastConfidentMonteCarloTrainer
 from trainers.random_sample_trainer import RandomSampleTrainer
@@ -19,23 +18,30 @@ def main_active_learning(args, config_path: str):
     config.data.path = args.ds_path
     config.al_mode = True
 
+    if 'mc' in config.active_learn.method:
+        config.prediction.mode = 'mc'
+        config.prediction.mc_passes = config.active_learn.mc_passes
+
     run_dir = get_new_run_path(config.run_name)
 
     with open(os.path.join(run_dir, 'cfg_file.yml'), 'w+') as f:
         yaml.dump(config, f)
 
-    al_method = config.active_learn.method
+    trainer_class = _get_al_trainer(config.active_learn.method)
 
-    if al_method == 'random':
-        trainer = RandomSampleTrainer(config, run_dir)
-    elif al_method == 'least_confident':
-        trainer = LeastConfidentTrainer(config, run_dir)
-    elif al_method == 'least_confident_mc':
-        trainer = LeastConfidentMonteCarloTrainer(config, run_dir)
-    else:
-        trainer = ActiveTrainer(config, run_dir)
-
+    trainer = trainer_class(config, run_dir)
     trainer.run()
 
     if args.train_predict:
         main_predict(config, run_dir)
+
+
+def _get_al_trainer(name: str):
+    try:
+        return {
+            'random': RandomSampleTrainer,
+            'least_confident': LeastConfidentTrainer,
+            'least_confident_mc': LeastConfidentMonteCarloTrainer,
+        }[name]
+    except KeyError:
+        raise Exception(f'Trainer {name} not available')

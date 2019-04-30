@@ -32,3 +32,6 @@ resume:
   saved_optimizer:
 binarize_threshold: 0.5
 al_mode: False
+prediction:
+  mode: single
+  mc_passes: 10

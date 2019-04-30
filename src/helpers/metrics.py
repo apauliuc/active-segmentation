@@ -80,14 +80,17 @@ class SegmentationMetrics(Metric):
     def reset(self):
         self._confusion_matrix = torch.zeros((self._num_classes, self._num_classes))
 
-    def update(self, output):
+    def update(self, output, process=True):
         if len(output) == 2:
             y_pred, y = output
         else:
             y_pred, y, kwargs = output
 
+        if process:
+            y_pred = torch.sigmoid(y_pred)
+
         if self._num_classes == 2:
-            y_pred = binarize_tensor(torch.sigmoid(y_pred), self._thres)
+            y_pred = binarize_tensor(y_pred, self._thres)
         else:
             y_pred = y_pred.argmax(dim=1)
 

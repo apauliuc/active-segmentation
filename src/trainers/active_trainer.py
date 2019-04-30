@@ -6,6 +6,7 @@ from ignite import engine
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 
+from helpers.torch_utils import apply_dropout
 from trainers.base_trainer import BaseTrainer
 from data import MDSDataLoaders
 from alsegment.data_pool import ALDataPool
@@ -161,7 +162,8 @@ class ActiveTrainer(BaseTrainer):
 
         mc_probas = torch.zeros((len(al_loader.dataset), 262144)).to(device=self.device)
 
-        self.model.train()
+        self.model.eval()
+        self.model.apply(apply_dropout)
         for i in range(self.al_config.mc_passes):
             with torch.no_grad():
                 for batch in al_loader:
