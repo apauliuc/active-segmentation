@@ -85,7 +85,7 @@ class ActiveTrainer(BaseTrainer):
         eval_loss = self.evaluator.state.metrics['loss']
         eval_metrics = self.evaluator.state.metrics['segment_metrics']
 
-        msg = f'Step {self.acquisition_step} - Avg. validation loss after' \
+        msg = f'Step {self.acquisition_step} - Avg. validation loss after ' \
             f'{self.trainer.state.epoch} training epochs: {eval_loss:.4f}'
         self.main_logger.info(msg)
 
@@ -110,7 +110,8 @@ class ActiveTrainer(BaseTrainer):
 
     def run(self) -> None:
         self.main_logger.info(f'ActiveTrainer initialised. Starting training on {self.device}.')
-        self.main_logger.info('Training - acquisition step 0')
+        self.main_logger.info(f'Training - acquisition step 0')
+        self.main_logger.info(f'Using {len(self.data_pool.train_pool)} datapoints.')
         self._train()
 
         for i in range(1, self.al_config.acquisition_steps + 1):
@@ -123,6 +124,7 @@ class ActiveTrainer(BaseTrainer):
 
             self._acquisition_function()
 
+            self.main_logger.info(f'Using {len(self.data_pool.train_pool)} datapoints.')
             self._train()
 
         self._finalize_trainer()

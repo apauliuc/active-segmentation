@@ -1,4 +1,4 @@
-run_name: AL_Ternaus_LC_MC_New
+run_name: AL_Ternaus_LC_MC_Again
 data:
   dataset: AMC
   mode: train
@@ -16,5 +16,5 @@ active_learn:
   method: least_confident_mc
   init_pool_size: 100
   budget: 50
-  acquisition_steps: 8
+  acquisition_steps: 15
   mc_passes: 50

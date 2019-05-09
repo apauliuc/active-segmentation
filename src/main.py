@@ -72,7 +72,7 @@ if __name__ == '__main__':
                         help='File name pattern for config files (run_type = train_all_configs)')
     parser.add_argument('-ds', '--ds_path', type=str, default=DATA_DIR,
                         help='Path to main data directory')
-    parser.add_argument('-tp', '--train_predict', type=bool, default=False,
+    parser.add_argument('-tp', '--train_predict', type=bool, default=True,
                         help='Indicate whether to predict after training is finished')
     parser.add_argument('--run_dir', type=str, default='',
                         help='Previous run directory to load model from (works only for run_type = predict)')
