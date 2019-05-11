@@ -10,7 +10,7 @@ from trainers.base_trainer import BaseTrainer
 class PassiveTrainer(BaseTrainer):
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        super(PassiveTrainer, self).__init__(config, save_dir, 'PassiveTrainer')
+        super(PassiveTrainer, self).__init__(config, save_dir, 'Passive_Trainer')
         self.epochs = self.train_cfg.num_epochs
 
         self.data_loaders = get_dataloaders(config.data)

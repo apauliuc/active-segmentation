@@ -5,12 +5,14 @@ import yaml
 from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from scripts.predict import main_predict
-from trainers.least_confident_trainer import LeastConfidentTrainer
-from trainers.random_sample_trainer import RandomSampleTrainer
+from trainers.al_scan_trainers.random_scan import RandomScan
+from trainers.al_scan_trainers.least_confident_scan import LeastConfidentMCScan
+from trainers.al_trainers.random import Random
+from trainers.al_trainers.least_confident import LeastConfident
 
 
 def main_active_learning(args, config_path: str):
-    """Entry point for training a new model"""
+    """Entry point for training a new model with active learning"""
     config = get_config_from_path(config_path)
 
     config.data.mode = 'train'
@@ -38,9 +40,11 @@ def main_active_learning(args, config_path: str):
 def _get_al_trainer(name: str):
     try:
         return {
-            'random': RandomSampleTrainer,
-            'least_confident': LeastConfidentTrainer,
-            'least_confident_mc': LeastConfidentTrainer,
+            'random': Random,
+            'least_confident': LeastConfident,
+            'least_confident_mc': LeastConfident,
+            'random_scan': RandomScan,
+            'least_confident_mc_scan': LeastConfidentMCScan
         }[name]
     except KeyError:
         raise Exception(f'Trainer {name} not available')

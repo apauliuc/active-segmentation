@@ -1,20 +1,26 @@
 import numpy as np
 
 from helpers.config import ConfigClass
-from trainers.active_trainer import ActiveTrainer
+from trainers.al_trainers.active_trainer import ActiveTrainer
 
 
-class LeastConfidentTrainer(ActiveTrainer):
+class LeastConfident(ActiveTrainer):
     """
     Implementation of AL trainer with Least Confident acquisition function
     """
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        name = 'LeastConfidentMCTrainer' if 'mc' in self.config.active_learn.method else 'LeastConfidentTrainer'
-        super(LeastConfidentTrainer, self).__init__(config, save_dir, name)
+        if 'mc' in self.config.active_learn.method:
+            self.mc_dropout = True
+            name = 'LC_MC_Trainer'
+        else:
+            self.mc_dropout = False
+            name = 'LC_Trainer'
+
+        super(LeastConfident, self).__init__(config, save_dir, name)
 
     def _acquisition_function(self):
-        if 'mc' in self.config.active_learn.method:
+        if self.mc_dropout:
             x = self._predict_proba_mc_dropout().cpu()
         else:
             x = self._predict_proba().cpu()
@@ -28,6 +34,6 @@ class LeastConfidentTrainer(ActiveTrainer):
         sorted_uncertainty = data[:, data[1, :].argsort()[::-1]]
 
         new_files_idx = sorted_uncertainty[0, :self.al_config.budget].astype(np.int)
-        new_files = np.array(self.data_pool.data_pool)[new_files_idx].tolist()
+        new_files = np.array(self.data_pool.unlabelled_files)[new_files_idx].tolist()
 
         self._update_data_pool(new_files)
