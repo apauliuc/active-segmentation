@@ -6,7 +6,6 @@ from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from scripts.predict import main_predict
 from trainers.least_confident_trainer import LeastConfidentTrainer
-from trainers.least_confident_mc_trainer import LeastConfidentMonteCarloTrainer
 from trainers.random_sample_trainer import RandomSampleTrainer
 
 
@@ -41,7 +40,7 @@ def _get_al_trainer(name: str):
         return {
             'random': RandomSampleTrainer,
             'least_confident': LeastConfidentTrainer,
-            'least_confident_mc': LeastConfidentMonteCarloTrainer,
+            'least_confident_mc': LeastConfidentTrainer,
         }[name]
     except KeyError:
         raise Exception(f'Trainer {name} not available')

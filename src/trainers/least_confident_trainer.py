@@ -10,10 +10,15 @@ class LeastConfidentTrainer(ActiveTrainer):
     """
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        super(LeastConfidentTrainer, self).__init__(config, save_dir, 'LeastConfidentTrainer')
+        name = 'LeastConfidentMCTrainer' if 'mc' in self.config.active_learn.method else 'LeastConfidentTrainer'
+        super(LeastConfidentTrainer, self).__init__(config, save_dir, name)
 
     def _acquisition_function(self):
-        x = self._predict_proba().cpu()
+        if 'mc' in self.config.active_learn.method:
+            x = self._predict_proba_mc_dropout().cpu()
+        else:
+            x = self._predict_proba().cpu()
+
         x = -(x - 0.5).abs().mean(dim=1)
 
         data = np.zeros((2, x.shape[0]))
