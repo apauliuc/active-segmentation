@@ -140,4 +140,4 @@ def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_m
 
     with open(os.path.join(load_directory, 'prediction_results.txt'), 'w+') as f:
         for k, v in metrics.items():
-            f.write(f'{k}: {v}\n')
+            f.write(f"{k}: {v:.4f}\n")
