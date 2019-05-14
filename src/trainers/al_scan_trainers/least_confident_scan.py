@@ -13,7 +13,7 @@ class LeastConfidentMCScan(ActiveTrainerScan):
         super(LeastConfidentMCScan, self).__init__(config, save_dir, 'LC_MC_Scan_Trainer')
 
     def _acquisition_function(self):
-        pred_dict = self._predict_proba_mc_dropout().cpu()
+        pred_dict = self._predict_proba_mc_dropout()
         # pred_dict is dictionary of scan_id -> prediction as 3d tensor
 
         uncertainties = []

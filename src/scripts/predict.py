@@ -64,10 +64,8 @@ def predict_one_pass(config: ConfigClass, model, name):
         save_segmentation_to_file(segmentation, config.binarize_threshold, loader_wrapper.predict_path,
                                   dir_id, name)
 
-    print('Predictions done. Segmentation metrics:')
-
     metrics = segment_metrics.compute()
-    print(metrics)
+    return metrics
 
 
 def predict_monte_carlo(config: ConfigClass, model, name):
@@ -108,10 +106,8 @@ def predict_monte_carlo(config: ConfigClass, model, name):
         save_segmentation_to_file(segmentation, config.binarize_threshold, loader_wrapper.predict_path,
                                   dir_id, name)
 
-    print('Predictions done. Segmentation metrics:')
-
     metrics = segment_metrics.compute()
-    print(metrics)
+    return metrics
 
 
 def save_segmentation_to_file(segmentation, threshold, path, dir_id, name):
@@ -135,6 +131,13 @@ def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_m
     model.to(device)
 
     if config.prediction.mode == 'single':
-        predict_one_pass(config, model, name)
-    elif config.prediction.mode == 'mc':
-        predict_monte_carlo(config, model, name)
+        metrics = predict_one_pass(config, model, name)
+    else:
+        metrics = predict_monte_carlo(config, model, name)
+
+    print('Predictions done. Segmentation metrics:')
+    print(metrics)
+
+    with open(os.path.join(load_directory, 'prediction_results.txt'), 'w+') as f:
+        for k, v in metrics.items():
+            f.write(f'{k}: {v}\n')

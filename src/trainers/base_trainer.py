@@ -198,11 +198,11 @@ class BaseTrainer(abc.ABC):
 
     @staticmethod
     def iou_score(_engine: engine.Engine) -> float:
-        return round(_engine.state.metrics['segment_metrics']['avg_iou'].item(), 6)
+        return round(_engine.state.metrics['segment_metrics']['avg_iou'], 6)
 
     @staticmethod
     def f1_score(_engine: engine.Engine) -> float:
-        return round(_engine.state.metrics['segment_metrics']['avg_f1'].item(), 6)
+        return round(_engine.state.metrics['segment_metrics']['avg_f1'], 6)
 
     @abc.abstractmethod
     def _init_handlers(self) -> None:

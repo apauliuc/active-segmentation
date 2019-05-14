@@ -85,8 +85,8 @@ class ActiveTrainerScan(BaseTrainer):
         eval_loss = self.evaluator.state.metrics['loss']
         eval_metrics = self.evaluator.state.metrics['segment_metrics']
 
-        msg = f'Step {self.acquisition_step} - Avg. validation loss after ' \
-            f'{self.trainer.state.epoch} training epochs: {eval_loss:.4f}'
+        msg = f'Step {self.acquisition_step} - After {self.trainer.state.epoch} training epochs: ' \
+            f'Val. loss: {eval_loss:.4f}   IoU: {eval_metrics["avg_iou"]:.4f}'
         self.main_logger.info(msg)
 
         self.main_writer.add_scalar(f'active_learning/avg_val_loss', eval_loss, self.acquisition_step)
@@ -159,19 +159,19 @@ class ActiveTrainerScan(BaseTrainer):
             self.model.eval()
             self.model.apply(apply_dropout)
 
-            for i in range(self.al_config.mc_passes):
-                with torch.no_grad():
-                    for batch in al_loader:
-                        x, idxs = batch
-                        x = x.to(self.device)
+            with torch.no_grad():
+                for batch in al_loader:
+                    x, idxs = batch
+                    x = x.to(self.device)
 
+                    for i in range(self.al_config.mc_passes):
                         out = self.model(x)
                         out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
 
                         mc_probas[idxs] += out_probas
 
-            scan_probas = mc_probas / self.al_config.mc_passes
+            mc_probas = mc_probas / self.al_config.mc_passes
 
-            prediction_dict[scan_id] = scan_probas
+            prediction_dict[scan_id] = mc_probas.cpu()
 
         return prediction_dict

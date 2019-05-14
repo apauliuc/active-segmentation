@@ -105,10 +105,10 @@ class SegmentationMetrics(Metric):
             raise NotComputableError('Metrics must have at least one example before being computed')
 
         metrics_dict = {
-            'avg_total_acc': total_pixel_accuracy(self._confusion_matrix),
-            'avg_class_acc': per_class_pixel_accuracy(self._confusion_matrix),
-            'avg_iou': iou_score(self._confusion_matrix),
-            'avg_f1': f1_score(self._confusion_matrix)
+            'avg_total_acc': total_pixel_accuracy(self._confusion_matrix).item(),
+            'avg_class_acc': per_class_pixel_accuracy(self._confusion_matrix).item(),
+            'avg_iou': iou_score(self._confusion_matrix).item(),
+            'avg_f1': f1_score(self._confusion_matrix).item()
         }
         return metrics_dict
 
