@@ -185,7 +185,9 @@ class BaseTrainer(abc.ABC):
         self.evaluator.run(self.data_loaders.val_loader)
         eval_loss = self.evaluator.state.metrics['loss']
         eval_metrics = self.evaluator.state.metrics['segment_metrics']
-        msg = f'Eval. on val_loader - Avg loss: {eval_loss:.4f}'
+        msg = f'Eval. on val_loader - Avg loss: {eval_loss:.4f}   ' \
+            f'IoU: {eval_metrics["avg_iou"]:.4f}   ' \
+            f'F1: {eval_metrics["avg_f1"]:.4f}'
         logger.info(msg)
         writer.add_scalar('validation_eval/avg_loss', eval_loss, _train_engine.state.epoch)
 
