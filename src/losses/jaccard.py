@@ -5,7 +5,8 @@ import torch.nn.functional as F
 
 class JaccardLoss(nn.Module):
 
-    def __init__(self):
+    def __init__(self, ensemble=False):
+        self.ensemble = ensemble
         super(JaccardLoss, self).__init__()
 
     # noinspection PyTypeChecker
@@ -20,7 +21,12 @@ class JaccardLoss(nn.Module):
             true_1_hot_f = true_1_hot[:, 0:1, :, :]
             true_1_hot_s = true_1_hot[:, 1:2, :, :]
             true_1_hot = torch.cat((true_1_hot_s, true_1_hot_f), dim=1)
-            pos_proba = torch.sigmoid(y_pred)
+
+            if self.ensemble:
+                pos_proba = y_pred
+            else:
+                pos_proba = torch.sigmoid(y_pred)
+
             neg_proba = 1 - pos_proba
             probas = torch.cat((pos_proba, neg_proba), dim=1)
         else:
