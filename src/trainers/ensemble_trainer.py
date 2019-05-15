@@ -32,7 +32,7 @@ class EnsembleTrainer(BaseTrainer):
 
     def _init_train_components(self):
         self.metrics = {
-            'loss': metrics.Loss(BCEAndJaccardLossEnsemble),
+            'loss': metrics.Loss(BCEAndJaccardLossEnsemble()),
             'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
                                                    threshold=self.config.binarize_threshold,
                                                    ensemble=True)
@@ -113,7 +113,7 @@ class EnsembleTrainer(BaseTrainer):
 
         engine = Engine(_inference)
 
-        for name, metric in self.metrics:
+        for name, metric in self.metrics.items():
             metric.attach(engine, name)
 
         return engine
