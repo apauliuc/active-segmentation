@@ -1,4 +1,6 @@
 import os
+import numpy as np
+from scipy.special import xlogy
 import torch
 
 from ignite import handlers
@@ -175,5 +177,47 @@ class ActiveTrainerScan(BaseTrainer):
             mc_probas = mc_probas / self.al_config.mc_passes
 
             prediction_dict[scan_id] = mc_probas.cpu()
+
+        return prediction_dict
+
+    def _predict_proba_mc_dropout_individual(self):
+        prediction_dict = {}
+
+        for scan_id in self.data_pool.unlabelled_scans:
+            scan_dataset = ALPatientDataset(self.data_pool.get_files_list_for_scan(scan_id),
+                                            image_path=self.data_pool.image_path,
+                                            in_transform=self.data_pool.input_transform)
+
+            al_loader = DataLoader(scan_dataset,
+                                   batch_size=self.config.data.batch_size_val,
+                                   shuffle=False,
+                                   num_workers=self.config.data.num_workers,
+                                   pin_memory=torch.cuda.is_available())
+
+            mc_predictions = list()
+
+            for i in range(self.al_config.mc_passes):
+
+                current_prediction = None
+
+                self.model.eval()
+                self.model.apply(apply_dropout)
+
+                with torch.no_grad():
+                    for batch in al_loader:
+                        x, _ = batch
+                        x = x.to(self.device)
+
+                        out = self.model(x)
+                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
+
+                        if current_prediction is None:
+                            current_prediction = out_probas
+                        else:
+                            current_prediction = torch.cat((current_prediction, out_probas))
+
+                mc_predictions.append(current_prediction.cpu())
+
+            prediction_dict[scan_id] = mc_predictions
 
         return prediction_dict

@@ -5,6 +5,8 @@ import yaml
 from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from scripts.predict import main_predict
+from trainers.al_scan_trainers.bald_scan import BALDScan
+from trainers.al_scan_trainers.max_entropy_scan import MaxEntropyScan
 from trainers.al_scan_trainers.random_scan import RandomScan
 from trainers.al_scan_trainers.least_confident_scan import LeastConfidentMCScan
 from trainers.al_trainers.random import Random
@@ -22,6 +24,7 @@ def main_active_learning(args, config_path: str):
     if 'mc' in config.active_learn.method:
         config.prediction.mode = 'mc'
         config.prediction.mc_passes = config.active_learn.mc_passes
+        config.training.use_ensemble = False
 
     run_dir = get_new_run_path(config.run_name)
 
@@ -44,7 +47,9 @@ def _get_al_trainer(name: str):
             'least_confident': LeastConfident,
             'least_confident_mc': LeastConfident,
             'random_scan': RandomScan,
-            'least_confident_mc_scan': LeastConfidentMCScan
+            'least_confident_mc_scan': LeastConfidentMCScan,
+            'max_entropy_mc': MaxEntropyScan,
+            'bald_mc': BALDScan
         }[name]
     except KeyError:
         raise Exception(f'Trainer {name} not available')
