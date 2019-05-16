@@ -59,6 +59,9 @@ class EnsembleTrainer(BaseTrainer):
 
             self.ens_lr_schedulers.append(lr_scheduler)
 
+        self.main_logger.info(f'Using ensemble of {self.len_models} {self.ens_models[0]}')
+        self.main_logger.info(f'Using optimizers {self.ens_optimizers[0].__class__.__name__}')
+
         self.criterion = self._init_criterion()
 
         self.trainer = self._init_trainer_engine()
@@ -123,9 +126,12 @@ class EnsembleTrainer(BaseTrainer):
 
         checkpoint_save = {f'model_{i}': model for i, model in enumerate(self.ens_models)}
 
+        best_ckpoint = handlers.ModelCheckpoint(save_dir, 'best', n_saved=1, require_empty=False,
+                                                score_function=self.eval_func, save_as_state_dict=True)
         final_checkpoint_handler = handlers.ModelCheckpoint(save_dir, 'final', save_interval=1, n_saved=1,
                                                             require_empty=False, save_as_state_dict=True)
 
+        self.evaluator.add_event_handler(Events.EPOCH_COMPLETED, best_ckpoint, checkpoint_save)
         self.trainer.add_event_handler(Events.COMPLETED, final_checkpoint_handler, checkpoint_save)
 
     def _on_epoch_started(self, _engine: Engine) -> None:
