@@ -1,10 +1,10 @@
 import os
 
 import torch
-from ignite.engine.engine import Engine, Events
-from ignite import handlers
-from ignite import metrics
 from torch.optim.lr_scheduler import StepLR
+
+from ignite import handlers, metrics
+from ignite.engine.engine import Engine, Events
 
 from data import get_dataloaders
 from helpers.config import ConfigClass

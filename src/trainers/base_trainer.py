@@ -1,16 +1,16 @@
 import abc
 import random
-from logging import Logger
-
 import numpy as np
 from typing import Tuple
+from logging import Logger
 
 import torch
 from torch.optim.lr_scheduler import StepLR
 from tensorboardX import SummaryWriter
 
-from ignite import engine, handlers
-from ignite import metrics
+from ignite import handlers, metrics
+from ignite.engine.engine import Engine, Events
+from ignite.engine import create_supervised_trainer, create_supervised_evaluator
 
 from data.base_loader import BaseLoader
 from models import get_model
@@ -113,9 +113,9 @@ class BaseTrainer(abc.ABC):
 
         return lr_scheduler
 
-    def _init_engines(self) -> Tuple[engine.Engine, engine.Engine]:
-        trainer = engine.create_supervised_trainer(self.model, self.optimizer, self.criterion, self.device, True)
-        evaluator = engine.create_supervised_evaluator(self.model, self.metrics, self.device, True)
+    def _init_engines(self) -> Tuple[Engine, Engine]:
+        trainer = create_supervised_trainer(self.model, self.optimizer, self.criterion, self.device, True)
+        evaluator = create_supervised_evaluator(self.model, self.metrics, self.device, True)
 
         metrics.RunningAverage(output_transform=lambda x: x).attach(trainer, 'train_loss')
 
@@ -124,9 +124,9 @@ class BaseTrainer(abc.ABC):
     def _init_epoch_timer(self) -> None:
         self.timer = handlers.Timer(average=False)
         self.timer.attach(self.trainer,
-                          start=engine.Events.EPOCH_STARTED,
-                          resume=engine.Events.ITERATION_STARTED,
-                          pause=engine.Events.ITERATION_COMPLETED)
+                          start=Events.EPOCH_STARTED,
+                          resume=Events.ITERATION_STARTED,
+                          pause=Events.ITERATION_COMPLETED)
 
     def _init_checkpoint_handler(self, save_dir=None) -> None:
         save_dir = self.save_dir if save_dir is None else save_dir
@@ -142,26 +142,26 @@ class BaseTrainer(abc.ABC):
         final_checkpoint_handler = handlers.ModelCheckpoint(save_dir, 'final', save_interval=1, n_saved=1,
                                                             require_empty=False, save_as_state_dict=True)
 
-        self.evaluator.add_event_handler(engine.Events.EPOCH_COMPLETED, best_ckpoint, {'model': self.model})
-        self.trainer.add_event_handler(engine.Events.COMPLETED, final_checkpoint_handler, checkpoint_save)
+        self.evaluator.add_event_handler(Events.EPOCH_COMPLETED, best_ckpoint, {'model': self.model})
+        self.trainer.add_event_handler(Events.COMPLETED, final_checkpoint_handler, checkpoint_save)
 
     def _init_early_stopping_handler(self) -> None:
         early_stop_handler = handlers.EarlyStopping(self.train_cfg.patience,
                                                     score_function=self.eval_func,
                                                     trainer=self.trainer)
-        self.evaluator.add_event_handler(engine.Events.COMPLETED, early_stop_handler)
+        self.evaluator.add_event_handler(Events.COMPLETED, early_stop_handler)
 
-    def _on_epoch_started(self, _engine: engine.Engine) -> None:
+    def _on_epoch_started(self, _engine: Engine) -> None:
         if self.lr_scheduler is not None:
             self.lr_scheduler.step(_engine.state.epoch)
 
-    def _on_epoch_completed(self, _engine: engine.Engine) -> None:
+    def _on_epoch_completed(self, _engine: Engine) -> None:
         pass
 
-    def _on_events_completed(self, _engine: engine.Engine) -> None:
+    def _on_events_completed(self, _engine: Engine) -> None:
         self._finalize()
 
-    def _on_exception_raised(self, _engine: engine.Engine, e: Exception) -> None:
+    def _on_exception_raised(self, _engine: Engine, e: Exception) -> None:
         self.main_logger.info(f'Exception at epoch {_engine.state.epoch}')
         self.main_logger.info(e)
         self._finalize()
@@ -173,7 +173,7 @@ class BaseTrainer(abc.ABC):
     def _finalize_trainer(self) -> None:
         pass
 
-    def _log_training_results(self, _train_engine: engine.Engine, logger: Logger, writer: SummaryWriter) -> None:
+    def _log_training_results(self, _train_engine: Engine, logger: Logger, writer: SummaryWriter) -> None:
         train_duration = timer_to_str(self.timer.value())
         avg_loss = _train_engine.state.metrics['train_loss']
         msg = f'Training results - Epoch:{_train_engine.state.epoch:2d}/{_train_engine.state.max_epochs}. ' \
@@ -181,7 +181,7 @@ class BaseTrainer(abc.ABC):
         logger.info(msg)
         writer.add_scalar('training/avg_loss', avg_loss, _train_engine.state.epoch)
 
-    def _evaluate_on_val(self, _train_engine: engine.Engine, logger: Logger, writer: SummaryWriter) -> None:
+    def _evaluate_on_val(self, _train_engine: Engine, logger: Logger, writer: SummaryWriter) -> None:
         self.evaluator.run(self.data_loaders.val_loader)
         eval_loss = self.evaluator.state.metrics['loss']
         eval_metrics = self.evaluator.state.metrics['segment_metrics']
@@ -195,15 +195,15 @@ class BaseTrainer(abc.ABC):
             writer.add_scalar(f'val_metrics/{key}', value, _train_engine.state.epoch)
 
     @staticmethod
-    def val_loss(_engine: engine.Engine) -> float:
+    def val_loss(_engine: Engine) -> float:
         return -round(_engine.state.metrics['loss'], 6)
 
     @staticmethod
-    def iou_score(_engine: engine.Engine) -> float:
+    def iou_score(_engine: Engine) -> float:
         return round(_engine.state.metrics['segment_metrics']['avg_iou'], 6)
 
     @staticmethod
-    def f1_score(_engine: engine.Engine) -> float:
+    def f1_score(_engine: Engine) -> float:
         return round(_engine.state.metrics['segment_metrics']['avg_f1'], 6)
 
     @abc.abstractmethod

@@ -2,7 +2,7 @@ import os
 import torch
 
 from ignite import handlers
-from ignite import engine
+from ignite.engine.engine import Engine, Events
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 
@@ -60,7 +60,7 @@ class ActiveTrainer(BaseTrainer):
         self.trainer, self.evaluator = self._init_engines()
         self._init_handlers()
 
-    def _on_epoch_completed(self, _engine: engine.Engine) -> None:
+    def _on_epoch_completed(self, _engine: Engine) -> None:
         self._log_training_results(_engine, self.train_logger, self.train_writer)
         self._evaluate_on_val(_engine, self.train_logger, self.train_writer)
 
@@ -69,13 +69,13 @@ class ActiveTrainer(BaseTrainer):
         self._init_checkpoint_handler(save_dir=self.save_model_dir)
         self._init_early_stopping_handler()
 
-        self.trainer.add_event_handler(engine.Events.EPOCH_STARTED, self._on_epoch_started)
-        self.trainer.add_event_handler(engine.Events.EPOCH_COMPLETED, self._on_epoch_completed)
-        self.trainer.add_event_handler(engine.Events.COMPLETED, self._on_events_completed)
+        self.trainer.add_event_handler(Events.EPOCH_STARTED, self._on_epoch_started)
+        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, self._on_epoch_completed)
+        self.trainer.add_event_handler(Events.COMPLETED, self._on_events_completed)
 
-        self.trainer.add_event_handler(engine.Events.EXCEPTION_RAISED, self._on_exception_raised)
-        self.evaluator.add_event_handler(engine.Events.EXCEPTION_RAISED, self._on_exception_raised)
-        self.trainer.add_event_handler(engine.Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
+        self.trainer.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
+        self.evaluator.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
+        self.trainer.add_event_handler(Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
 
     def _finalize(self) -> None:
         if self.trainer.should_terminate:

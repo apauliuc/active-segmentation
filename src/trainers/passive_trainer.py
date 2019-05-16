@@ -1,6 +1,7 @@
 import os
 
-from ignite import engine, handlers
+from ignite import handlers
+from ignite.engine.engine import Engine, Events
 
 from data import get_dataloaders
 from helpers.config import ConfigClass
@@ -18,7 +19,7 @@ class PassiveTrainer(BaseTrainer):
 
         self._init_train_components()
 
-    def _on_epoch_completed(self, _engine: engine.Engine) -> None:
+    def _on_epoch_completed(self, _engine: Engine) -> None:
         self._log_training_results(_engine, self.main_logger, self.main_writer)
         self._evaluate_on_val(_engine, self.main_logger, self.main_writer)
 
@@ -27,13 +28,13 @@ class PassiveTrainer(BaseTrainer):
         self._init_checkpoint_handler()
         self._init_early_stopping_handler()
 
-        self.trainer.add_event_handler(engine.Events.EPOCH_STARTED, self._on_epoch_started)
-        self.trainer.add_event_handler(engine.Events.EPOCH_COMPLETED, self._on_epoch_completed)
-        self.trainer.add_event_handler(engine.Events.COMPLETED, self._on_events_completed)
+        self.trainer.add_event_handler(Events.EPOCH_STARTED, self._on_epoch_started)
+        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, self._on_epoch_completed)
+        self.trainer.add_event_handler(Events.COMPLETED, self._on_events_completed)
 
-        self.trainer.add_event_handler(engine.Events.EXCEPTION_RAISED, self._on_exception_raised)
-        self.evaluator.add_event_handler(engine.Events.EXCEPTION_RAISED, self._on_exception_raised)
-        self.trainer.add_event_handler(engine.Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
+        self.trainer.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
+        self.evaluator.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
+        self.trainer.add_event_handler(Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
 
     def _finalize(self) -> None:
         if self.trainer.should_terminate:
