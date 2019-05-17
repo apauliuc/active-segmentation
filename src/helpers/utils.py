@@ -42,4 +42,3 @@ def binarize_tensor(x, threshold=0.5):
 def binarize_nparray(x, threshold=0.5):
     cond = (x > threshold).astype(np.float)
     return (cond * 1.) + ((1. - cond) * 0.)
-

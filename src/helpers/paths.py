@@ -38,4 +38,4 @@ def get_resume_optimizer_path(run_dir: str, optim_filename: str) -> str:
 
 def create_directory(path: str):
     if path and not os.path.exists(path):
-            os.makedirs(path)
+        os.makedirs(path)
