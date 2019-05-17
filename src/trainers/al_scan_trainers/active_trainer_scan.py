@@ -196,28 +196,23 @@ class ActiveTrainerScan(BaseTrainer):
 
             mc_predictions = list()
 
-            for i in range(self.al_config.mc_passes):
+            self.model.eval()
+            self.model.apply(apply_dropout)
 
-                current_prediction = None
+            with torch.no_grad():
+                for batch in al_loader:
+                    x, _ = batch
+                    x = x.to(self.device)
 
-                self.model.eval()
-                self.model.apply(apply_dropout)
-
-                with torch.no_grad():
-                    for batch in al_loader:
-                        x, _ = batch
-                        x = x.to(self.device)
-
+                    for i in range(self.al_config.mc_passes):
                         out = self.model(x)
                         out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
 
-                        if current_prediction is None:
-                            current_prediction = out_probas
+                        if len(mc_predictions) < i + 1:
+                            mc_predictions.append(out_probas)
                         else:
-                            current_prediction = torch.cat((current_prediction, out_probas))
+                            mc_predictions[i] = torch.cat((mc_predictions[i], out_probas))
 
-                mc_predictions.append(current_prediction.cpu())
-
-            prediction_dict[scan_id] = mc_predictions
+            prediction_dict[scan_id] = [pred.cpu() for pred in mc_predictions]
 
         return prediction_dict
