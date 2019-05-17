@@ -12,8 +12,20 @@ from helpers.metrics import SegmentationMetrics
 from helpers.torch_utils import apply_dropout
 
 
+def get_files_list(config: ConfigClass, load_directory: str):
+    # Find model file to load from
+    if config.al_mode:
+        al_directory = sorted([x for x in os.listdir(load_directory) if 'Step' in x])[-1]
+        load_directory = os.path.join(load_directory, al_directory)
+        files_list = os.listdir(load_directory)
+    else:
+        files_list = os.listdir(load_directory)
+
+    return files_list
+
+
 def load_ensemble_models(config: ConfigClass, load_directory=None, use_best_model=True):
-    files_list = os.listdir(load_directory)
+    files_list = get_files_list(config, load_directory)
 
     model_filenames = list()
     fname_pattern = 'best_model_' if use_best_model else 'final_model_'
@@ -21,6 +33,7 @@ def load_ensemble_models(config: ConfigClass, load_directory=None, use_best_mode
         if fname_pattern in f:
             model_filenames.append(f)
 
+    # Load models
     models = list()
     for f in model_filenames:
         model = get_model(config.model)
@@ -32,13 +45,7 @@ def load_ensemble_models(config: ConfigClass, load_directory=None, use_best_mode
 
 
 def load_single_model(config: ConfigClass, load_directory=None, use_best_model=True):
-    # Find model file to load from
-    if config.al_mode:
-        al_directory = sorted([x for x in os.listdir(load_directory) if 'Step' in x])[-1]
-        load_directory = os.path.join(load_directory, al_directory)
-        files_list = os.listdir(load_directory)
-    else:
-        files_list = os.listdir(load_directory)
+    files_list = get_files_list(config, load_directory)
 
     model_filename = 'final_model_1.pth'
 

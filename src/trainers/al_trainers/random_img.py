@@ -1,20 +1,20 @@
 import numpy as np
 
 from helpers.config import ConfigClass
-from trainers.active_learning.active_trainer_scan import ActiveTrainerScan
+from trainers.al_trainers.active_trainer_img import ActiveTrainer
 
 
-class RandomScan(ActiveTrainerScan):
+class Random(ActiveTrainer):
     """
     Implementation of AL trainer with Random Sampling acquisition function
     """
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        super(RandomScan, self).__init__(config, save_dir, 'Random_Scan_Trainer')
+        super(Random, self).__init__(config, save_dir, 'Random_Trainer')
 
     def _acquisition_function(self):
-        new_scans = np.random.choice(self.data_pool.unlabelled_scans,
+        new_files = np.random.choice(self.data_pool.unlabelled_files,
                                      size=self.al_config.budget,
                                      replace=False).tolist()
 
-        self._update_data_pool(new_scans)
+        self._update_data_pool(new_files)

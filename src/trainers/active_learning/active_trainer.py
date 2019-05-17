@@ -38,7 +38,10 @@ class ActiveTrainerScan(BaseTrainer):
 
         self.data_pool.copy_pool_scans_to_dir(self.data_pool.labelled_scans, self.save_data_dir)
 
-        self._init_train_components()
+        if self.use_ensemble:
+            self._init_train_components_ensemble()
+        else:
+            self._init_train_components()
 
     def _create_train_loggers(self, value):
         self.acquisition_step = value
@@ -113,7 +116,7 @@ class ActiveTrainerScan(BaseTrainer):
         self.trainer.run(self.data_loaders.train_loader, max_epochs=self.train_cfg.num_epochs)
 
     def run(self) -> None:
-        self.main_logger.info(f'ActiveTrainer initialised. Starting training on {self.device}.')
+        self.main_logger.info(f'Active_Trainer_Scan initialised. Starting training on {self.device}.')
         self.main_logger.info(f'Training - acquisition step 0')
         self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
                               f'{len(self.data_pool.train_pool)} datapoints.')
@@ -158,7 +161,7 @@ class ActiveTrainerScan(BaseTrainer):
                                    num_workers=self.config.data.num_workers,
                                    pin_memory=torch.cuda.is_available())
 
-            mc_probas = torch.zeros((len(al_loader.dataset), 262144)).to(device=self.device)
+            mc_probas = None
 
             self.model.eval()
             self.model.apply(apply_dropout)
@@ -172,7 +175,10 @@ class ActiveTrainerScan(BaseTrainer):
                         out = self.model(x)
                         out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
 
-                        mc_probas[idxs] += out_probas
+                        if mc_probas is None:
+                            mc_probas = out_probas
+                        else:
+                            mc_probas[idxs] += out_probas
 
             mc_probas = mc_probas / self.al_config.mc_passes
 
@@ -214,6 +220,82 @@ class ActiveTrainerScan(BaseTrainer):
                             mc_predictions[i] = torch.cat((mc_predictions[i], out_probas))
 
             prediction_dict[scan_id] = [pred.cpu() for pred in mc_predictions]
+
+        return prediction_dict
+
+    def _predict_proba_ensemble(self):
+        prediction_dict = {}
+
+        for scan_id in self.data_pool.unlabelled_scans:
+            scan_dataset = ALPatientDataset(self.data_pool.get_files_list_for_scan(scan_id),
+                                            image_path=self.data_pool.image_path,
+                                            in_transform=self.data_pool.input_transform)
+
+            al_loader = DataLoader(scan_dataset,
+                                   batch_size=self.config.data.batch_size_val,
+                                   shuffle=False,
+                                   num_workers=self.config.data.num_workers,
+                                   pin_memory=torch.cuda.is_available())
+
+            ensemble_probas = None
+
+            for model in self.ens_models:
+                model.eval()
+
+            with torch.no_grad():
+                for batch in al_loader:
+                    x, idxs = batch
+                    x = x.to(self.device)
+
+                    for model in self.ens_models:
+                        out = model(x)
+                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
+
+                        if ensemble_probas is None:
+                            ensemble_probas = out_probas
+                        else:
+                            ensemble_probas[idxs] += out_probas
+
+            ensemble_probas = ensemble_probas / len(self.ens_models)
+
+            prediction_dict[scan_id] = ensemble_probas.cpu()
+
+        return prediction_dict
+
+    def _predict_proba_ensemble_individual(self):
+        prediction_dict = {}
+
+        for scan_id in self.data_pool.unlabelled_scans:
+            scan_dataset = ALPatientDataset(self.data_pool.get_files_list_for_scan(scan_id),
+                                            image_path=self.data_pool.image_path,
+                                            in_transform=self.data_pool.input_transform)
+
+            al_loader = DataLoader(scan_dataset,
+                                   batch_size=self.config.data.batch_size_val,
+                                   shuffle=False,
+                                   num_workers=self.config.data.num_workers,
+                                   pin_memory=torch.cuda.is_available())
+
+            ensemble_predictions = list()
+
+            for model in self.ens_models:
+                model.eval()
+
+            with torch.no_grad():
+                for batch in al_loader:
+                    x, _ = batch
+                    x = x.to(self.device)
+
+                    for i, model in enumerate(self.ens_models):
+                        out = model(x)
+                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
+
+                        if len(ensemble_predictions) < i + 1:
+                            ensemble_predictions.append(out_probas)
+                        else:
+                            ensemble_predictions[i] = torch.cat((ensemble_predictions[i], out_probas))
+
+            prediction_dict[scan_id] = [pred.cpu() for pred in ensemble_predictions]
 
         return prediction_dict
 

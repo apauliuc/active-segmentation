@@ -5,12 +5,13 @@ import yaml
 from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from scripts.predict import main_predict
-from trainers.active_learning.bald_scan import BALDScanMC
-from trainers.active_learning.max_entropy_scan import MaxEntropyScanMC
-from trainers.active_learning.random_scan import RandomScan
-from trainers.active_learning.least_confident_scan import LeastConfidentScanMC
-from trainers.al_trainers.random import Random
-from trainers.al_trainers.least_confident import LeastConfident
+from trainers.active_learning.bald_mc import BALDScanMC
+from trainers.active_learning.max_entropy_ensemble import MaxEntropyScanEnsemble
+from trainers.active_learning.max_entropy_mc import MaxEntropyScanMC
+from trainers.active_learning.random import RandomScan
+from trainers.active_learning.least_confident_mc import LeastConfidentScanMC
+from trainers.al_trainers.random_img import Random
+from trainers.al_trainers.least_confident_img import LeastConfident
 
 
 def main_active_learning(args, config_path: str):
@@ -25,6 +26,9 @@ def main_active_learning(args, config_path: str):
         config.prediction.mode = 'mc'
         config.prediction.mc_passes = config.active_learn.mc_passes
         config.training.use_ensemble = False
+    elif 'ensemble' in config.active_learn.method:
+        config.prediction.mode = 'single'
+        config.training.use_ensemble = True
 
     run_dir = get_new_run_path(config.run_name)
 
@@ -49,6 +53,7 @@ def _get_al_trainer(name: str):
             'random_scan': RandomScan,
             'least_confident_mc_scan': LeastConfidentScanMC,
             'max_entropy_mc': MaxEntropyScanMC,
+            'max_entropy_ensemble': MaxEntropyScanEnsemble,
             'bald_mc': BALDScanMC
         }[name]
     except KeyError:

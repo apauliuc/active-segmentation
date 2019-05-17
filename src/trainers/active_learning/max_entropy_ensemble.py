@@ -2,19 +2,19 @@ import numpy as np
 from scipy.special import xlogy
 
 from helpers.config import ConfigClass
-from trainers.active_learning.active_trainer_scan import ActiveTrainerScan
+from trainers.active_learning.active_trainer import ActiveTrainerScan
 
 
-class MaxEntropyScanMC(ActiveTrainerScan):
+class MaxEntropyScanEnsemble(ActiveTrainerScan):
     """
-    Implementation of AL trainer with MaxEntropy acquisition function according to Shannon's entropy
+    Implementation of ensemble AL trainer with MaxEntropy acquisition function according to Shannon's entropy
     """
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        super(MaxEntropyScanMC, self).__init__(config, save_dir, 'MaxEntropy_Trainer')
+        super(MaxEntropyScanEnsemble, self).__init__(config, save_dir, 'MaxEntropy_Scan_Ensemble_Trainer')
 
     def _acquisition_function(self):
-        pred_dict = self._predict_proba_mc_dropout()
+        pred_dict = self._predict_proba_ensemble()
         # pred_dict is dictionary of scan_id -> prediction as 3d tensor
 
         entropy_values = []

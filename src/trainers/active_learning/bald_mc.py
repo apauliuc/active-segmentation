@@ -1,16 +1,16 @@
 import numpy as np
 
 from helpers.config import ConfigClass
-from trainers.active_learning.active_trainer_scan import ActiveTrainerScan
+from trainers.active_learning.active_trainer import ActiveTrainerScan
 
 
 class BALDScanMC(ActiveTrainerScan):
     """
-    Implementation of AL trainer with BALD acquisition function
+    Implementation of MC dropout AL trainer with BALD acquisition function
     """
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        super(BALDScanMC, self).__init__(config, save_dir, 'BALD_Trainer')
+        super(BALDScanMC, self).__init__(config, save_dir, 'BALD_Scan_MC_Trainer')
 
     def _acquisition_function(self):
         pred_dict = self._predict_proba_mc_dropout_individual()

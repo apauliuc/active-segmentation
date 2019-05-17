@@ -1,7 +1,7 @@
 import numpy as np
 
 from helpers.config import ConfigClass
-from trainers.al_trainers.active_trainer import ActiveTrainer
+from trainers.al_trainers.active_trainer_img import ActiveTrainer
 
 
 class LeastConfident(ActiveTrainer):

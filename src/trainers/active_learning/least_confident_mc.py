@@ -1,16 +1,16 @@
 import numpy as np
 
 from helpers.config import ConfigClass
-from trainers.active_learning.active_trainer_scan import ActiveTrainerScan
+from trainers.active_learning.active_trainer import ActiveTrainerScan
 
 
 class LeastConfidentScanMC(ActiveTrainerScan):
     """
-    Implementation of AL trainer with Least Confident acquisition function
+    Implementation of MC dropout AL trainer with Least Confident acquisition function
     """
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        super(LeastConfidentScanMC, self).__init__(config, save_dir, 'LC_MC_Scan_Trainer')
+        super(LeastConfidentScanMC, self).__init__(config, save_dir, 'LC_Scan_MC_Trainer')
 
     def _acquisition_function(self):
         pred_dict = self._predict_proba_mc_dropout()
