@@ -156,7 +156,8 @@ class BaseTrainer(abc.ABC):
             self.lr_scheduler.step(_engine.state.epoch)
 
     def _on_epoch_completed(self, _engine: Engine) -> None:
-        pass
+        self._log_training_results(_engine, self.main_logger, self.main_writer)
+        self._evaluate_on_val(_engine, self.main_logger, self.main_writer)
 
     def _on_events_completed(self, _engine: Engine) -> None:
         self._finalize()

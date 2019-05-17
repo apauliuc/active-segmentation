@@ -19,10 +19,6 @@ class PassiveTrainer(BaseTrainer):
 
         self._init_train_components()
 
-    def _on_epoch_completed(self, _engine: Engine) -> None:
-        self._log_training_results(_engine, self.main_logger, self.main_writer)
-        self._evaluate_on_val(_engine, self.main_logger, self.main_writer)
-
     def _init_handlers(self) -> None:
         self._init_epoch_timer()
         self._init_checkpoint_handler()

@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.special import xlogy
 
 from helpers.config import ConfigClass
 from trainers.al_scan_trainers.active_trainer_scan import ActiveTrainerScan
@@ -12,13 +11,6 @@ class BALDScan(ActiveTrainerScan):
 
     def __init__(self, config: ConfigClass, save_dir: str):
         super(BALDScan, self).__init__(config, save_dir, 'BALD_Trainer')
-
-    @staticmethod
-    def _compute_entropy(x):
-        proba = np.expand_dims(x, 0)
-        p = np.concatenate([proba, 1 - proba])
-        logp = xlogy(np.sign(p), p) / np.log(2)
-        return -np.nansum(p * logp, axis=0)
 
     def _acquisition_function(self):
         pred_dict = self._predict_proba_mc_dropout_individual()
@@ -35,7 +27,7 @@ class BALDScan(ActiveTrainerScan):
                 else:
                     mc_prediction += prediction
 
-                individual_entropy = self._compute_entropy(prediction.numpy())
+                individual_entropy = self._compute_pixel_entropy(prediction.numpy())
 
                 if entropy_mc_predictions is None:
                     entropy_mc_predictions = individual_entropy
@@ -47,7 +39,7 @@ class BALDScan(ActiveTrainerScan):
 
             # Compute entropy of MC averaged prediction
             mc_prediction = mc_prediction / len(prediction_list)
-            mc_averaged_entropy = self._compute_entropy(mc_prediction.numpy())
+            mc_averaged_entropy = self._compute_pixel_entropy(mc_prediction.numpy())
 
             # Combine measures
             bald = entropy_mc_predictions + mc_averaged_entropy

@@ -43,9 +43,9 @@ def main_active_learning(args, config_path: str):
 def _get_al_trainer(name: str):
     try:
         return {
-            'random': Random,
-            'least_confident': LeastConfident,
-            'least_confident_mc': LeastConfident,
+            # 'random': Random,
+            # 'least_confident': LeastConfident,
+            # 'least_confident_mc': LeastConfident,
             'random_scan': RandomScan,
             'least_confident_mc_scan': LeastConfidentMCScan,
             'max_entropy_mc': MaxEntropyScan,

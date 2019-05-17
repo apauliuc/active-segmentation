@@ -216,3 +216,10 @@ class ActiveTrainerScan(BaseTrainer):
             prediction_dict[scan_id] = [pred.cpu() for pred in mc_predictions]
 
         return prediction_dict
+
+    @staticmethod
+    def _compute_pixel_entropy(x):
+        proba = np.expand_dims(x, 0)
+        p = np.concatenate([proba, 1 - proba])
+        logp = xlogy(np.sign(p), p) / np.log(2)
+        return -np.nansum(p * logp, axis=0)

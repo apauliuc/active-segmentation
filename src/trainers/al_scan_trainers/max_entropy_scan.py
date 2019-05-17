@@ -19,13 +19,9 @@ class MaxEntropyScan(ActiveTrainerScan):
 
         entropy_values = []
         for proba in pred_dict.values():
-            proba = np.expand_dims(proba.numpy(), 0)
+            entropy_per_pixel = self._compute_pixel_entropy(proba.numpy())
 
-            p = np.concatenate([proba, 1-proba])
-            logp = xlogy(np.sign(p), p) / np.log(2)
-
-            entropies = -np.nansum(p * logp, axis=0)
-            entropy_values.append(entropies.mean())
+            entropy_values.append(entropy_per_pixel.mean())
 
         unc_data = np.array([np.arange(len(entropy_values))])
         unc_data = np.append(unc_data, np.array([entropy_values]), axis=0)

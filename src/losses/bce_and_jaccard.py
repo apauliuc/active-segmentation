@@ -4,10 +4,13 @@ import torch.nn as nn
 
 class BCEAndJaccardLoss(nn.Module):
 
-    def __init__(self, weight=None):
+    def __init__(self, weight=None, ensemble=False):
         super(BCEAndJaccardLoss, self).__init__()
-        self.jacc_loss_module = JaccardLoss()
-        self.bce_loss_module = nn.BCEWithLogitsLoss()
+        self.jacc_loss_module = JaccardLoss(ensemble=ensemble)
+        if ensemble:
+            self.bce_loss_module = nn.BCELoss()
+        else:
+            self.bce_loss_module = nn.BCEWithLogitsLoss()
         self.weight = weight
 
     def forward(self, y_pred, y):

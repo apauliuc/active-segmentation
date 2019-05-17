@@ -10,16 +10,16 @@ from data import get_dataloaders
 from helpers.config import ConfigClass
 from helpers.metrics import SegmentationMetrics
 from helpers.utils import retrieve_class_init_parameters
-from losses.bce_and_jaccard_ensemble import BCEAndJaccardLossEnsemble
+from losses import BCEAndJaccardLoss
 from models import get_model
 from optimizers import get_optimizer
 from trainers.base_trainer import BaseTrainer
 
 
-class EnsembleTrainer(BaseTrainer):
+class EnsemblePassiveTrainer(BaseTrainer):
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        super(EnsembleTrainer, self).__init__(config, save_dir, 'EnsembleTrainer')
+        super(EnsemblePassiveTrainer, self).__init__(config, save_dir, 'EnsemblePassiveTrainer')
         self.ensemble_cfg = self.train_cfg.ensemble
 
         self.epochs = self.train_cfg.num_epochs
@@ -32,7 +32,7 @@ class EnsembleTrainer(BaseTrainer):
 
     def _init_train_components(self):
         self.metrics = {
-            'loss': metrics.Loss(BCEAndJaccardLossEnsemble()),
+            'loss': metrics.Loss(BCEAndJaccardLoss(ensemble=True)),
             'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
                                                    threshold=self.config.binarize_threshold,
                                                    ensemble=True)
@@ -126,22 +126,18 @@ class EnsembleTrainer(BaseTrainer):
 
         checkpoint_save = {f'model_{i}': model for i, model in enumerate(self.ens_models)}
 
-        best_ckpoint = handlers.ModelCheckpoint(save_dir, 'best', n_saved=1, require_empty=False,
-                                                score_function=self.eval_func, save_as_state_dict=True)
+        best_ckpoint_handler = handlers.ModelCheckpoint(save_dir, 'best', n_saved=1, require_empty=False,
+                                                        score_function=self.eval_func, save_as_state_dict=True)
         final_checkpoint_handler = handlers.ModelCheckpoint(save_dir, 'final', save_interval=1, n_saved=1,
                                                             require_empty=False, save_as_state_dict=True)
 
-        self.evaluator.add_event_handler(Events.EPOCH_COMPLETED, best_ckpoint, checkpoint_save)
+        self.evaluator.add_event_handler(Events.EPOCH_COMPLETED, best_ckpoint_handler, checkpoint_save)
         self.trainer.add_event_handler(Events.COMPLETED, final_checkpoint_handler, checkpoint_save)
 
     def _on_epoch_started(self, _engine: Engine) -> None:
         for lr_scheduler in self.ens_lr_schedulers:
             if lr_scheduler is not None:
                 lr_scheduler.step(_engine.state.epoch)
-
-    def _on_epoch_completed(self, _engine: Engine) -> None:
-        self._log_training_results(_engine, self.main_logger, self.main_writer)
-        self._evaluate_on_val(_engine, self.main_logger, self.main_writer)
 
     def _init_handlers(self) -> None:
         self._init_epoch_timer()
