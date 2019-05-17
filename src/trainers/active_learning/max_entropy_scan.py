@@ -2,16 +2,16 @@ import numpy as np
 from scipy.special import xlogy
 
 from helpers.config import ConfigClass
-from trainers.al_scan_trainers.active_trainer_scan import ActiveTrainerScan
+from trainers.active_learning.active_trainer_scan import ActiveTrainerScan
 
 
-class MaxEntropyScan(ActiveTrainerScan):
+class MaxEntropyScanMC(ActiveTrainerScan):
     """
     Implementation of AL trainer with MaxEntropy acquisition function according to Shannon's entropy
     """
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        super(MaxEntropyScan, self).__init__(config, save_dir, 'MaxEntropy_Trainer')
+        super(MaxEntropyScanMC, self).__init__(config, save_dir, 'MaxEntropy_Trainer')
 
     def _acquisition_function(self):
         pred_dict = self._predict_proba_mc_dropout()
