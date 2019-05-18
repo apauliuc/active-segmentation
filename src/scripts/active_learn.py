@@ -5,13 +5,13 @@ import yaml
 from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from scripts.predict import main_predict
+from trainers.active_learning.bald_ensemble import BALDScanEnsemble
 from trainers.active_learning.bald_mc import BALDScanMC
+from trainers.active_learning.least_confident_ensemble import LeastConfidentScanEnsemble
 from trainers.active_learning.max_entropy_ensemble import MaxEntropyScanEnsemble
 from trainers.active_learning.max_entropy_mc import MaxEntropyScanMC
 from trainers.active_learning.random import RandomScan
 from trainers.active_learning.least_confident_mc import LeastConfidentScanMC
-from trainers.al_trainers.random_img import Random
-from trainers.al_trainers.least_confident_img import LeastConfident
 
 
 def main_active_learning(args, config_path: str):
@@ -48,14 +48,13 @@ def main_active_learning(args, config_path: str):
 def _get_al_trainer(name: str):
     try:
         return {
-            # 'random': Random,
-            # 'least_confident': LeastConfident,
-            # 'least_confident_mc': LeastConfident,
-            'random_scan': RandomScan,
-            'least_confident_mc_scan': LeastConfidentScanMC,
+            'random': RandomScan,
+            'least_confident_mc': LeastConfidentScanMC,
+            'least_confident_ensemble': LeastConfidentScanEnsemble,
             'max_entropy_mc': MaxEntropyScanMC,
             'max_entropy_ensemble': MaxEntropyScanEnsemble,
-            'bald_mc': BALDScanMC
+            'bald_mc': BALDScanMC,
+            'bald_ensemble': BALDScanEnsemble
         }[name]
     except KeyError:
         raise Exception(f'Trainer {name} not available')
