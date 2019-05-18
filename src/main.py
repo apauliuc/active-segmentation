@@ -14,6 +14,20 @@ from definitions import CONFIG_DEFAULT, CONFIG_AL, DATA_DIR, RUNS_DIR, CONFIG_DI
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 
+def run_configs_on_type(args, run_type):
+    configs_list = sorted([x for x in os.listdir(args.configs_dir) if args.configs_pattern in x])
+    print(f'Running {run_type} type on {len(configs_list)} configs')
+
+    for config in configs_list:
+        torch.cuda.empty_cache()
+        try:
+            # Start new process which goes on 'train' branch
+            subprocess.run(['python', 'main.py', '-r', run_type, '-c', config])
+        except Exception as e:
+            print(f'Error: {e}')
+            print('\nSomething went wrong. Moving to next config file\n\n\n')
+
+
 def main(args):
     if args.run_type == 'preprocess':
         # Some data preprocessing and writing slices to separate files
@@ -29,18 +43,8 @@ def main(args):
         main_train_model(args, os.path.join(args.configs_dir, args.config))
 
     elif args.run_type == 'train_all_configs':
-        # Run training for multiple config files given file name patter
-        configs_list = sorted([x for x in os.listdir(args.configs_dir) if args.configs_pattern in x])
-        print(f'Running training on {len(configs_list)} configs')
-
-        for config in configs_list:
-            torch.cuda.empty_cache()
-            try:
-                # Start new process which goes on 'train' branch
-                subprocess.run(['python', 'main.py', '-r', 'train', '-c', config])
-            except Exception as e:
-                print(f'Error: {e}')
-                print('\nSomething went wrong. Moving to next config file\n')
+        # Run training for multiple config files given file name pattern
+        run_configs_on_type(args, 'train')
 
     elif args.run_type == 'predict':
         # Run prediction on the val dataset using previous run directory
@@ -54,8 +58,8 @@ def main(args):
         print(f'Using config {args.config}')
         main_active_learning(args, os.path.join(args.configs_dir, args.config))
 
-    else:
-        raise ValueError('Run type not known')
+    elif args.run_type == 'al_run_all':
+        run_configs_on_type(args, 'active_learning')
 
 
 if __name__ == '__main__':
@@ -63,13 +67,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--run_type', type=str, default='active_learning',
                         help='Type of run',
-                        choices=['train', 'predict', 'preprocess', 'train_all_configs', 'active_learning'])
+                        choices=['train', 'predict', 'preprocess', 'train_all_configs',
+                                 'active_learning', 'al_run_all'])
     parser.add_argument('-c', '--config', type=str, default=CONFIG_AL,
                         help='Configuration file to use')
     parser.add_argument('--configs_dir', type=str, default=CONFIG_DIR,
                         help='Directory of all configurations to train on (run_type = train_all_configs)')
     parser.add_argument('--configs_pattern', type=str, default='config_',
-                        help='File name pattern for config files (run_type = train_all_configs)')
+                        help='File name pattern for config files (run_type = train_all_configs or al_run_all)')
     parser.add_argument('-ds', '--ds_path', type=str, default=DATA_DIR,
                         help='Path to main data directory')
     parser.add_argument('-tp', '--train_predict', type=bool, default=True,
