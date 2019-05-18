@@ -67,7 +67,7 @@ class ActiveTrainerScan(BaseTrainer):
 
                 lr_scheduler = None
                 if self.optim_cfg.scheduler == 'step':
-                    lr_scheduler = StepLR(self.optimizer, step_size=self.optim_cfg.lr_cycle, gamma=0.1)
+                    lr_scheduler = StepLR(optimizer, step_size=self.optim_cfg.lr_cycle, gamma=0.1)
                 self.ens_lr_schedulers.append(lr_scheduler)
         else:
             for param_group in self.optimizer.param_groups:
