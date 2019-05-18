@@ -29,6 +29,7 @@ def main_active_learning(args, config_path: str):
     elif 'ensemble' in config.active_learn.method:
         config.prediction.mode = 'single'
         config.training.use_ensemble = True
+        config.model.network_params.dropout = False
 
     run_dir = get_new_run_path(config.run_name)
 

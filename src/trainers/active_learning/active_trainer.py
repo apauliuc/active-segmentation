@@ -6,6 +6,7 @@ import torch
 from ignite import handlers
 from ignite.engine.engine import Engine, Events
 from tensorboardX import SummaryWriter
+from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 
 from helpers.torch_utils import apply_dropout
@@ -56,10 +57,22 @@ class ActiveTrainerScan(BaseTrainer):
     def _update_components_on_step(self, value):
         self._create_train_loggers(value=value)
 
-        # Update optimizer learning rate and recreate LR scheduler
-        for param_group in self.optimizer.param_groups:
-            param_group['lr'] = self.optim_cfg.lr
-        self.lr_scheduler = self._init_lr_scheduler()
+        # Update optimizer/s learning rate and recreate LR scheduler/s
+        if self.use_ensemble:
+            self.ens_lr_schedulers = list()
+
+            for optimizer in self.ens_optimizers:
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = self.optim_cfg.lr
+
+                lr_scheduler = None
+                if self.optim_cfg.scheduler == 'step':
+                    lr_scheduler = StepLR(self.optimizer, step_size=self.optim_cfg.lr_cycle, gamma=0.1)
+                self.ens_lr_schedulers.append(lr_scheduler)
+        else:
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = self.optim_cfg.lr
+            self.lr_scheduler = self._init_lr_scheduler()
 
         # Recreate Engines and handlers
         self.trainer, self.evaluator = self._init_engines()
@@ -212,7 +225,7 @@ class ActiveTrainerScan(BaseTrainer):
 
                     for i in range(self.al_config.mc_passes):
                         out = self.model(x)
-                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
+                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1)).cpu()
 
                         if len(mc_predictions) < i + 1:
                             mc_predictions.append(out_probas)
@@ -288,7 +301,7 @@ class ActiveTrainerScan(BaseTrainer):
 
                     for i, model in enumerate(self.ens_models):
                         out = model(x)
-                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
+                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1)).cpu()
 
                         if len(ensemble_predictions) < i + 1:
                             ensemble_predictions.append(out_probas)

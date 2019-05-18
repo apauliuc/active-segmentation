@@ -121,8 +121,12 @@ class BaseTrainer(abc.ABC):
         return lr_scheduler
 
     def _init_engines(self) -> Tuple[Engine, Engine]:
-        trainer = create_supervised_trainer(self.model, self.optimizer, self.criterion, self.device, True)
-        evaluator = create_supervised_evaluator(self.model, self.metrics, self.device, True)
+        if self.use_ensemble:
+            trainer = self._init_trainer_engine_ensemble()
+            evaluator = self._init_evaluator_engine_ensemble()
+        else:
+            trainer = create_supervised_trainer(self.model, self.optimizer, self.criterion, self.device, True)
+            evaluator = create_supervised_evaluator(self.model, self.metrics, self.device, True)
 
         metrics.RunningAverage(output_transform=lambda x: x).attach(trainer, 'train_loss')
 
@@ -163,10 +167,7 @@ class BaseTrainer(abc.ABC):
 
         self.criterion = self._init_criterion()
 
-        self.trainer = self._init_trainer_engine_ensemble()
-        self.evaluator = self._init_evaluator_engine_ensemble()
-
-        metrics.RunningAverage(output_transform=lambda x: x).attach(self.trainer, 'train_loss')
+        self.trainer, self.evaluator = self._init_engines()
 
         self._init_handlers()
 

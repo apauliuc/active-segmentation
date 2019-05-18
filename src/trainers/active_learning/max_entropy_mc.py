@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.special import xlogy
 
 from helpers.config import ConfigClass
 from trainers.active_learning.active_trainer import ActiveTrainerScan
