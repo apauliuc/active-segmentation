@@ -174,28 +174,30 @@ class ActiveTrainerScan(BaseTrainer):
                                    num_workers=self.config.data.num_workers,
                                    pin_memory=torch.cuda.is_available())
 
-            mc_probas = None
+            mc_prediction = None
 
             self.model.eval()
             self.model.apply(apply_dropout)
 
             with torch.no_grad():
                 for batch in al_loader:
-                    x, idxs = batch
+                    x, _ = batch
                     x = x.to(self.device)
+
+                    batch_prediction = torch.zeros_like(x)
 
                     for i in range(self.al_config.mc_passes):
                         out = self.model(x)
-                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
+                        batch_prediction += torch.sigmoid(out)
 
-                        if mc_probas is None:
-                            mc_probas = out_probas
-                        else:
-                            mc_probas[idxs] += out_probas
+                    batch_prediction = batch_prediction.reshape((batch_prediction.shape[0], -1)).cpu()
 
-            mc_probas = mc_probas / self.al_config.mc_passes
+                    mc_prediction = batch_prediction if mc_prediction is None else \
+                        torch.cat((mc_prediction, batch_prediction))
 
-            prediction_dict[scan_id] = mc_probas.cpu()
+            mc_prediction = mc_prediction / self.al_config.mc_passes
+
+            prediction_dict[scan_id] = mc_prediction.cpu()
 
         return prediction_dict
 
@@ -250,28 +252,30 @@ class ActiveTrainerScan(BaseTrainer):
                                    num_workers=self.config.data.num_workers,
                                    pin_memory=torch.cuda.is_available())
 
-            ensemble_probas = None
+            ensemble_prediction = None
 
             for model in self.ens_models:
                 model.eval()
 
             with torch.no_grad():
                 for batch in al_loader:
-                    x, idxs = batch
+                    x, _ = batch
                     x = x.to(self.device)
+
+                    batch_prediction = torch.zeros_like(x)
 
                     for model in self.ens_models:
                         out = model(x)
-                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1))
+                        batch_prediction += torch.sigmoid(out)
 
-                        if ensemble_probas is None:
-                            ensemble_probas = out_probas
-                        else:
-                            ensemble_probas[idxs] += out_probas
+                    batch_prediction = batch_prediction.reshape((out.shape[0], -1)).cpu()
 
-            ensemble_probas = ensemble_probas / len(self.ens_models)
+                    ensemble_prediction = batch_prediction if ensemble_prediction is None else\
+                        torch.cat([ensemble_prediction, batch_prediction])
 
-            prediction_dict[scan_id] = ensemble_probas.cpu()
+            ensemble_prediction = ensemble_prediction / len(self.ens_models)
+
+            prediction_dict[scan_id] = ensemble_prediction.cpu()
 
         return prediction_dict
 

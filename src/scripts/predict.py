@@ -21,11 +21,11 @@ def get_files_list(config: ConfigClass, load_directory: str):
     else:
         files_list = os.listdir(load_directory)
 
-    return files_list
+    return files_list, load_directory
 
 
 def load_ensemble_models(config: ConfigClass, load_directory=None, use_best_model=True):
-    files_list = get_files_list(config, load_directory)
+    files_list, load_directory = get_files_list(config, load_directory)
 
     model_filenames = list()
     fname_pattern = 'best_model_' if use_best_model else 'final_model_'
@@ -45,7 +45,7 @@ def load_ensemble_models(config: ConfigClass, load_directory=None, use_best_mode
 
 
 def load_single_model(config: ConfigClass, load_directory=None, use_best_model=True):
-    files_list = get_files_list(config, load_directory)
+    files_list, load_directory = get_files_list(config, load_directory)
 
     model_filename = 'final_model_1.pth'
 
