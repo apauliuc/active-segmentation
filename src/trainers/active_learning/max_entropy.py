@@ -4,16 +4,23 @@ from helpers.config import ConfigClass
 from trainers.active_learning.active_trainer import ActiveTrainerScan
 
 
-class MaxEntropyScanMC(ActiveTrainerScan):
+class MaxEntropyScan(ActiveTrainerScan):
     """
-    Implementation of MC dropout AL trainer with MaxEntropy acquisition function according to Shannon's entropy
+    Implementation of AL trainer with MaxEntropy acquisition function according to Shannon's entropy
     """
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        super(MaxEntropyScanMC, self).__init__(config, save_dir, 'MaxEntropy_Scan_MC_Trainer')
+        if config.training.use_ensemble:
+            name = 'MaxEntropy_Ensemble_Trainer'
+        else:
+            name = 'MaxEntropy_MC_Trainer'
+        super(MaxEntropyScan, self).__init__(config, save_dir, name)
 
     def _acquisition_function(self):
-        pred_dict = self._predict_proba_mc_dropout()
+        if self.use_ensemble:
+            pred_dict = self._predict_proba_ensemble()
+        else:
+            pred_dict = self._predict_proba_mc_dropout()
         # pred_dict is dictionary of scan_id -> prediction as 3d tensor
 
         entropy_values = []

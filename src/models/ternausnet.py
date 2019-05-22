@@ -53,6 +53,7 @@ class TernausNet(nn.Module):
         """
         super().__init__()
         self.num_classes = num_classes
+        self.dropout = dropout
         self.dropout_p = dropout_p
 
         self.pool = nn.MaxPool2d(2, 2)
@@ -127,4 +128,4 @@ class TernausNet(nn.Module):
         return self.final(dec1)
 
     def __repr__(self):
-        return 'TernausNet'
+        return 'TernausNet with Dropout' if self.dropout else 'TernausNet'

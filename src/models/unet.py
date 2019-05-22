@@ -51,6 +51,7 @@ class UNet(nn.Module):
         super(UNet, self).__init__()
         self.in_channels = input_channels
         self.num_classes = num_classes
+        self.dropout = dropout
 
         # Parameters
         filter_factors = (1, 2, 4, 8, 16)
@@ -112,4 +113,4 @@ class UNet(nn.Module):
         return x_out
 
     def __repr__(self):
-        return 'U-Net'
+        return 'U-Net with Dropout' if self.dropout else 'U-Net'

@@ -5,13 +5,10 @@ import yaml
 from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from scripts.predict import main_predict
-from trainers.active_learning.bald_ensemble import BALDScanEnsemble
-from trainers.active_learning.bald_mc import BALDScanMC
-from trainers.active_learning.least_confident_ensemble import LeastConfidentScanEnsemble
-from trainers.active_learning.max_entropy_ensemble import MaxEntropyScanEnsemble
-from trainers.active_learning.max_entropy_mc import MaxEntropyScanMC
+from trainers.active_learning.bald import BALDScan
+from trainers.active_learning.least_confident import LeastConfidentScan
+from trainers.active_learning.max_entropy import MaxEntropyScan
 from trainers.active_learning.random import RandomScan
-from trainers.active_learning.least_confident_mc import LeastConfidentScanMC
 
 
 def main_active_learning(args, config_path: str):
@@ -26,6 +23,7 @@ def main_active_learning(args, config_path: str):
         config.prediction.mode = 'mc'
         config.prediction.mc_passes = config.active_learn.mc_passes
         config.training.use_ensemble = False
+        config.model.network_params.dropout = True
     elif 'ensemble' in config.active_learn.method:
         config.prediction.mode = 'single'
         config.training.use_ensemble = True
@@ -49,12 +47,12 @@ def _get_al_trainer(name: str):
     try:
         return {
             'random': RandomScan,
-            'least_confident_mc': LeastConfidentScanMC,
-            'least_confident_ensemble': LeastConfidentScanEnsemble,
-            'max_entropy_mc': MaxEntropyScanMC,
-            'max_entropy_ensemble': MaxEntropyScanEnsemble,
-            'bald_mc': BALDScanMC,
-            'bald_ensemble': BALDScanEnsemble
+            'least_confident_mc': LeastConfidentScan,
+            'least_confident_ensemble': LeastConfidentScan,
+            'max_entropy_mc': MaxEntropyScan,
+            'max_entropy_ensemble': MaxEntropyScan,
+            'bald_mc': BALDScan,
+            'bald_ensemble': BALDScan
         }[name]
     except KeyError:
         raise Exception(f'Trainer {name} not available')

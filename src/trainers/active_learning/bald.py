@@ -4,16 +4,23 @@ from helpers.config import ConfigClass
 from trainers.active_learning.active_trainer import ActiveTrainerScan
 
 
-class BALDScanEnsemble(ActiveTrainerScan):
+class BALDScan(ActiveTrainerScan):
     """
-    Implementation of ensemble AL trainer with BALD acquisition function
+    Implementation of AL trainer with BALD acquisition function
     """
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        super(BALDScanEnsemble, self).__init__(config, save_dir, 'BALD_Scan_Ensemble_Trainer')
+        if config.training.use_ensemble:
+            name = 'BALD_Ensemble_Trainer'
+        else:
+            name = 'BALD_MC_Trainer'
+        super(BALDScan, self).__init__(config, save_dir, name)
 
     def _acquisition_function(self):
-        pred_dict = self._predict_proba_ensemble_individual()
+        if self.use_ensemble:
+            pred_dict = self._predict_proba_ensemble_individual()
+        else:
+            pred_dict = self._predict_proba_mc_dropout_individual()
         # pred_dict is dictionary of scan_id -> list of predictions as 3d tensors
 
         bald_values = []
