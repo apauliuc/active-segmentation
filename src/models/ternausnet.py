@@ -3,21 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 
-
-def conv3x3(in_, out):
-    return nn.Conv2d(in_, out, 3, padding=1)
-
-
-class ConvRelu(nn.Module):
-    def __init__(self, in_: int, out: int):
-        super(ConvRelu, self).__init__()
-        self.conv = conv3x3(in_, out)
-        self.activation = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.activation(x)
-        return x
+from models.common import ConvBnRelu
 
 
 class DecoderBlock(nn.Module):
@@ -29,14 +15,14 @@ class DecoderBlock(nn.Module):
     def __init__(self, in_channels, middle_channels, out_channels, is_deconv=True, dropout=False, dropout_p=0.2):
         super(DecoderBlock, self).__init__()
         self.is_deconv = is_deconv
-        module_list = [ConvRelu(in_channels, middle_channels)]
+        module_list = [ConvBnRelu(in_channels, middle_channels)]
 
         if is_deconv:
             module_list.append(nn.ConvTranspose2d(middle_channels, out_channels,
                                                   kernel_size=4, stride=2, padding=1))
             module_list.append(nn.ReLU(inplace=True))
         else:
-            module_list.append(ConvRelu(middle_channels, out_channels))
+            module_list.append(ConvBnRelu(middle_channels, out_channels))
 
         if dropout:
             module_list.append(nn.Dropout2d(p=dropout_p))
@@ -116,7 +102,7 @@ class TernausNet(nn.Module):
                                  dropout=dropout, dropout_p=dropout_p)
         self.dec2 = DecoderBlock(num_filters * 2 * 3, num_filters * 2 * 2, num_filters,
                                  dropout=dropout, dropout_p=dropout_p)
-        self.dec1 = ConvRelu(num_filters * 3, num_filters)
+        self.dec1 = ConvBnRelu(num_filters * 3, num_filters)
 
         self.final = nn.Conv2d(num_filters, self.num_classes, kernel_size=1)
 

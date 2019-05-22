@@ -1,69 +1,38 @@
-import math
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-class ConvBnRelu2D(nn.Module):
-    def __init__(self, in_size, out_size, batch_norm=False):
-        super(ConvBnRelu2D, self).__init__()
-        self._batch_norm = batch_norm
-        self.conv = nn.Conv2d(in_size, out_size, kernel_size=3, stride=1, padding=1)
-        self.bn = nn.BatchNorm2d(out_size, eps=1e-4)
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        if self._batch_norm:
-            return self.relu(self.bn(self.conv(x)))
-        else:
-            return self.relu(self.conv(x))
+from models.common import ConvBnRelu
 
 
-class UNetConvStack(nn.Module):
-    """
-    Convolution stack for UNet made of 2 ConvBnRelu2D modules
-    """
+class UNetConvBlock(nn.Module):
+    def __init__(self, in_size, out_size, batch_norm=False, dropout=False, dropout_p=0.2):
+        super(UNetConvBlock, self).__init__()
 
-    def __init__(self, in_size, out_size, batch_norm=False):
-        super(UNetConvStack, self).__init__()
-
-        self.conv_stack = nn.Sequential(
-            ConvBnRelu2D(in_size, out_size, batch_norm),
-            ConvBnRelu2D(out_size, out_size, batch_norm)
+        self.layers = nn.Sequential(
+            ConvBnRelu(in_size, out_size, batch_norm),
+            ConvBnRelu(out_size, out_size, batch_norm)
         )
 
-    def forward(self, inputs):
-        return self.conv_stack(inputs)
+        if dropout:
+            self.layers.add_module('dropout', nn.Dropout2d(p=dropout_p))
+
+    def forward(self, x):
+        return self.layers(x)
 
 
-class UNetUpConvStack(nn.Module):
-    """
-    Up-convolution stack for UNet.
-    Upsamples given input, appends past output, and applies UNetConvStack.
-    """
+class UpsampleConv(nn.Module):
+    def __init__(self, in_size, out_size, scale_factor=2, mode='bilinear'):
+        super(UpsampleConv, self).__init__()
+        self.interp = F.interpolate
+        self.scale_factor = scale_factor
+        self.mode = mode
+        self.conv = nn.Conv2d(in_size, out_size, kernel_size=3, stride=1, padding=1)
 
-    def __init__(self, in_size, out_size, use_conv=True):
-        super(UNetUpConvStack, self).__init__()
-
-        if use_conv:
-            self.upsample = nn.ConvTranspose2d(in_size, out_size, kernel_size=2, stride=2)
-        else:
-            # self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-            self.upsample = nn.UpsamplingBilinear2d(scale_factor=2)
-
-        self.conv = UNetConvStack(in_size, out_size)
-
-    def forward(self, input1, input2):
-        output1 = self.upsample(input1)
-
-        diff_y = input2.size()[2] - output1.size()[2]
-        diff_x = input2.size()[3] - output1.size()[3]
-
-        output1 = F.pad(output1, [diff_x // 2, diff_x - diff_x // 2,
-                                  diff_y // 2, diff_y - diff_y // 2])
-
-        return self.conv(torch.cat((input2, output1), dim=1))
+    def forward(self, x):
+        x = self.interp(x, scale_factor=self.scale_factor, mode=self.mode, align_corners=True)
+        x = self.conv(x)
+        return x
 
 
 class UNet(nn.Module):
@@ -74,53 +43,73 @@ class UNet(nn.Module):
     def __init__(self,
                  input_channels=1,
                  num_classes=1,
-                 batch_norm=True,
-                 up_conv=True):
+                 num_filters=32,
+                 batch_norm=False,
+                 learn_upconv=True,
+                 dropout=False,
+                 dropout_p=0.2):
         super(UNet, self).__init__()
         self.in_channels = input_channels
         self.num_classes = num_classes
 
-        filter_sizes = [64, 128, 256, 512, 1024]
+        # Parameters
+        filter_factors = (1, 2, 4, 8, 16)
+        filter_sizes = [num_filters * s for s in filter_factors]
+        pool_layer = nn.MaxPool2d(2, 2)
 
-        # Down sampling layers (1 to 4)
-        self.conv1 = UNetConvStack(self.in_channels, filter_sizes[0], batch_norm)
-        self.maxpool1 = nn.MaxPool2d(kernel_size=2)
+        # Create downsampling layers
+        self.down_path = nn.ModuleList()
+        self.down_samplers = [None]
+        self.down_path.append(UNetConvBlock(self.in_channels,
+                                            filter_sizes[0],
+                                            batch_norm=batch_norm,
+                                            dropout=dropout,
+                                            dropout_p=dropout_p))
 
-        self.conv2 = UNetConvStack(filter_sizes[0], filter_sizes[1], batch_norm)
-        self.maxpool2 = nn.MaxPool2d(kernel_size=2)
+        for prev_idx, num_filters in enumerate(filter_sizes[1:]):
+            self.down_path.append(UNetConvBlock(filter_sizes[prev_idx],
+                                                num_filters,
+                                                batch_norm=batch_norm,
+                                                dropout=dropout,
+                                                dropout_p=dropout_p))
+            self.down_samplers.append(pool_layer)
 
-        self.conv3 = UNetConvStack(filter_sizes[1], filter_sizes[2], batch_norm)
-        self.maxpool3 = nn.MaxPool2d(kernel_size=2)
+        # Create upsampling layers
+        self.up_path = nn.ModuleList()
+        self.up_samplers = nn.ModuleList()
 
-        self.conv4 = UNetConvStack(filter_sizes[2], filter_sizes[3], batch_norm)
-        self.maxpool4 = nn.MaxPool2d(kernel_size=2)
-
-        # Bottom convolution (5th layer)
-        self.bottom_conv = UNetConvStack(filter_sizes[3], filter_sizes[4], batch_norm)
-
-        # Up sampling layers (1 to 4) - concatenate past output
-        self.upsample1 = UNetUpConvStack(filter_sizes[4], filter_sizes[3], up_conv)
-        self.upsample2 = UNetUpConvStack(filter_sizes[3], filter_sizes[2], up_conv)
-        self.upsample3 = UNetUpConvStack(filter_sizes[2], filter_sizes[1], up_conv)
-        self.upsample4 = UNetUpConvStack(filter_sizes[1], filter_sizes[0], up_conv)
+        for idx, num_filters in enumerate(filter_sizes[1:]):
+            self.up_path.append(UNetConvBlock(num_filters,
+                                              filter_sizes[idx],
+                                              batch_norm=batch_norm,
+                                              dropout=dropout,
+                                              dropout_p=dropout_p))
+            if learn_upconv:
+                self.up_samplers.append(
+                    nn.ConvTranspose2d(num_filters, filter_sizes[idx], kernel_size=4, stride=2, padding=1))
+            else:
+                self.up_samplers.append(
+                    UpsampleConv(num_filters, filter_sizes[idx], scale_factor=2, mode='bilinear'))
 
         # Final conv layer 1x1
         self.output_conv = nn.Conv2d(filter_sizes[0], self.num_classes, kernel_size=1)
 
-    def forward(self, in_image):
-        conv1_out = self.conv1(in_image)
-        conv2_out = self.conv2(self.maxpool1(conv1_out))
-        conv3_out = self.conv3(self.maxpool2(conv2_out))
-        conv4_out = self.conv4(self.maxpool3(conv3_out))
+    def forward(self, x):
+        previous_x = []
 
-        bottom = self.bottom_conv(self.maxpool4(conv4_out))
+        for downsample, down in zip(self.down_samplers, self.down_path):
+            x_in = x if downsample is None else downsample(previous_x[-1])
+            x_out = down(x_in)
+            previous_x.append(x_out)
 
-        upsample1_out = self.upsample1(bottom, conv4_out)
-        upsample2_out = self.upsample2(upsample1_out, conv3_out)
-        upsample3_out = self.upsample3(upsample2_out, conv2_out)
-        upsample4_out = self.upsample4(upsample3_out, conv1_out)
+        x_out = previous_x[-1]
+        for x_skip, upsample, up in reversed(list(zip(previous_x[:-1], self.up_samplers, self.up_path))):
+            x_out = upsample(x_out)
+            x_out = up(torch.cat([x_skip, x_out], dim=1))
 
-        return self.output_conv(upsample4_out)
+        x_out = self.output_conv(x_out)
+
+        return x_out
 
     def __repr__(self):
         return 'U-Net'
