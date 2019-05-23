@@ -125,7 +125,12 @@ class TernausNet(nn.Module):
         dec2 = self.dec2(torch.cat((dec3, conv2), 1))
         dec1 = self.dec1(torch.cat((dec2, conv1), 1))
 
-        return self.final(dec1)
+        out = self.final(dec1)
+
+        if self.num_classes > 1:
+            out = F.softmax(out, dim=1)
+
+        return out
 
     def __repr__(self):
         return 'TernausNet with Dropout' if self.dropout else 'TernausNet'

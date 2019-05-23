@@ -110,6 +110,9 @@ class UNet(nn.Module):
 
         x_out = self.output_conv(x_out)
 
+        if self.num_classes > 1:
+            x_out = F.softmax(x_out, dim=1)
+
         return x_out
 
     def __repr__(self):

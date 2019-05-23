@@ -75,7 +75,7 @@ class SegmentationMetrics(Metric):
     def __init__(self, num_classes=2, threshold=0.5, ensemble=False):
         self._num_classes = 2 if num_classes == 1 else num_classes
         self._thres = threshold
-        self.ensemble = ensemble
+        self._ensemble = ensemble
         super(SegmentationMetrics, self).__init__()
 
     def reset(self):
@@ -87,7 +87,7 @@ class SegmentationMetrics(Metric):
         else:
             y_pred, y, kwargs = output
 
-        if process and not self.ensemble:
+        if process and not self._ensemble:
             y_pred = torch.sigmoid(y_pred)
 
         if self._num_classes == 2:
