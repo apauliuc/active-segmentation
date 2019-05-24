@@ -6,7 +6,7 @@ from typing import Tuple
 from logging import Logger
 
 import torch
-from torch.optim.lr_scheduler import StepLR
+import torch.optim as optim
 from tensorboardX import SummaryWriter
 
 from ignite import handlers, metrics
@@ -74,7 +74,7 @@ class BaseTrainer(abc.ABC):
         self.optimizer = self._init_optimizer()
         self.criterion = self._init_criterion()
 
-        self.lr_scheduler = self._init_lr_scheduler()
+        self.lr_scheduler = self._init_lr_scheduler(self.optimizer)
 
         self.trainer, self.evaluator = self._init_engines()
 
@@ -113,10 +113,18 @@ class BaseTrainer(abc.ABC):
 
         return criterion
 
-    def _init_lr_scheduler(self):
-        lr_scheduler = None
+    def _init_lr_scheduler(self, optimizer):
         if self.optim_cfg.scheduler == 'step':
-            lr_scheduler = StepLR(self.optimizer, step_size=self.optim_cfg.lr_cycle, gamma=0.1)
+            scheduler_class = optim.lr_scheduler.StepLR
+        elif self.optim_cfg.scheduler == 'plateau':
+            scheduler_class = optim.lr_scheduler.ReduceLROnPlateau
+        else:
+            return None
+
+        init_param_names = retrieve_class_init_parameters(scheduler_class)
+        scheduler_params = {k: v for k, v in self.optim_cfg.scheduler_params.items() if k in init_param_names}
+
+        lr_scheduler = scheduler_class(optimizer, **scheduler_params)
 
         return lr_scheduler
 
@@ -156,10 +164,7 @@ class BaseTrainer(abc.ABC):
             self.ens_models.append(get_model(self.model_cfg).to(device=self.device))
             self.ens_optimizers.append(optimizer_cls(self.ens_models[-1].parameters(), **optimizer_params))
 
-            lr_scheduler = None
-            if self.optim_cfg.scheduler == 'step':
-                lr_scheduler = StepLR(self.ens_optimizers[-1], step_size=self.optim_cfg.lr_cycle, gamma=0.1)
-
+            lr_scheduler = self._init_lr_scheduler(self.ens_optimizers[-1])
             self.ens_lr_schedulers.append(lr_scheduler)
 
         self.main_logger.info(f'Using ensemble of {self.len_models} {self.ens_models[0]}')
@@ -253,13 +258,19 @@ class BaseTrainer(abc.ABC):
         self.evaluator.add_event_handler(Events.COMPLETED, early_stop_handler)
 
     def _on_epoch_started(self, _engine: Engine) -> None:
+        if self.optim_cfg.scheduler == 'step':
+            measure = _engine.state.epoch
+        elif self.optim_cfg.scheduler == 'plateau':
+            measure = self.eval_func(self.evaluator)
+
+        def _update_individual_scheduler(lr_scheduler):
+            lr_scheduler.step(measure)
+
         if self.use_ensemble:
-            for lr_scheduler in self.ens_lr_schedulers:
-                if lr_scheduler is not None:
-                    lr_scheduler.step(_engine.state.epoch)
+            for lr_s in self.ens_lr_schedulers:
+                _update_individual_scheduler(lr_s)
         else:
-            if self.lr_scheduler is not None:
-                self.lr_scheduler.step(_engine.state.epoch)
+            _update_individual_scheduler(self.lr_scheduler)
 
     def _on_epoch_completed(self, _engine: Engine) -> None:
         self._log_training_results(_engine, self.main_logger, self.main_writer)

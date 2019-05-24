@@ -57,22 +57,15 @@ class ActiveTrainerScan(BaseTrainer):
     def _update_components_on_step(self, value):
         self._create_train_loggers(value=value)
 
-        # Update optimizer/s learning rate and recreate LR scheduler/s
+        # Recreate LR scheduler/s
         if self.use_ensemble:
             self.ens_lr_schedulers = list()
 
             for optimizer in self.ens_optimizers:
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = self.optim_cfg.lr
-
-                lr_scheduler = None
-                if self.optim_cfg.scheduler == 'step':
-                    lr_scheduler = StepLR(optimizer, step_size=self.optim_cfg.lr_cycle, gamma=0.1)
+                lr_scheduler = self._init_lr_scheduler(optimizer)
                 self.ens_lr_schedulers.append(lr_scheduler)
         else:
-            for param_group in self.optimizer.param_groups:
-                param_group['lr'] = self.optim_cfg.lr
-            self.lr_scheduler = self._init_lr_scheduler()
+            self.lr_scheduler = self._init_lr_scheduler(self.optimizer)
 
         # Recreate Engines and handlers
         self.trainer, self.evaluator = self._init_engines()
