@@ -1,4 +1,4 @@
-run_name: Ensemble_UNet
+run_name: BayesUnet_Test
 data:
   dataset: AMC
   mode: train
@@ -7,28 +7,35 @@ data:
   num_workers: 4
   run_val_on_train: False
 training:
+  bayesian: True
+  beta_type: Blundell
   seed:
-  num_epochs: 75
+  num_epochs: 500
   optimizer:
     name: adam
     lr: 0.001
     weight_decay: 0.001
-    amsgrad: True
-    scheduler: step
-    lr_cycle: 30
+    amsgrad: False
+    scheduler: plateau
+    scheduler_params:
+      step_size: 30
+      gamma: 0.5
+      mode: min
+      patience: 10
+      factor: 0.5
   loss_fn:
     name: bce_and_jaccard
-  patience: 15
-  early_stop_fn: iou_score
-  use_ensemble: True
+  early_stop_fn: f1_score
+  patience: 20
+  use_ensemble: False
   ensemble:
-    number_models: 5
+    number_models: 3
 model:
-  name: unet_v2
+  name: bbb_unet
   network_params:
     num_filters: 32
     pretrained: True
-    dropout: False
+    dropout: True
 resume:
   resume_from:
   saved_model:

@@ -5,6 +5,7 @@ import yaml
 from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from scripts.predict import main_predict
+from trainers.bayes_trainer import BayesianTrainer
 from trainers.passive_trainer_ensemble import PassiveTrainerEnsemble
 from trainers.passive_trainer import PassiveTrainer
 
@@ -20,10 +21,13 @@ def main_train_model(args, config_path: str):
     with open(os.path.join(run_dir, 'cfg_file.yml'), 'w+') as f:
         yaml.dump(config, f)
 
-    if config.training.use_ensemble:
-        trainer = PassiveTrainerEnsemble(config, run_dir)
+    if config.training.bayesian is True:
+        trainer = BayesianTrainer(config, run_dir)
     else:
-        trainer = PassiveTrainer(config, run_dir)
+        if config.training.use_ensemble:
+            trainer = PassiveTrainerEnsemble(config, run_dir)
+        else:
+            trainer = PassiveTrainer(config, run_dir)
 
     trainer.run()
 

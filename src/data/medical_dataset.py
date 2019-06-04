@@ -111,14 +111,14 @@ class MDSDataLoaders(BaseLoader):
             self.train_path = get_dataset_path(config.path, config.dataset, 'train')
             val_path = get_dataset_path(config.path, config.dataset, 'val')
 
-            train_dataset = MDSMain(self.train_path, file_list=file_list, transform=self.train_transform)
-            val_dataset = MDSMain(val_path, transform=self.train_transform)
+            self.train_dataset = MDSMain(self.train_path, file_list=file_list, transform=self.train_transform)
+            self.val_dataset = MDSMain(val_path, transform=self.train_transform)
 
-            self.train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=shuffle,
+            self.train_loader = DataLoader(self.train_dataset, batch_size=config.batch_size, shuffle=shuffle,
                                            num_workers=config.num_workers,
                                            pin_memory=torch.cuda.is_available())
 
-            self.val_loader = DataLoader(val_dataset, batch_size=config.batch_size_val, shuffle=shuffle,
+            self.val_loader = DataLoader(self.val_dataset, batch_size=config.batch_size_val, shuffle=shuffle,
                                          num_workers=config.num_workers,
                                          pin_memory=torch.cuda.is_available())
 
@@ -130,7 +130,7 @@ class MDSDataLoaders(BaseLoader):
                     f'Validation data loader created from {val_path}'
 
             if config.run_val_on_train:
-                self.val_train_loader = DataLoader(train_dataset, batch_size=config.batch_size_val,
+                self.val_train_loader = DataLoader(self.train_dataset, batch_size=config.batch_size_val,
                                                    shuffle=shuffle, num_workers=config.num_workers,
                                                    pin_memory=torch.cuda.is_available())
 

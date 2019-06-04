@@ -5,6 +5,7 @@ from models.segnet import SegNet
 from models.fcn8 import FCN8
 from models.fcn16 import FCN16
 from models.fcn32 import FCN32
+from bayesian.bayes_unet import BBBUnet
 
 from helpers.utils import retrieve_class_init_parameters
 
@@ -30,7 +31,8 @@ def _get_model_instance(name: str):
             'segnet': SegNet,
             'fcn8': FCN8,
             'fcn16': FCN16,
-            'fcn32': FCN32
+            'fcn32': FCN32,
+            'bbb_unet': BBBUnet
         }[name]
     except KeyError:
         raise Exception(f'Model {name} not available')

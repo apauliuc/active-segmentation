@@ -69,11 +69,11 @@ if __name__ == '__main__':
                         help='Type of run',
                         choices=['train', 'predict', 'preprocess', 'train_all_configs',
                                  'active_learning', 'al_run_all'])
-    parser.add_argument('-c', '--config', type=str, default=CONFIG_AL,
+    parser.add_argument('-c', '--config', type=str, default='al_config_lc_mc_unet.yml',
                         help='Configuration file to use')
     parser.add_argument('--configs_dir', type=str, default=CONFIG_DIR,
                         help='Directory of all configurations to train on (run_type = train_all_configs)')
-    parser.add_argument('--configs_pattern', type=str, default='config_',
+    parser.add_argument('--configs_pattern', type=str, default='al_config_',
                         help='File name pattern for config files (run_type = train_all_configs or al_run_all)')
     parser.add_argument('-ds', '--ds_path', type=str, default=DATA_DIR,
                         help='Path to main data directory')
