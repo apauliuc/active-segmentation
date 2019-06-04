@@ -261,7 +261,7 @@ class BaseTrainer(abc.ABC):
         if self.optim_cfg.scheduler == 'step':
             measure = _engine.state.epoch
         elif self.optim_cfg.scheduler == 'plateau':
-            measure = self.eval_func(self.evaluator)
+            measure = 50 if _engine.state.epoch == 1 else _engine.state.metrics['train_loss']
 
         def _update_individual_scheduler(lr_scheduler):
             lr_scheduler.step(measure)
