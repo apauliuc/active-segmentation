@@ -65,11 +65,11 @@ def main(args):
 if __name__ == '__main__':
     "Main starting point of the application"
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--run_type', type=str, default='active_learning',
+    parser.add_argument('-r', '--run_type', type=str, default='train',
                         help='Type of run',
                         choices=['train', 'predict', 'preprocess', 'train_all_configs',
                                  'active_learning', 'al_run_all'])
-    parser.add_argument('-c', '--config', type=str, default='al_config_lc_mc_unet.yml',
+    parser.add_argument('-c', '--config', type=str, default=CONFIG_DEFAULT,
                         help='Configuration file to use')
     parser.add_argument('--configs_dir', type=str, default=CONFIG_DIR,
                         help='Directory of all configurations to train on (run_type = train_all_configs)')
@@ -81,7 +81,7 @@ if __name__ == '__main__':
                         help='Indicate whether to predict after training is finished')
     parser.add_argument('--run_dir', type=str, default='',
                         help='Previous run directory to load model from (works only for run_type = predict)')
-    parser.add_argument('-gpu', '--gpu_node', type=int, default=1,
+    parser.add_argument('-gpu', '--gpu_node', type=int, default=0,
                         help='Use specific GPU card in node')
 
     arguments = parser.parse_args()
