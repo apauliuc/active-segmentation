@@ -16,6 +16,7 @@ def main_train_model(args, config_path: str):
 
     config.data.mode = 'train'
     config.data.path = args.ds_path
+    config.gpu_node = args.gpu
     run_dir = get_new_run_path(config.run_name)
 
     with open(os.path.join(run_dir, 'cfg_file.yml'), 'w+') as f:

@@ -31,7 +31,7 @@ class BaseTrainer(abc.ABC):
         self.save_dir = save_dir
         self.main_logger, self.main_log_handler = setup_logger(save_dir, log_name)
         self.main_logger.info(f'Saving to folder {save_dir}')
-        self.main_writer = SummaryWriter(log_dir=save_dir)
+        self.main_writer = SummaryWriter(save_dir)
 
         self.config = config
         self.model_cfg = config.model
@@ -45,7 +45,7 @@ class BaseTrainer(abc.ABC):
             np.random.seed(self.train_cfg.seed)
             self.main_logger.info(f'Seed set on {self.train_cfg.seed}')
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
         self.eval_train_loader = config.data.run_val_on_train
 
         if self.train_cfg.early_stop_fn == 'f1_score':

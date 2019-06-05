@@ -81,6 +81,8 @@ if __name__ == '__main__':
                         help='Indicate whether to predict after training is finished')
     parser.add_argument('--run_dir', type=str, default='',
                         help='Previous run directory to load model from (works only for run_type = predict)')
+    parser.add_argument('-gpu', '--gpu_node', type=int, default=1,
+                        help='Use specific GPU card in node')
 
     arguments = parser.parse_args()
     main(arguments)

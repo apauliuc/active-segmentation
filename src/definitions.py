@@ -10,13 +10,12 @@ CONFIG_DEFAULT = os.path.join(CONFIG_DIR, 'default_config.yml')
 CONFIG_AL = os.path.join(CONFIG_DIR, 'al_config.yml')
 CONFIG_VOC = os.path.join(CONFIG_DIR, 'voc_config.yml')
 
-if os.environ.get('COMPUTERNAME', default='MacBook Air') == '19-002464':
-    # Constants for AMC PC
-    RUNS_DIR = os.path.join('C:', 'Andrei', 'RUNS')
-    DATA_DIR = os.path.join('C:', 'Andrei', 'data')
-else:
-    # Constants for Mac
+if os.environ.get('USER') == 'pauliuca' or os.environ.get('USER') == 'andrei':
+    # SURFSARA OR MAC
     RUNS_DIR = os.path.join(ROOT_DIR, 'runs')
     DATA_DIR = os.path.join(ROOT_DIR, 'data')
+elif os.environ.get('USERNAME') == 'aspauliuc':
+    RUNS_DIR = os.path.join('C:', 'Andrei', 'RUNS')
+    DATA_DIR = os.path.join('C:', 'Andrei', 'data')
 
-VOC_ROOT = os.path.join(DATA_DIR, 'VOC')
+VOC_ROOT = ''
