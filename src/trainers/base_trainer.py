@@ -60,19 +60,21 @@ class BaseTrainer(abc.ABC):
             self.len_models = self.train_cfg.ensemble.number_models
 
     # Single model
-    def _init_train_components(self):
-        self.metrics = {
-            'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn)),
-            'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
-                                                   threshold=self.config.binarize_threshold)
-        }
+    def _init_train_components(self, reinitialise=False):
+        if not reinitialise:
+            self.metrics = {
+                'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn)),
+                'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
+                                                       threshold=self.config.binarize_threshold)
+            }
 
-        self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
-        self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
+            self.criterion = self._init_criterion()
 
-        self.model = self._init_model()
-        self.optimizer = self._init_optimizer()
-        self.criterion = self._init_criterion()
+            self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
+            self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
+
+        self.model = self._init_model(not reinitialise)
+        self.optimizer = self._init_optimizer(not reinitialise)
 
         self.lr_scheduler = self._init_lr_scheduler(self.optimizer)
 
@@ -80,29 +82,33 @@ class BaseTrainer(abc.ABC):
 
         self._init_handlers()
 
-    def _init_model(self):
+    def _init_model(self, init=True):
         model = get_model(self.model_cfg).to(device=self.device)
-        self.main_logger.info(f'Using model {model}')
+        if init:
+            self.main_logger.info(f'Using model {model}')
 
-        if self.resume_cfg.resume_from is not None and self.resume_cfg.saved_model is not None:
+        if self.resume_cfg.resume_from is not None and self.resume_cfg.saved_model is not None and init:
             model_path = get_resume_model_path(self.resume_cfg.resume_from, self.resume_cfg.saved_model)
-            self.main_logger.info(f'Loading model loaded from {model_path}')
+            if init:
+                self.main_logger.info(f'Loading model loaded from {model_path}')
             model.load_state_dict(torch.load(model_path))
 
         return model
 
-    def _init_optimizer(self):
+    def _init_optimizer(self, init=True):
         optimizer_cls = get_optimizer(self.optim_cfg)
 
         init_param_names = retrieve_class_init_parameters(optimizer_cls)
         optimizer_params = {k: v for k, v in self.optim_cfg.items() if k in init_param_names}
 
         optimizer = optimizer_cls(self.model.parameters(), **optimizer_params)
-        self.main_logger.info(f'Using optimizer {optimizer.__class__.__name__}')
+        if init:
+            self.main_logger.info(f'Using optimizer {optimizer.__class__.__name__}')
 
-        if self.resume_cfg.resume_from is not None and self.resume_cfg.saved_optimizer is not None:
+        if self.resume_cfg.resume_from is not None and self.resume_cfg.saved_optimizer is not None and init:
             optimizer_path = get_resume_optimizer_path(self.resume_cfg.resume_from, self.resume_cfg.saved_optimizer)
-            self.main_logger.info(f'Loading optimizer from {optimizer_path}')
+            if init:
+                self.main_logger.info(f'Loading optimizer from {optimizer_path}')
             optimizer.load_state_dict(torch.load(optimizer_path))
 
         return optimizer
@@ -141,16 +147,19 @@ class BaseTrainer(abc.ABC):
         return trainer, evaluator
 
     # Ensemble Method
-    def _init_train_components_ensemble(self):
-        self.metrics = {
-            'loss': metrics.Loss(BCEAndJaccardLoss(ensemble=True)),
-            'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
-                                                   threshold=self.config.binarize_threshold,
-                                                   ensemble=True)
-        }
+    def _init_train_components_ensemble(self, reinitialise=False):
+        if not reinitialise:
+            self.metrics = {
+                'loss': metrics.Loss(BCEAndJaccardLoss(ensemble=True)),
+                'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
+                                                       threshold=self.config.binarize_threshold,
+                                                       ensemble=True)
+            }
 
-        self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
-        self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
+            self.criterion = self._init_criterion()
+
+            self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
+            self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
 
         self.ens_models = list()
         self.ens_optimizers = list()
@@ -167,10 +176,9 @@ class BaseTrainer(abc.ABC):
             lr_scheduler = self._init_lr_scheduler(self.ens_optimizers[-1])
             self.ens_lr_schedulers.append(lr_scheduler)
 
-        self.main_logger.info(f'Using ensemble of {self.len_models} {self.ens_models[0]}')
-        self.main_logger.info(f'Using optimizers {self.ens_optimizers[0].__class__.__name__}')
-
-        self.criterion = self._init_criterion()
+        if not reinitialise:
+            self.main_logger.info(f'Using ensemble of {self.len_models} {self.ens_models[0]}')
+            self.main_logger.info(f'Using optimizers {self.ens_optimizers[0].__class__.__name__}')
 
         self.trainer, self.evaluator = self._init_engines()
 

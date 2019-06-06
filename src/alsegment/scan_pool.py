@@ -43,10 +43,10 @@ class ALPatientPool:
             transforms.Normalize([ds_statistics['mean']], [ds_statistics['std']]),
         ])
 
-    def _remove_from_pool(self, to_remove: list) -> None:
+    def _remove_from_pool(self, scans_to_remove: list) -> None:
         try:
-            files_to_remove = [x for x in self._files_pool if x.split('_')[0] in to_remove]
-            for item in to_remove:
+            files_to_remove = [x for x in self._files_pool if x.split('_')[0] in scans_to_remove]
+            for item in scans_to_remove:
                 self._scans_pool.remove(item)
             for file in files_to_remove:
                 self._files_pool.remove(file)
@@ -54,13 +54,16 @@ class ALPatientPool:
             pass
 
     def _create_initial_pool(self) -> None:
-        if self.al_config.init_pool_size >= len(self._scans_pool):
-            print('Initial pool size too large. Setting it to default 1')
-            self.al_config.init_pool_size = 1
+        if len(self.al_config.init_scans) > 0:
+            init_scans_pool = self.al_config.init_scans
+        else:
+            if self.al_config.init_pool_size >= len(self._scans_pool):
+                print('Initial pool size too large. Setting it to default 1')
+                self.al_config.init_pool_size = 1
 
-        init_scans_pool = np.random.choice(self._scans_pool,
-                                           size=self.al_config.init_pool_size,
-                                           replace=False).tolist()
+            init_scans_pool = np.random.choice(self._scans_pool,
+                                               size=self.al_config.init_pool_size,
+                                               replace=False).tolist()
 
         self._labelled_scans_pool = init_scans_pool
         self._labelled_files_pool = [x for x in self._files_pool if x.split('_')[0] in init_scans_pool]

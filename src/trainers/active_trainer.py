@@ -69,19 +69,11 @@ class ActiveTrainerScan(BaseTrainer):
     def _update_components_on_step(self, value):
         self._create_train_loggers(value=value)
 
-        # Recreate LR scheduler/s
+        # Recreate components
         if self.use_ensemble:
-            self.ens_lr_schedulers = list()
-
-            for optimizer in self.ens_optimizers:
-                lr_scheduler = self._init_lr_scheduler(optimizer)
-                self.ens_lr_schedulers.append(lr_scheduler)
+            self._init_train_components_ensemble(reinitialise=True)
         else:
-            self.lr_scheduler = self._init_lr_scheduler(self.optimizer)
-
-        # Recreate Engines and handlers
-        self.trainer, self.evaluator = self._init_engines()
-        self._init_handlers()
+            self._init_train_components(reinitialise=True)
 
     def _on_epoch_completed(self, _engine: Engine) -> None:
         self._log_training_results(_engine, self.train_logger, self.train_writer)
@@ -147,9 +139,11 @@ class ActiveTrainerScan(BaseTrainer):
                 break
 
             self.main_logger.info(f'Training - acquisition step {i}')
+
             self._update_components_on_step(i)
 
             self._acquisition_function()
+
             self._save_dataset_info()
 
             self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
