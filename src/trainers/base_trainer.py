@@ -292,10 +292,10 @@ class BaseTrainer(abc.ABC):
     def _on_exception_raised(self, _engine: Engine, e: Exception) -> None:
         self.main_logger.info(f'Exception at epoch {_engine.state.epoch}')
         self.main_logger.info(e)
-        self._finalize()
+        self._finalize(True)
         raise e
 
-    def _finalize(self) -> None:
+    def _finalize(self, on_error=False) -> None:
         if self.trainer.should_terminate:
             self.main_logger.info(f'Early stopping on epoch {self.trainer.state.epoch}')
 

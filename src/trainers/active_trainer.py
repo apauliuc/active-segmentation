@@ -53,7 +53,7 @@ class ActiveTrainerScan(BaseTrainer):
         os.makedirs(self.save_data_dir)
 
         self.train_logger, self.train_log_handler = setup_logger(self.save_model_dir, f'Train step {value}')
-        self.train_writer = SummaryWriter(log_dir=self.save_model_dir)
+        self.train_writer = SummaryWriter(self.save_model_dir)
 
     def _save_dataset_info(self):
         save_dict = {
@@ -92,24 +92,26 @@ class ActiveTrainerScan(BaseTrainer):
         self.evaluator.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
         self.trainer.add_event_handler(Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
 
-    def _finalize(self) -> None:
-        if self.trainer.should_terminate:
-            self.train_logger.info(f'Early stopping on epoch {self.trainer.state.epoch}')
+    def _finalize(self, on_error=False) -> None:
+        if not on_error:
+            if self.trainer.should_terminate:
+                self.train_logger.info(f'Early stopping on epoch {self.trainer.state.epoch}')
 
-        # Evaluate model and save information
-        eval_loss = self.evaluator.state.metrics['loss']
-        eval_metrics = self.evaluator.state.metrics['segment_metrics']
+            # Evaluate model and save information
+            eval_loss = self.evaluator.state.metrics['loss']
+            eval_metrics = self.evaluator.state.metrics['segment_metrics']
 
-        msg = f'Step {self.acquisition_step} - After {self.trainer.state.epoch} training epochs: ' \
-            f'Val. loss: {eval_loss:.4f}   ' \
-            f'IoU: {eval_metrics["avg_iou"]:.4f}   ' \
-            f'F1: {eval_metrics["avg_f1"]:.4f}'
-        self.main_logger.info(msg)
+            msg = f'Step {self.acquisition_step} - After {self.trainer.state.epoch} training epochs: ' \
+                f'Val. loss: {eval_loss:.4f}   ' \
+                f'IoU: {eval_metrics["avg_iou"]:.4f}   ' \
+                f'F1: {eval_metrics["avg_f1"]:.4f}'
+            self.main_logger.info(msg)
 
-        self.main_writer.add_scalar(f'active_learning/avg_val_loss', eval_loss, self.acquisition_step)
-        for key, value in eval_metrics.items():
-            self.main_writer.add_scalar(f'active_learning/{key}', value, self.acquisition_step)
-        self.main_writer.add_scalar(f'active_learning/epochs_trained', self.trainer.state.epoch, self.acquisition_step)
+            self.main_writer.add_scalar(f'active_learning/avg_val_loss', eval_loss, self.acquisition_step)
+            for key, value in eval_metrics.items():
+                self.main_writer.add_scalar(f'active_learning/{key}', value, self.acquisition_step)
+            self.main_writer.add_scalar(f'active_learning/epochs_trained', self.trainer.state.epoch,
+                                        self.acquisition_step)
 
         # Close writer and logger related to model training
         self.train_writer.export_scalars_to_json(os.path.join(self.save_model_dir, 'tensorboardX.json'))
