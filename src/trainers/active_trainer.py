@@ -33,7 +33,6 @@ class ActiveTrainerScan(BaseTrainer):
 
         self.al_config = config.active_learn
         self._create_train_loggers(value=0)
-        self._save_step_dataset_info()
 
         self.data_pool = ALPatientPool(config)
         self.data_loaders = MDSDataLoaders(self.config.data, file_list=self.data_pool.train_pool)
@@ -56,7 +55,7 @@ class ActiveTrainerScan(BaseTrainer):
         self.train_logger, self.train_log_handler = setup_logger(self.save_model_dir, f'Train step {value}')
         self.train_writer = SummaryWriter(log_dir=self.save_model_dir)
 
-    def _save_step_dataset_info(self):
+    def _save_dataset_info(self):
         save_dict = {
             'scans_pool': self.data_pool.unlabelled_scans,
             'files_pool': self.data_pool.unlabelled_files,
@@ -139,6 +138,7 @@ class ActiveTrainerScan(BaseTrainer):
         self.main_logger.info(f'Training - acquisition step 0')
         self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
                               f'{len(self.data_pool.train_pool)} datapoints.')
+        self._save_dataset_info()
         self._train()
 
         for i in range(1, self.al_config.acquisition_steps + 1):
@@ -150,7 +150,7 @@ class ActiveTrainerScan(BaseTrainer):
             self._update_components_on_step(i)
 
             self._acquisition_function()
-            self._save_step_dataset_info()
+            self._save_dataset_info()
 
             self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
                                   f'{len(self.data_pool.train_pool)} datapoints.')
@@ -167,7 +167,9 @@ class ActiveTrainerScan(BaseTrainer):
     def _acquisition_function(self) -> None:
         pass
 
-    def _predict_proba_mc_dropout(self):
+    def _predict_proba(self, m_type='mc_dropout'):
+        assert m_type in ['mc_dropout', 'ensemble']
+
         prediction_dict = {}
 
         for scan_id in self.data_pool.unlabelled_scans:
@@ -181,34 +183,49 @@ class ActiveTrainerScan(BaseTrainer):
                                    num_workers=self.config.data.num_workers,
                                    pin_memory=torch.cuda.is_available())
 
-            mc_prediction = None
+            scan_prediction = None
 
-            self.model.eval()
-            self.model.apply(apply_dropout)
+            if m_type == 'mc_dropout':
+                self.model.eval()
+                self.model.apply(apply_dropout)
+
+                size_pred = self.al_config.mc_passes
+            else:
+                for model in self.ens_models:
+                    model.eval()
+
+                size_pred = len(self.ens_models)
 
             with torch.no_grad():
                 for batch in al_loader:
                     x, _ = batch
                     x = x.to(self.device)
 
-                    batch_prediction = torch.zeros_like(x)
+                    batch_pred = torch.zeros_like(x)
 
-                    for i in range(self.al_config.mc_passes):
-                        out = self.model(x)
-                        batch_prediction += torch.sigmoid(out)
+                    if m_type == 'mc_dropout':
+                        for i in range(self.al_config.mc_passes):
+                            out = self.model(x)
+                            batch_pred += torch.sigmoid(out)
+                    else:
+                        for model in self.ens_models:
+                            out = model(x)
+                            batch_pred += torch.sigmoid(out)
 
-                    batch_prediction = batch_prediction.reshape((batch_prediction.shape[0], -1)).cpu()
+                    batch_pred = batch_pred.reshape((batch_pred.shape[0], -1)).cpu()
 
-                    mc_prediction = batch_prediction if mc_prediction is None else \
-                        torch.cat((mc_prediction, batch_prediction))
+                    scan_prediction = batch_pred if scan_prediction is None else \
+                        torch.cat((scan_prediction, batch_pred))
 
-            mc_prediction = mc_prediction / self.al_config.mc_passes
+            scan_prediction = scan_prediction / size_pred
 
-            prediction_dict[scan_id] = mc_prediction.cpu()
+            prediction_dict[scan_id] = scan_prediction.cpu()
 
         return prediction_dict
 
-    def _predict_proba_mc_dropout_individual(self):
+    def _predict_proba_individual(self, m_type='mc_dropout'):
+        assert m_type in ['mc_dropout', 'ensemble']
+
         prediction_dict = {}
 
         for scan_id in self.data_pool.unlabelled_scans:
@@ -222,104 +239,39 @@ class ActiveTrainerScan(BaseTrainer):
                                    num_workers=self.config.data.num_workers,
                                    pin_memory=torch.cuda.is_available())
 
-            mc_predictions = list()
+            predictions = list()
 
-            self.model.eval()
-            self.model.apply(apply_dropout)
+            if m_type == 'mc_dropout':
+                self.model.eval()
+                self.model.apply(apply_dropout)
+            else:
+                for model in self.ens_models:
+                    model.eval()
 
             with torch.no_grad():
                 for batch in al_loader:
                     x, _ = batch
                     x = x.to(self.device)
 
-                    for i in range(self.al_config.mc_passes):
-                        out = self.model(x)
+                    if m_type == 'mc_dropout':
+                        count_iter = self.al_config.mc_passes
+                    else:
+                        count_iter = len(self.ens_models)
+
+                    for i in range(count_iter):
+                        if m_type == 'mc_dropout':
+                            out = self.model(x)
+                        else:
+                            out = self.ens_models[i](x)
+
                         out_probas = torch.sigmoid(out).reshape((out.shape[0], -1)).cpu()
 
-                        if len(mc_predictions) < i + 1:
-                            mc_predictions.append(out_probas)
+                        if len(predictions) < i + 1:
+                            predictions.append(out_probas)
                         else:
-                            mc_predictions[i] = torch.cat((mc_predictions[i], out_probas))
+                            predictions[i] = torch.cat((predictions[i], out_probas))
 
-            prediction_dict[scan_id] = [pred.cpu() for pred in mc_predictions]
-
-        return prediction_dict
-
-    def _predict_proba_ensemble(self):
-        prediction_dict = {}
-
-        for scan_id in self.data_pool.unlabelled_scans:
-            scan_dataset = ALPatientDataset(self.data_pool.get_files_list_for_scan(scan_id),
-                                            image_path=self.data_pool.image_path,
-                                            in_transform=self.data_pool.input_transform)
-
-            al_loader = DataLoader(scan_dataset,
-                                   batch_size=self.config.data.batch_size_val,
-                                   shuffle=False,
-                                   num_workers=self.config.data.num_workers,
-                                   pin_memory=torch.cuda.is_available())
-
-            ensemble_prediction = None
-
-            for model in self.ens_models:
-                model.eval()
-
-            with torch.no_grad():
-                for batch in al_loader:
-                    x, _ = batch
-                    x = x.to(self.device)
-
-                    batch_prediction = torch.zeros_like(x)
-
-                    for model in self.ens_models:
-                        out = model(x)
-                        batch_prediction += torch.sigmoid(out)
-
-                    batch_prediction = batch_prediction.reshape((out.shape[0], -1)).cpu()
-
-                    ensemble_prediction = batch_prediction if ensemble_prediction is None else\
-                        torch.cat([ensemble_prediction, batch_prediction])
-
-            ensemble_prediction = ensemble_prediction / len(self.ens_models)
-
-            prediction_dict[scan_id] = ensemble_prediction.cpu()
-
-        return prediction_dict
-
-    def _predict_proba_ensemble_individual(self):
-        prediction_dict = {}
-
-        for scan_id in self.data_pool.unlabelled_scans:
-            scan_dataset = ALPatientDataset(self.data_pool.get_files_list_for_scan(scan_id),
-                                            image_path=self.data_pool.image_path,
-                                            in_transform=self.data_pool.input_transform)
-
-            al_loader = DataLoader(scan_dataset,
-                                   batch_size=self.config.data.batch_size_val,
-                                   shuffle=False,
-                                   num_workers=self.config.data.num_workers,
-                                   pin_memory=torch.cuda.is_available())
-
-            ensemble_predictions = list()
-
-            for model in self.ens_models:
-                model.eval()
-
-            with torch.no_grad():
-                for batch in al_loader:
-                    x, _ = batch
-                    x = x.to(self.device)
-
-                    for i, model in enumerate(self.ens_models):
-                        out = model(x)
-                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1)).cpu()
-
-                        if len(ensemble_predictions) < i + 1:
-                            ensemble_predictions.append(out_probas)
-                        else:
-                            ensemble_predictions[i] = torch.cat((ensemble_predictions[i], out_probas))
-
-            prediction_dict[scan_id] = [pred.cpu() for pred in ensemble_predictions]
+            prediction_dict[scan_id] = [pred.cpu() for pred in predictions]
 
         return prediction_dict
 

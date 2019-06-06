@@ -12,20 +12,20 @@ class LeastConfidentScan(ActiveTrainerScan):
     def __init__(self, config: ConfigClass, save_dir: str):
         if config.training.use_ensemble:
             name = 'LC_Ensemble_Trainer'
+            self.m_type = 'ensemble'
         else:
             name = 'LC_MC_Trainer'
+            self.m_type = 'mc_dropout'
         super(LeastConfidentScan, self).__init__(config, save_dir, name)
 
     def _acquisition_function(self):
-        if self.use_ensemble:
-            pred_dict = self._predict_proba_ensemble()
-        else:
-            pred_dict = self._predict_proba_mc_dropout()
+        pred_dict = self._predict_proba(self.m_type)
         # pred_dict is dictionary of scan_id -> prediction as 3d tensor
 
         uncertainties = []
         for proba in pred_dict.values():
             unc = -(proba - 0.5).abs().mean()
+
             uncertainties.append(unc)
 
         data = np.array([np.arange(len(uncertainties))])

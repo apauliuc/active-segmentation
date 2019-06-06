@@ -12,15 +12,14 @@ class MaxEntropyScan(ActiveTrainerScan):
     def __init__(self, config: ConfigClass, save_dir: str):
         if config.training.use_ensemble:
             name = 'MaxEntropy_Ensemble_Trainer'
+            self.m_type = 'ensemble'
         else:
             name = 'MaxEntropy_MC_Trainer'
+            self.m_type = 'mc_dropout'
         super(MaxEntropyScan, self).__init__(config, save_dir, name)
 
     def _acquisition_function(self):
-        if self.use_ensemble:
-            pred_dict = self._predict_proba_ensemble()
-        else:
-            pred_dict = self._predict_proba_mc_dropout()
+        pred_dict = self._predict_proba(self.m_type)
         # pred_dict is dictionary of scan_id -> prediction as 3d tensor
 
         entropy_values = []

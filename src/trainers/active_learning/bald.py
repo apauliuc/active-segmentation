@@ -12,15 +12,14 @@ class BALDScan(ActiveTrainerScan):
     def __init__(self, config: ConfigClass, save_dir: str):
         if config.training.use_ensemble:
             name = 'BALD_Ensemble_Trainer'
+            self.m_type = 'ensemble'
         else:
             name = 'BALD_MC_Trainer'
+            self.m_type = 'mc_dropout'
         super(BALDScan, self).__init__(config, save_dir, name)
 
     def _acquisition_function(self):
-        if self.use_ensemble:
-            pred_dict = self._predict_proba_ensemble_individual()
-        else:
-            pred_dict = self._predict_proba_mc_dropout_individual()
+        pred_dict = self._predict_proba_individual(self.m_type)
         # pred_dict is dictionary of scan_id -> list of predictions as 3d tensors
 
         bald_values = []
