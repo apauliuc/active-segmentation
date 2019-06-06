@@ -8,7 +8,6 @@ import torch
 from ignite import handlers
 from ignite.engine.engine import Engine, Events
 from tensorboardX import SummaryWriter
-from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 
 from helpers.torch_utils import apply_dropout
