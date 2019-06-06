@@ -1,4 +1,6 @@
 import os
+import pickle
+
 import numpy as np
 from scipy.special import xlogy
 import torch
@@ -32,6 +34,7 @@ class ActiveTrainerScan(BaseTrainer):
 
         self.al_config = config.active_learn
         self._create_train_loggers(value=0)
+        self._save_step_dataset_info()
 
         self.data_pool = ALPatientPool(config)
         self.data_loaders = MDSDataLoaders(self.config.data, file_list=self.data_pool.train_pool)
@@ -53,6 +56,17 @@ class ActiveTrainerScan(BaseTrainer):
 
         self.train_logger, self.train_log_handler = setup_logger(self.save_model_dir, f'Train step {value}')
         self.train_writer = SummaryWriter(log_dir=self.save_model_dir)
+
+    def _save_step_dataset_info(self):
+        save_dict = {
+            'scans_pool': self.data_pool.unlabelled_scans,
+            'files_pool': self.data_pool.unlabelled_files,
+            'labelled_scans': self.data_pool.labelled_scans,
+            'train_pool': self.data_pool.train_pool
+        }
+
+        with open(os.path.join(self.save_model_dir, 'dataset.pkl'), 'wb') as f:
+            pickle.dump(save_dict, f)
 
     def _update_components_on_step(self, value):
         self._create_train_loggers(value=value)
@@ -137,6 +151,7 @@ class ActiveTrainerScan(BaseTrainer):
             self._update_components_on_step(i)
 
             self._acquisition_function()
+            self._save_step_dataset_info()
 
             self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
                                   f'{len(self.data_pool.train_pool)} datapoints.')
