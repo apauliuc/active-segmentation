@@ -48,13 +48,26 @@ class _ConvNd(nn.Module):
 
         # initialize log variance of p and q
         self.p_logvar_init = p_logvar_init
-        self.q_logvar_init = math.log(q_logvar_init)
+        self.q_logvar_init = q_logvar_init
+
+        # approximate posterior weights...
+        self.qw_mean = Parameter(torch.Tensor(out_channels, in_channels // groups, *kernel_size))
+        self.qw_logvar = Parameter(torch.Tensor(out_channels, in_channels // groups, *kernel_size))
 
         # ...and output...
         self.conv_qw_mean = Parameter(torch.Tensor(out_channels, in_channels // groups, *kernel_size))
-        self.conv_qw_std = Parameter(torch.Tensor(out_channels, in_channels // groups, *kernel_size))
+        self.conv_qw_si = Parameter(torch.Tensor(out_channels, in_channels // groups, *kernel_size))
 
-        self.register_buffer('eps_weight', torch.Tensor(out_channels, in_channels // groups, *kernel_size))
+        # ...as normal distributions
+        self.qw = Normal(mu=self.qw_mean, logvar=self.qw_logvar)
+        self.conv_qw = Normalout(mu=self.conv_qw_mean, si=self.conv_qw_si)
+
+        # initialise
+        self.log_alpha = Parameter(torch.Tensor(1, 1))
+
+        # prior model
+        # (does not have any trainable parameters so we use fixed normal or fixed mixture normal distributions)
+        self.pw = distribution_selector(mu=0.0, logvar=p_logvar_init, pi=p_pi)
 
         # initialize all parameters
         self.reset_parameters()
@@ -65,9 +78,11 @@ class _ConvNd(nn.Module):
         for k in self.kernel_size:
             n *= k
         stdv = 1. / math.sqrt(n)
-
+        self.qw_mean.data.uniform_(-stdv, stdv)
+        self.qw_logvar.data.uniform_(-stdv, stdv).add_(self.q_logvar_init)
         self.conv_qw_mean.data.uniform_(-stdv, stdv)
-        self.conv_qw_std.data.fill_(self.q_logvar_init)
+        self.conv_qw_si.data.uniform_(-stdv, stdv).add_(self.q_logvar_init)
+        self.log_alpha.data.uniform_(-stdv, stdv)
 
     def extra_repr(self):
         s = ('{in_channels}, {out_channels}, kernel_size={kernel_size}'
@@ -88,6 +103,7 @@ class _ConvNd(nn.Module):
 class BBBConv2d(_ConvNd):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
                  padding=0, dilation=1, groups=1):
+
         kernel_size = _pair(kernel_size)
         stride = _pair(stride)
         padding = _pair(padding)
@@ -97,7 +113,7 @@ class BBBConv2d(_ConvNd):
                                         groups)
 
     def forward(self, x):
-        raise NotImplementedError()
+        return self.convprobforward(x)
 
     def convprobforward(self, x):
         """
@@ -106,16 +122,30 @@ class BBBConv2d(_ConvNd):
         :return: output, KL-divergence
         """
 
-        sigma_weight = torch.exp(self.conv_qw_std)
+        # local reparameterization trick for convolutional layer
+        conv_qw_mean = F.conv2d(input=x, weight=self.qw_mean, stride=self.stride, padding=self.padding,
+                                dilation=self.dilation, groups=self.groups)
+        conv_qw_si = torch.sqrt(
+            1e-8 + F.conv2d(input=x.pow(2), weight=torch.exp(self.log_alpha) * self.qw_mean.pow(2),
+                            stride=self.stride, padding=self.padding, dilation=self.dilation, groups=self.groups))
 
-        weight = self.conv_qw_mean + sigma_weight * self.eps_weight.normal_()
+        if cuda:
+            conv_qw_mean.cuda()
+            conv_qw_si.cuda()
 
-        output = F.conv2d(input=x, weight=weight, stride=self.stride, padding=self.padding,
-                          dilation=self.dilation, groups=self.groups)
+            output = conv_qw_mean + conv_qw_si * (torch.randn(conv_qw_mean.size())).cuda()
 
-        kl = math.log(self.p_logvar_init) - self.conv_qw_std + (sigma_weight ** 2 + self.conv_qw_mean ** 2) / (
-                2 * self.p_logvar_init ** 2) - 0.5
-        kl = kl.sum()
+            output.cuda()
+
+        else:
+            output = conv_qw_mean + conv_qw_si * (torch.randn(conv_qw_mean.size()))
+
+        w_sample = self.conv_qw.sample()
+
+        # KL divergence
+        qw_logpdf = self.conv_qw.logpdf(w_sample)
+
+        kl = torch.sum(qw_logpdf - self.pw.logpdf(w_sample))
 
         return output, kl
 
