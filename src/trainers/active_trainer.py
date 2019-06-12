@@ -32,12 +32,13 @@ class ActiveTrainerScan(BaseTrainer):
         os.makedirs(self.main_data_dir)
 
         self.al_config = config.active_learn
-        self._create_train_loggers(value=0)
 
         self.data_pool = ALPatientPool(config)
         self.data_loaders = MDSDataLoaders(self.config.data, file_list=self.data_pool.train_pool)
         self.main_logger.info(self.data_loaders.msg)
 
+        self._create_train_loggers(value=0)
+        self._save_dataset_info()
         self.data_pool.copy_pool_scans_to_dir(self.data_pool.labelled_scans, self.save_data_dir)
 
         if self.use_ensemble:
@@ -70,9 +71,7 @@ class ActiveTrainerScan(BaseTrainer):
         with open(os.path.join(self.save_model_dir, 'data_pool.pkl'), 'wb') as f:
             pickle.dump(self.data_pool, f)
 
-    def _update_components_on_step(self, value):
-        self._create_train_loggers(value=value)
-
+    def _update_components(self):
         # Recreate components
         if self.use_ensemble:
             self._init_train_components_ensemble(reinitialise=True)
@@ -136,21 +135,22 @@ class ActiveTrainerScan(BaseTrainer):
         self.main_logger.info(f'Active_Training - acquisition step 0')
         self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
                               f'{len(self.data_pool.train_pool)} datapoints')
-        self._save_dataset_info()
         self._train()
 
-        for i in range(1, self.al_config.acquisition_steps + 1):
+        for step in range(1, self.al_config.acquisition_steps + 1):
             if len(self.data_pool.unlabelled_scans) < self.al_config.budget:
                 self.main_logger.info(f'Data pool too small. Stopping training')
                 break
 
-            self.main_logger.info(f'Active_Training - acquisition step {i}')
+            self.main_logger.info(f'Active_Training - acquisition step {step}')
+
+            self._create_train_loggers(value=step)
 
             self._acquisition_function()
 
             self._save_dataset_info()
 
-            self._update_components_on_step(i)
+            self._update_components()
 
             self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
                                   f'{len(self.data_pool.train_pool)} datapoints')
