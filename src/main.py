@@ -3,6 +3,7 @@ import argparse
 import subprocess
 
 import torch
+from datetime import datetime
 
 from data.data_preprocess_mds import mds_separate_scans_to_slices, mds_preprocess_scans
 from helpers.config import get_config_from_path
@@ -63,6 +64,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    print(datetime.now())
     "Main starting point of the application"
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--run_type', type=str, default='train',
