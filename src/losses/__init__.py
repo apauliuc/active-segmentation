@@ -16,9 +16,8 @@ loss2class = {
 }
 
 
-def get_loss_function(loss_cfg, gpu_node):
+def get_loss_function(loss_cfg):
     loss_name = loss_cfg.name
-    loss_cfg.gpu_node = gpu_node
 
     if loss_name is None:
         return nn.BCEWithLogitsLoss()

@@ -20,6 +20,7 @@ def main_active_learning(args, config_path: str):
     config.data.mode = 'train'
     config.data.path = args.ds_path
     config.gpu_node = args.gpu_node
+    config.training.loss_fn.gpu_node = args.gpu_node
     config.al_mode = True
 
     if 'weighted' in config.active_learn.method:

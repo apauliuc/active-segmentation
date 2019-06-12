@@ -72,10 +72,10 @@ def evaluation_metrics_per_batch(true, prediction, num_classes=2):
 # noinspection PyAttributeOutsideInit
 class SegmentationMetrics(Metric):
 
-    def __init__(self, num_classes=2, threshold=0.5, ensemble=False):
+    def __init__(self, num_classes=2, threshold=0.5, eval_ensemble=False):
         self._num_classes = 2 if num_classes == 1 else num_classes
         self._thres = threshold
-        self._ensemble = ensemble
+        self._eval_ensemble = eval_ensemble
         super(SegmentationMetrics, self).__init__()
 
     def reset(self):
@@ -87,7 +87,7 @@ class SegmentationMetrics(Metric):
         else:
             y_pred, y, kwargs = output
 
-        if process and not self._ensemble:
+        if process and not self._eval_ensemble:
             y_pred = torch.sigmoid(y_pred)
 
         if self._num_classes == 2:

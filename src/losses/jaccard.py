@@ -6,9 +6,9 @@ from helpers.torch_utils import longTensor
 
 class JaccardLoss(nn.Module):
 
-    def __init__(self, ensemble=False, gpu_node=0):
-        self.ensemble = ensemble
-        self.device = torch.device(f'cuda:{gpu_node}' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, eval_ensemble=False, device=0):
+        self.eval_ensemble = eval_ensemble
+        self.device = device
         super(JaccardLoss, self).__init__()
 
     # noinspection PyTypeChecker
@@ -24,7 +24,7 @@ class JaccardLoss(nn.Module):
             true_1_hot_s = true_1_hot[:, 1:2, :, :]
             true_1_hot = torch.cat((true_1_hot_s, true_1_hot_f), dim=1)
 
-            if self.ensemble:
+            if self.eval_ensemble:
                 pos_proba = y_pred
             else:
                 pos_proba = torch.sigmoid(y_pred)

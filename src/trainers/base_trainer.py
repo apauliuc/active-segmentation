@@ -63,7 +63,7 @@ class BaseTrainer(abc.ABC):
     def _init_train_components(self, reinitialise=False):
         if not reinitialise:
             self.metrics = {
-                'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn, self.config.gpu_node)),
+                'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn)),
                 'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
                                                        threshold=self.config.binarize_threshold)
             }
@@ -114,7 +114,7 @@ class BaseTrainer(abc.ABC):
         return optimizer
 
     def _init_criterion(self):
-        criterion = get_loss_function(self.train_cfg.loss_fn, self.config.gpu_node).to(device=self.device)
+        criterion = get_loss_function(self.train_cfg.loss_fn).to(device=self.device)
         self.main_logger.info(f'Using loss function {criterion}')
 
         return criterion
@@ -150,10 +150,10 @@ class BaseTrainer(abc.ABC):
     def _init_train_components_ensemble(self, reinitialise=False):
         if not reinitialise:
             self.metrics = {
-                'loss': metrics.Loss(BCEAndJaccardLoss(ensemble=True, gpu_node=self.config.gpu_node)),
+                'loss': metrics.Loss(BCEAndJaccardLoss(eval_ensemble=True, gpu_node=self.config.gpu_node)),
                 'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
                                                        threshold=self.config.binarize_threshold,
-                                                       ensemble=True)
+                                                       eval_ensemble=True)
             }
 
             self.criterion = self._init_criterion()
