@@ -20,6 +20,7 @@ class ALPatientPool:
     _files_pool: list
     _labelled_scans_pool: list
     _labelled_files_pool: list
+    weights: dict
 
     def __init__(self, config: ConfigClass):
         self.config = config
@@ -33,6 +34,11 @@ class ALPatientPool:
 
         self._scans_pool = list(set([x.split('_')[0] for x in self._files_pool]))
         self._create_initial_pool()
+
+        if self.al_config.weighted:
+            assert self.al_config.weights_type in ['nonzero', 'minmax']
+            with open(join(train_path, f'weights_info_{self.al_config.weights_type}.pkl'), 'rb') as f:
+                self.weights = pickle.load(f)
 
         # Transforms
         with open(join(config.data.path, config.data.dataset, 'norm_data.pkl'), 'rb') as f:
@@ -118,4 +124,4 @@ class ALPatientDataset(Dataset):
 
         image = self._input_transform(image)
 
-        return image, index
+        return image, img_name

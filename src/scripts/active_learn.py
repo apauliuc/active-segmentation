@@ -9,6 +9,8 @@ from trainers.active_learning.bald import BALDScan
 from trainers.active_learning.least_confident import LeastConfidentScan
 from trainers.active_learning.max_entropy import MaxEntropyScan
 from trainers.active_learning.random import RandomScan
+from trainers.active_learning.weighted_least_confident import WeightedLeastConfidentScan
+from trainers.active_learning.weighted_max_entropy import WeightedMaxEntropyScan
 
 
 def main_active_learning(args, config_path: str):
@@ -53,7 +55,9 @@ def _get_al_trainer(name: str):
             'max_entropy_mc': MaxEntropyScan,
             'max_entropy_ensemble': MaxEntropyScan,
             'bald_mc': BALDScan,
-            'bald_ensemble': BALDScan
+            'bald_ensemble': BALDScan,
+            'weighted_least_confident_mc': WeightedLeastConfidentScan,
+            'weighted_max_entropy_mc': WeightedMaxEntropyScan
         }[name]
     except KeyError:
         raise Exception(f'Trainer {name} not available')

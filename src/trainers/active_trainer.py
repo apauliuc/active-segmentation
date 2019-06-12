@@ -128,16 +128,16 @@ class ActiveTrainerScan(BaseTrainer):
         self.trainer.run(self.data_loaders.train_loader, max_epochs=self.train_cfg.num_epochs)
 
     def run(self) -> None:
-        self.main_logger.info(f'Active_Trainer_Scan initialised. Starting training on {self.device}.')
+        self.main_logger.info(f'Active_Trainer_Scan initialised. Starting training on {self.device}')
         self.main_logger.info(f'Training - acquisition step 0')
         self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
-                              f'{len(self.data_pool.train_pool)} datapoints.')
+                              f'{len(self.data_pool.train_pool)} datapoints')
         self._save_dataset_info()
         self._train()
 
         for i in range(1, self.al_config.acquisition_steps + 1):
             if len(self.data_pool.unlabelled_scans) < self.al_config.budget:
-                self.main_logger.info(f'Data pool too small. Stopping training.')
+                self.main_logger.info(f'Data pool too small. Stopping training')
                 break
 
             self.main_logger.info(f'Training - acquisition step {i}')
@@ -149,7 +149,7 @@ class ActiveTrainerScan(BaseTrainer):
             self._save_dataset_info()
 
             self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
-                                  f'{len(self.data_pool.train_pool)} datapoints.')
+                                  f'{len(self.data_pool.train_pool)} datapoints')
             self._train()
 
         self._finalize_trainer()
@@ -163,10 +163,11 @@ class ActiveTrainerScan(BaseTrainer):
     def _acquisition_function(self) -> None:
         pass
 
-    def _predict_proba(self, m_type='mc_dropout'):
+    def _predict_proba(self, m_type='mc_dropout', compute_weights=False):
         assert m_type in ['mc_dropout', 'ensemble']
 
         prediction_dict = {}
+        weights_dict = {}
 
         for scan_id in self.data_pool.unlabelled_scans:
             scan_dataset = ALPatientDataset(self.data_pool.get_files_list_for_scan(scan_id),
@@ -180,6 +181,7 @@ class ActiveTrainerScan(BaseTrainer):
                                    pin_memory=torch.cuda.is_available())
 
             scan_prediction = None
+            scan_weights = []
 
             if m_type == 'mc_dropout':
                 self.model.eval()
@@ -194,9 +196,12 @@ class ActiveTrainerScan(BaseTrainer):
 
             with torch.no_grad():
                 for batch in al_loader:
-                    x, _ = batch
-                    x = x.to(self.device)
+                    x, img_names = batch
 
+                    if compute_weights:
+                        scan_weights.extend(self._compute_image_weights(img_names))
+
+                    x = x.to(self.device)
                     batch_pred = torch.zeros_like(x)
 
                     if m_type == 'mc_dropout':
@@ -215,9 +220,10 @@ class ActiveTrainerScan(BaseTrainer):
 
             scan_prediction = scan_prediction / size_pred
 
-            prediction_dict[scan_id] = scan_prediction.cpu()
+            prediction_dict[scan_id] = scan_prediction.cpu().numpy()
+            weights_dict[scan_id] = np.array(scan_weights)
 
-        return prediction_dict
+        return prediction_dict, weights_dict
 
     def _predict_proba_individual(self, m_type='mc_dropout'):
         assert m_type in ['mc_dropout', 'ensemble']
@@ -270,6 +276,9 @@ class ActiveTrainerScan(BaseTrainer):
             prediction_dict[scan_id] = [pred.cpu() for pred in predictions]
 
         return prediction_dict
+
+    def _compute_image_weights(self, names):
+        return [self.data_pool.weights[n] for n in names]
 
     @staticmethod
     def _compute_pixel_entropy(x):
