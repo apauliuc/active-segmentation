@@ -22,6 +22,9 @@ def main_active_learning(args, config_path: str):
     config.gpu_node = args.gpu_node
     config.al_mode = True
 
+    if 'weighted' in config.active_learn.method:
+        config.active_learn.weighted = True
+
     if 'mc' in config.active_learn.method:
         config.prediction.mode = 'mc'
         config.prediction.mc_passes = config.active_learn.mc_passes

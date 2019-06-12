@@ -26,16 +26,17 @@ training:
   loss_fn:
     name: bce_and_jaccard
   early_stop_fn: f1_score
+  early_stop: True
   patience: 31
-  use_ensemble: False
+  use_ensemble: True
   ensemble:
     number_models: 3
 model:
   name: unet
   network_params:
     num_filters: 32
-    pretrained: True
-    dropout: True
+#    pretrained: True
+    dropout: False
     dropout_p: 0.25
 resume:
   resume_from:
@@ -46,3 +47,5 @@ al_mode: False
 prediction:
   mode: single
   mc_passes: 25
+active_learn:
+  weighted: False
