@@ -1,19 +1,21 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from helpers.torch_utils import longTensor
 
 
 class JaccardLoss(nn.Module):
 
-    def __init__(self, ensemble=False):
+    def __init__(self, ensemble=False, gpu_node=0):
         self.ensemble = ensemble
+        self.device = torch.device(f'cuda:{gpu_node}' if torch.cuda.is_available() else 'cpu')
         super(JaccardLoss, self).__init__()
 
     # noinspection PyTypeChecker
     def forward(self, y_pred, y):
         num_classes = y_pred.shape[1]
         eps = 1e-7
-        y = y.type(torch.LongTensor)
+        y = y.type(longTensor)
 
         if num_classes == 1:
             true_1_hot = torch.eye(2)[y.squeeze(1)]
@@ -34,7 +36,7 @@ class JaccardLoss(nn.Module):
             true_1_hot = true_1_hot.permute(0, 3, 1, 2).float()
             probas = F.softmax(y_pred, dim=1)
 
-        true_1_hot = true_1_hot.type(y_pred.type())
+        true_1_hot = true_1_hot.type(y_pred.type()).to(device=self.device)
         dims = (0,) + tuple(range(2, y.ndimension()))
 
         intersection = torch.sum(probas * true_1_hot, dims)

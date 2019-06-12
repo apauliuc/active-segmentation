@@ -63,7 +63,7 @@ class BaseTrainer(abc.ABC):
     def _init_train_components(self, reinitialise=False):
         if not reinitialise:
             self.metrics = {
-                'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn)),
+                'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn, self.config.gpu_node)),
                 'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
                                                        threshold=self.config.binarize_threshold)
             }
@@ -114,7 +114,7 @@ class BaseTrainer(abc.ABC):
         return optimizer
 
     def _init_criterion(self):
-        criterion = get_loss_function(self.train_cfg.loss_fn).to(device=self.device)
+        criterion = get_loss_function(self.train_cfg.loss_fn, self.config.gpu_node).to(device=self.device)
         self.main_logger.info(f'Using loss function {criterion}')
 
         return criterion
@@ -150,7 +150,7 @@ class BaseTrainer(abc.ABC):
     def _init_train_components_ensemble(self, reinitialise=False):
         if not reinitialise:
             self.metrics = {
-                'loss': metrics.Loss(BCEAndJaccardLoss(ensemble=True)),
+                'loss': metrics.Loss(BCEAndJaccardLoss(ensemble=True, gpu_node=self.config.gpu_node)),
                 'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
                                                        threshold=self.config.binarize_threshold,
                                                        ensemble=True)
@@ -260,10 +260,11 @@ class BaseTrainer(abc.ABC):
         self.trainer.add_event_handler(Events.COMPLETED, final_checkpoint_handler, checkpoint_save)
 
     def _init_early_stopping_handler(self) -> None:
-        early_stop_handler = handlers.EarlyStopping(self.train_cfg.patience,
-                                                    score_function=self.eval_func,
-                                                    trainer=self.trainer)
-        self.evaluator.add_event_handler(Events.COMPLETED, early_stop_handler)
+        if self.train_cfg.early_stop:
+            early_stop_handler = handlers.EarlyStopping(self.train_cfg.patience,
+                                                        score_function=self.eval_func,
+                                                        trainer=self.trainer)
+            self.evaluator.add_event_handler(Events.COMPLETED, early_stop_handler)
 
     def _on_epoch_started(self, _engine: Engine) -> None:
         if self.optim_cfg.scheduler == 'step':

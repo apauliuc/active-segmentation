@@ -1,16 +1,18 @@
-from losses import JaccardLoss
+import torch
 import torch.nn as nn
+from losses import JaccardLoss
 
 
 class BCEAndJaccardLoss(nn.Module):
 
-    def __init__(self, weight=None, ensemble=False):
+    def __init__(self, weight=None, ensemble=False, gpu_node=0):
         super(BCEAndJaccardLoss, self).__init__()
-        self.jacc_loss_module = JaccardLoss(ensemble=ensemble)
+        device = torch.device(f'cuda:{gpu_node}' if torch.cuda.is_available() else 'cpu')
+        self.jacc_loss_module = JaccardLoss(ensemble=ensemble, gpu_node=gpu_node).to(device=device)
         if ensemble:
-            self.bce_loss_module = nn.BCELoss()
+            self.bce_loss_module = nn.BCELoss().to(device=device)
         else:
-            self.bce_loss_module = nn.BCEWithLogitsLoss()
+            self.bce_loss_module = nn.BCEWithLogitsLoss().to(device=device)
         self.weight = weight
 
     def forward(self, y_pred, y):

@@ -7,7 +7,6 @@ from data import MDSDataLoaders
 from helpers.config import ConfigClass
 from helpers.utils import binarize_nparray
 from models import get_model
-from helpers.torch_utils import device
 from helpers.metrics import SegmentationMetrics
 from helpers.torch_utils import apply_dropout
 
@@ -25,6 +24,8 @@ def get_files_list(config: ConfigClass, load_directory: str):
 
 
 def load_ensemble_models(config: ConfigClass, load_directory=None, use_best_model=True):
+    device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
+
     files_list, load_directory = get_files_list(config, load_directory)
 
     model_filenames = list()
@@ -45,6 +46,8 @@ def load_ensemble_models(config: ConfigClass, load_directory=None, use_best_mode
 
 
 def load_single_model(config: ConfigClass, load_directory=None, use_best_model=True):
+    device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
+
     files_list, load_directory = get_files_list(config, load_directory)
 
     model_filename = 'final_model_1.pth'
@@ -65,6 +68,8 @@ def load_single_model(config: ConfigClass, load_directory=None, use_best_model=T
 
 
 def predict_one_pass(config: ConfigClass, model, name):
+    device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
+
     # Create dataloader wrapper
     loader_wrapper = MDSDataLoaders(config.data)
     segment_metrics = SegmentationMetrics(num_classes=loader_wrapper.num_classes,
@@ -100,6 +105,8 @@ def predict_one_pass(config: ConfigClass, model, name):
 
 
 def predict_monte_carlo(config: ConfigClass, model, name):
+    device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
+
     # Create dataloader wrapper
     loader_wrapper = MDSDataLoaders(config.data)
     segment_metrics = SegmentationMetrics(num_classes=loader_wrapper.num_classes,
@@ -142,6 +149,8 @@ def predict_monte_carlo(config: ConfigClass, model, name):
 
 
 def predict_ensemble(config: ConfigClass, models_list, name):
+    device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
+
     # Create dataloader wrapper
     loader_wrapper = MDSDataLoaders(config.data)
     segment_metrics = SegmentationMetrics(num_classes=loader_wrapper.num_classes,
