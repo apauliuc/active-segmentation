@@ -61,7 +61,9 @@ def _get_al_trainer(name: str):
             'bald_mc': BALDScan,
             'bald_ensemble': BALDScan,
             'weighted_least_confident_mc': WeightedLeastConfidentScan,
-            'weighted_max_entropy_mc': WeightedMaxEntropyScan
+            'weighted_max_entropy_mc': WeightedMaxEntropyScan,
+            'weighted_least_confident_ensemble': WeightedLeastConfidentScan,
+            'weighted_max_entropy_ensemble': WeightedMaxEntropyScan
         }[name]
     except KeyError:
         raise Exception(f'Trainer {name} not available')

@@ -19,7 +19,7 @@ class WeightedLeastConfidentScan(ActiveTrainerScan):
         super(WeightedLeastConfidentScan, self).__init__(config, save_dir, name)
 
     def _acquisition_function(self):
-        pred_dict, weights = self._predict_proba(self.m_type, compute_weights=True)
+        pred_dict, weights = self._predict_proba(self.m_type, retrieve_weights=True)
         # pred_dict is dictionary of scan_id -> prediction as 2d numpy array
 
         uncertainties = []

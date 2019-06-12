@@ -1,6 +1,6 @@
 import pickle
 import shutil
-
+from collections import defaultdict
 import numpy as np
 from os.path import join
 from PIL import Image
@@ -20,6 +20,7 @@ class ALPatientPool:
     _files_pool: list
     _labelled_scans_pool: list
     _labelled_files_pool: list
+    _dict_scans_to_files: dict
     weights: dict
 
     def __init__(self, config: ConfigClass):
@@ -29,24 +30,39 @@ class ALPatientPool:
         train_path = get_dataset_path(config.data.path, config.data.dataset, 'train')
         self.image_path = join(train_path, 'image')
 
+        # Load list of training files
         with open(join(train_path, 'file_list.pkl'), 'rb') as f:
             self._files_pool = pickle.load(f)
 
-        self._scans_pool = list(set([x.split('_')[0] for x in self._files_pool]))
+        # Create pool of scans and dict {scan->files list}
+        _scans_pool = set()
+        _dict_scans_to_files = defaultdict(list)
+
+        for f in self._files_pool:
+            scan_id = f.split('_')[0]
+
+            _scans_pool.add(scan_id)
+            _dict_scans_to_files[scan_id].append(f)
+
+        self._scans_pool = list(_scans_pool)
+        self._dict_scans_to_files = dict(_dict_scans_to_files)
+
+        # Create initial data pool
         self._create_initial_pool()
 
+        # Load weights if necessary
         if self.al_config.weighted:
             assert self.al_config.weights_type in ['nonzero', 'minmax']
             with open(join(train_path, f'weights_info_{self.al_config.weights_type}.pkl'), 'rb') as f:
                 self.weights = pickle.load(f)
 
-        # Transforms
+        # Input transforms
         with open(join(config.data.path, config.data.dataset, 'norm_data.pkl'), 'rb') as f:
             ds_statistics = pickle.load(f)
 
         self.input_transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize([ds_statistics['mean']], [ds_statistics['std']]),
+            transforms.Normalize([ds_statistics['mean']], [ds_statistics['std']])
         ])
 
     def _remove_from_pool(self, scans_to_remove: list) -> None:
@@ -78,7 +94,10 @@ class ALPatientPool:
 
     def update_train_pool(self, scans_list: list) -> None:
         self._labelled_scans_pool.extend(scans_list)
-        new_files_list = [x for x in self._files_pool if x.split('_')[0] in scans_list]
+        new_files_list = []
+        for scan in scans_list:
+            new_files_list.extend(self._dict_scans_to_files[scan])
+        # new_files_list = [x for x in self._files_pool if x.split('_')[0] in scans_list]
         self._labelled_files_pool.extend(new_files_list)
 
         self._remove_from_pool(scans_list)
@@ -88,8 +107,8 @@ class ALPatientPool:
         for file in files_to_copy:
             shutil.copy(join(self.image_path, file), save_dir)
 
-    def get_files_list_for_scan(self, scan_id):
-        return [x for x in self._files_pool if scan_id in x]
+    def get_files_list_for_scan(self, scan_id) -> list:
+        return self._dict_scans_to_files[scan_id]
 
     @property
     def unlabelled_scans(self):
@@ -106,6 +125,10 @@ class ALPatientPool:
     @property
     def train_pool(self):
         return self._labelled_files_pool
+
+    @property
+    def scans_to_files(self):
+        return self._dict_scans_to_files
 
 
 class ALPatientDataset(Dataset):

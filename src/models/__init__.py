@@ -1,6 +1,5 @@
 from models.unet import UNet
 from models.ternausnet import TernausNet
-from models.unet_v2 import UNetV2
 from models.segnet import SegNet
 from models.fcn8 import FCN8
 from models.fcn16 import FCN16
@@ -27,7 +26,6 @@ def _get_model_instance(name: str):
         return {
             'unet': UNet,
             'ternaus_net': TernausNet,
-            'unet_v2': UNetV2,
             'segnet': SegNet,
             'fcn8': FCN8,
             'fcn16': FCN16,

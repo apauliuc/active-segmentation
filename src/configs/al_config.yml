@@ -1,20 +1,25 @@
-run_name: AL_Ternaus_LC_MC_Again
+run_name: AL_UNet_Testing
 data:
   dataset: AMC
   mode: train
-  batch_size: 4
-  batch_size_val: 8
+  batch_size: 8
+  batch_size_val: 10
 training:
-  num_epochs: 500
+  num_epochs: 1
+  use_ensemble: True
+  ensemble:
+    number_models: 3
 model:
-  name: ternaus_net
-#resume:
-#  resume_from: 'SAVED MODEL'
-#  saved_model: 'ternaus_dropout.pth'
-#  saved_optimizer:
+  name: unet
+  network_params:
+    num_filters: 32
+    dropout: False
+    dropout_p: 0.25
 active_learn:
-  method: least_confident_mc
-  init_pool_size: 100
-  budget: 50
-  acquisition_steps: 15
-  mc_passes: 50
+  method: weighted_max_entropy_ensemble
+  init_pool_size: 2
+  init_scans: ['1239608', '324780001']
+  budget: 1
+  acquisition_steps: 11
+  mc_passes: 5
+  weights_type: minmax

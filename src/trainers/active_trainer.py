@@ -60,11 +60,15 @@ class ActiveTrainerScan(BaseTrainer):
             'scans_pool': self.data_pool.unlabelled_scans,
             'files_pool': self.data_pool.unlabelled_files,
             'labelled_scans': self.data_pool.labelled_scans,
-            'train_pool': self.data_pool.train_pool
+            'train_pool': self.data_pool.train_pool,
+            'dict_scans_to_files': self.data_pool.scans_to_files
         }
 
-        with open(os.path.join(self.save_model_dir, 'dataset.pkl'), 'wb') as f:
+        with open(os.path.join(self.save_model_dir, 'dataset_info.pkl'), 'wb') as f:
             pickle.dump(save_dict, f)
+
+        with open(os.path.join(self.save_model_dir, 'data_pool.pkl'), 'wb') as f:
+            pickle.dump(self.data_pool, f)
 
     def _update_components_on_step(self, value):
         self._create_train_loggers(value=value)
@@ -129,7 +133,7 @@ class ActiveTrainerScan(BaseTrainer):
 
     def run(self) -> None:
         self.main_logger.info(f'Active_Trainer_Scan initialised. Starting training on {self.device}')
-        self.main_logger.info(f'Training - acquisition step 0')
+        self.main_logger.info(f'Active_Training - acquisition step 0')
         self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
                               f'{len(self.data_pool.train_pool)} datapoints')
         self._save_dataset_info()
@@ -140,13 +144,13 @@ class ActiveTrainerScan(BaseTrainer):
                 self.main_logger.info(f'Data pool too small. Stopping training')
                 break
 
-            self.main_logger.info(f'Training - acquisition step {i}')
-
-            self._update_components_on_step(i)
+            self.main_logger.info(f'Active_Training - acquisition step {i}')
 
             self._acquisition_function()
 
             self._save_dataset_info()
+
+            self._update_components_on_step(i)
 
             self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
                                   f'{len(self.data_pool.train_pool)} datapoints')
@@ -163,7 +167,7 @@ class ActiveTrainerScan(BaseTrainer):
     def _acquisition_function(self) -> None:
         pass
 
-    def _predict_proba(self, m_type='mc_dropout', compute_weights=False):
+    def _predict_proba(self, m_type='mc_dropout', retrieve_weights=False):
         assert m_type in ['mc_dropout', 'ensemble']
 
         prediction_dict = {}
@@ -198,7 +202,7 @@ class ActiveTrainerScan(BaseTrainer):
                 for batch in al_loader:
                     x, img_names = batch
 
-                    if compute_weights:
+                    if retrieve_weights:
                         scan_weights.extend(self._compute_image_weights(img_names))
 
                     x = x.to(self.device)

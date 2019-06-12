@@ -93,13 +93,13 @@ class MDSDataLoaders(BaseLoader):
 
         self.train_transform = transforms.Compose([
             ToTensor(),
-            Normalize(ds_statistics['mean'], ds_statistics['std'])
+            Normalize(**ds_statistics)
         ])
 
         self.predict_in_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x.float().div(255)),
-            transforms.Normalize([ds_statistics['mean']], [ds_statistics['std']]),
+            transforms.Normalize([ds_statistics['mean']], [ds_statistics['std']])
         ])
 
         self.predict_out_transform = transforms.Compose([
