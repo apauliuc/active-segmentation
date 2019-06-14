@@ -6,16 +6,21 @@ from models.common import ConvBnRelu
 
 
 class UNetConvBlock(nn.Module):
-    def __init__(self, in_size, out_size, batch_norm=False, dropout=False, dropout_p=0.2):
+    def __init__(self, in_size, out_size, batch_norm=False, dropout=False, dropout_p=0.2,
+                 block_type='encoder'):
         super(UNetConvBlock, self).__init__()
+        layers = []
 
-        self.layers = nn.Sequential(
-            ConvBnRelu(in_size, out_size, batch_norm),
-            ConvBnRelu(out_size, out_size, batch_norm)
-        )
+        if dropout and block_type in ['encoder', 'center']:
+            layers.append(nn.Dropout2d(p=dropout_p))
 
-        if dropout:
-            self.layers.add_module('dropout', nn.Dropout2d(p=dropout_p))
+        layers.append(ConvBnRelu(in_size, out_size, batch_norm))
+        layers.append(ConvBnRelu(out_size, out_size, batch_norm))
+
+        if dropout and block_type in ['decoder', 'center']:
+            layers.append(nn.Dropout2d(p=dropout_p))
+
+        self.layers = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.layers(x)
@@ -54,7 +59,7 @@ class UNet(nn.Module):
         self.dropout = dropout
 
         # Parameters
-        filter_factors = (1, 2, 4, 8, 16)
+        filter_factors = [1, 2, 4, 8, 16]
         filter_sizes = [num_filters * s for s in filter_factors]
         pool_layer = nn.MaxPool2d(2, 2)
 
@@ -64,15 +69,19 @@ class UNet(nn.Module):
         self.down_path.append(UNetConvBlock(self.in_channels,
                                             filter_sizes[0],
                                             batch_norm=batch_norm,
-                                            dropout=dropout,
+                                            dropout=False,
                                             dropout_p=dropout_p))
 
         for prev_idx, num_filters in enumerate(filter_sizes[1:]):
+            current_dropout = False if prev_idx == 0 else dropout
+            t = 'encoder' if num_filters != filter_sizes[-1] else 'center'
+
             self.down_path.append(UNetConvBlock(filter_sizes[prev_idx],
                                                 num_filters,
                                                 batch_norm=batch_norm,
-                                                dropout=dropout,
-                                                dropout_p=dropout_p))
+                                                dropout=current_dropout,
+                                                dropout_p=dropout_p,
+                                                block_type=t))
             self.down_samplers.append(pool_layer)
 
         # Create upsampling layers
@@ -80,11 +89,14 @@ class UNet(nn.Module):
         self.up_samplers = nn.ModuleList()
 
         for idx, num_filters in enumerate(filter_sizes[1:]):
+            current_dropout = False if idx < 2 else dropout
+
             self.up_path.append(UNetConvBlock(num_filters,
                                               filter_sizes[idx],
                                               batch_norm=batch_norm,
-                                              dropout=dropout,
-                                              dropout_p=dropout_p))
+                                              dropout=current_dropout,
+                                              dropout_p=dropout_p,
+                                              block_type='decoder'))
             if learn_upconv:
                 self.up_samplers.append(
                     nn.ConvTranspose2d(num_filters, filter_sizes[idx], kernel_size=4, stride=2, padding=1))
