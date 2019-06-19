@@ -28,6 +28,7 @@ class BaseTrainer(abc.ABC):
     len_models: int
 
     def __init__(self, config: ConfigClass, save_dir: str, log_name=''):
+        log_name = f'{log_name}_{config.gpu_node}'
         self.save_dir = save_dir
         self.main_logger, self.main_log_handler = setup_logger(save_dir, log_name)
         self.main_logger.info(f'Saving to folder {save_dir}')

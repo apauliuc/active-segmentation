@@ -14,7 +14,7 @@ training:
   optimizer:
     name: adam
     lr: 0.001
-    weight_decay: 0.001
+    weight_decay: 0.0005
     amsgrad: False
     scheduler: step
     scheduler_params:
