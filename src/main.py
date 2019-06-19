@@ -43,10 +43,6 @@ def main(args):
         print(f'Using config {args.config}')
         main_train_model(args, os.path.join(args.configs_dir, args.config))
 
-    elif args.run_type == 'train_all_configs':
-        # Run training for multiple config files given file name pattern
-        run_configs_on_type(args, 'train')
-
     elif args.run_type == 'predict':
         # Run prediction on the val dataset using previous run directory
         run_dir = os.path.join(RUNS_DIR, args.run_dir)
@@ -59,8 +55,9 @@ def main(args):
         print(f'Using config {args.config}')
         main_active_learning(args, os.path.join(args.configs_dir, args.config))
 
-    elif args.run_type == 'al_run_all':
-        run_configs_on_type(args, 'active_learning')
+    elif args.run_type == 'train_all_configs' or args.run_type == 'al_run_all':
+        # Run training/active learning for multiple config files given file name pattern
+        run_configs_on_type(args, args.run_type)
 
 
 if __name__ == '__main__':
