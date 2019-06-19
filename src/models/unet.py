@@ -43,6 +43,9 @@ class UpsampleConv(nn.Module):
 class UNet(nn.Module):
     """
     Implementation of the U-Net neural network for segmentation
+
+    Parameters for Deconvolution were chosen to avoid artifacts, following
+    link https://distill.pub/2016/deconv-checkerboard/
     """
 
     def __init__(self,
