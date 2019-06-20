@@ -39,3 +39,16 @@ def get_resume_optimizer_path(run_dir: str, optim_filename: str) -> str:
 def create_directory(path: str):
     if path and not os.path.exists(path):
         os.makedirs(path)
+
+
+def recursive_glob(root_dir='.', suffix=''):
+    """Performs recursive glob with given suffix and rootdir
+        :param root_dir is the root directory
+        :param suffix is the suffix to be searched
+    """
+    return [
+        os.path.join(loop_root, filename)
+        for loop_root, _, filenames in os.walk(root_dir)
+        for filename in filenames
+        if filename.endswith(suffix)
+    ]
