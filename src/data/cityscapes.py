@@ -28,7 +28,7 @@ def get_cityscapes_files(root, split):
                         os.path.join(segment_dir, c, f'{item}{segment_postfix}'))
 
                 items.append(item)
-    return items
+    return items, img_dir
 
 
 class CityScapes(Dataset):
@@ -41,7 +41,7 @@ class CityScapes(Dataset):
         self.ignore_label = 255
 
         if file_list is None:
-            file_list = get_cityscapes_files(root, split)
+            file_list, _ = get_cityscapes_files(root, split)
 
         self.images = file_list
 

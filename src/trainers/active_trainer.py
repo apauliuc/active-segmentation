@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from helpers.torch_utils import apply_dropout
 from trainers.base_trainer import BaseTrainer
 from data import MDSDataLoaders
-from alsegment.scan_pool import ALPatientPool, ALPatientDataset
+from alsegment.mds_patient_pool import ALMDSPatientPool, ALPatientDataset
 from helpers.config import ConfigClass
 from helpers.utils import setup_logger
 
@@ -33,7 +33,7 @@ class ActiveTrainerScan(BaseTrainer):
 
         self.al_config = config.active_learn
 
-        self.data_pool = ALPatientPool(config)
+        self.data_pool = ALMDSPatientPool(config)
         self.data_loaders = MDSDataLoaders(self.config.data, file_list=self.data_pool.train_pool)
         self.main_logger.info(self.data_loaders.msg)
 

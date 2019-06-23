@@ -12,7 +12,7 @@ from helpers.config import ConfigClass
 from helpers.paths import get_dataset_path
 
 
-class ALPatientPool:
+class ALMDSPatientPool:
     """
     Data pool class for patient based active learning
     """
