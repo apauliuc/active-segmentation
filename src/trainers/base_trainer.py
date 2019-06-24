@@ -28,9 +28,9 @@ class BaseTrainer(abc.ABC):
     len_models: int
 
     def __init__(self, config: ConfigClass, save_dir: str, log_name=''):
-        log_name = f'{log_name}_{config.gpu_node}'
+        self.log_name = f'{log_name}_{config.gpu_node}'
         self.save_dir = save_dir
-        self.main_logger, self.main_log_handler = setup_logger(save_dir, log_name)
+        self.main_logger, self.main_log_handler = setup_logger(save_dir, self.log_name)
         self.main_logger.info(f'Saving to folder {save_dir}')
         self.main_writer = SummaryWriter(save_dir)
 
@@ -59,29 +59,6 @@ class BaseTrainer(abc.ABC):
         self.use_ensemble = self.train_cfg.use_ensemble
         if self.train_cfg.use_ensemble:
             self.len_models = self.train_cfg.ensemble.number_models
-
-    # Single model
-    def _init_train_components(self, reinitialise=False):
-        if not reinitialise:
-            self.metrics = {
-                'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn)),
-                'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
-                                                       threshold=self.config.binarize_threshold)
-            }
-
-            self.criterion = self._init_criterion()
-
-            self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
-            self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
-
-        self.model = self._init_model(not reinitialise)
-        self.optimizer = self._init_optimizer(not reinitialise)
-
-        self.lr_scheduler = self._init_lr_scheduler(self.optimizer)
-
-        self.trainer, self.evaluator = self._init_engines()
-
-        self._init_handlers()
 
     def _init_model(self, init=True):
         model = get_model(self.model_cfg).to(device=self.device)
@@ -140,12 +117,41 @@ class BaseTrainer(abc.ABC):
             trainer = self._init_trainer_engine_ensemble()
             evaluator = self._init_evaluator_engine_ensemble()
         else:
-            trainer = create_supervised_trainer(self.model, self.optimizer, self.criterion, self.device, True)
-            evaluator = create_supervised_evaluator(self.model, self.metrics, self.device, True)
+            trainer = self._init_trainer_engine()
+            evaluator = self._init_evaluator_engine()
 
         metrics.RunningAverage(output_transform=lambda x: x).attach(trainer, 'train_loss')
 
         return trainer, evaluator
+
+    # Single model
+    def _init_train_components(self, reinitialise=False):
+        if not reinitialise:
+            self.metrics = {
+                'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn)),
+                'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
+                                                       threshold=self.config.binarize_threshold)
+            }
+
+            self.criterion = self._init_criterion()
+
+            self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
+            self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
+
+        self.model = self._init_model(not reinitialise)
+        self.optimizer = self._init_optimizer(not reinitialise)
+
+        self.lr_scheduler = self._init_lr_scheduler(self.optimizer)
+
+        self.trainer, self.evaluator = self._init_engines()
+
+        self._init_handlers()
+
+    def _init_trainer_engine(self) -> Engine:
+        return create_supervised_trainer(self.model, self.optimizer, self.criterion, self.device, True)
+
+    def _init_evaluator_engine(self) -> Engine:
+        return create_supervised_evaluator(self.model, self.metrics, self.device, True)
 
     # Ensemble Method
     def _init_train_components_ensemble(self, reinitialise=False):
@@ -338,9 +344,18 @@ class BaseTrainer(abc.ABC):
     def f1_score(_engine: Engine) -> float:
         return round(_engine.state.metrics['segment_metrics']['avg_f1'], 6)
 
-    @abc.abstractmethod
     def _init_handlers(self) -> None:
-        pass
+        self._init_epoch_timer()
+        self._init_checkpoint_handler()
+        self._init_early_stopping_handler()
+
+        self.trainer.add_event_handler(Events.EPOCH_STARTED, self._on_epoch_started)
+        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, self._on_epoch_completed)
+        self.trainer.add_event_handler(Events.COMPLETED, self._on_events_completed)
+
+        self.trainer.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
+        self.evaluator.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
+        self.trainer.add_event_handler(Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
 
     @abc.abstractmethod
     def run(self) -> None:

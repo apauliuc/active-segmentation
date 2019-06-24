@@ -131,7 +131,7 @@ class ActiveTrainerScan(BaseTrainer):
         self.trainer.run(self.data_loaders.train_loader, max_epochs=self.train_cfg.num_epochs)
 
     def run(self) -> None:
-        self.main_logger.info(f'Active_Trainer_Scan initialised. Starting training on {self.device}')
+        self.main_logger.info(f'{self.log_name} initialised. Starting training on {self.device}')
         self.main_logger.info(f'Active_Training - acquisition step 0')
         self.main_logger.info(f'Using {len(self.data_pool.labelled_scans)} scans, '
                               f'{len(self.data_pool.train_pool)} datapoints')

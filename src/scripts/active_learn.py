@@ -5,12 +5,12 @@ import yaml
 from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from scripts.predict import main_predict
-from trainers.active_learning.bald import BALDScan
-from trainers.active_learning.least_confident import LeastConfidentScan
-from trainers.active_learning.max_entropy import MaxEntropyScan
-from trainers.active_learning.random import RandomScan
-from trainers.active_learning.weighted_least_confident import WeightedLeastConfidentScan
-from trainers.active_learning.weighted_max_entropy import WeightedMaxEntropyScan
+from trainers.active_learn_scan.bald import BALDScan
+from trainers.active_learn_scan.least_confident import LeastConfidentScan
+from trainers.active_learn_scan.max_entropy import MaxEntropyScan
+from trainers.active_learn_scan.random import RandomScan
+from trainers.active_learn_scan.weighted_least_confident import WeightedLeastConfidentScan
+from trainers.active_learn_scan.weighted_max_entropy import WeightedMaxEntropyScan
 
 
 def main_active_learning(args, config_path: str):

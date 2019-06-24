@@ -1,7 +1,7 @@
 import numpy as np
 
 from helpers.config import ConfigClass
-from trainers.active_trainer import ActiveTrainerScan
+from trainers.active_trainer_scan import ActiveTrainerScan
 
 
 class RandomScan(ActiveTrainerScan):

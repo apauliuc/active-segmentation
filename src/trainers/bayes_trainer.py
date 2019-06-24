@@ -1,7 +1,7 @@
 import math
 import torch
-from ignite import handlers, metrics
-from ignite.engine.engine import Engine, Events
+from ignite import metrics
+from ignite.engine.engine import Engine
 
 from bayesian.layers import GaussianVariationalInference
 from data import get_dataloaders
@@ -107,19 +107,6 @@ class BayesianTrainer(BaseTrainer):
 
         return engine
 
-    def _init_handlers(self) -> None:
-        self._init_epoch_timer()
-        self._init_checkpoint_handler()
-        self._init_early_stopping_handler()
-
-        self.trainer.add_event_handler(Events.EPOCH_STARTED, self._on_epoch_started)
-        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, self._on_epoch_completed)
-        self.trainer.add_event_handler(Events.COMPLETED, self._on_events_completed)
-
-        self.trainer.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
-        self.evaluator.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
-        self.trainer.add_event_handler(Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
-
     def run(self) -> None:
-        self.main_logger.info(f'BBB_Trainer initialised. Starting training on {self.device}.')
+        self.main_logger.info(f'{self.log_name} initialised. Starting training on {self.device}.')
         self.trainer.run(self.data_loaders.train_loader, max_epochs=self.train_cfg.num_epochs)
