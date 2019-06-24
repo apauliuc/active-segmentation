@@ -9,8 +9,8 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
 from data.base_loader import BaseLoader
-from data.data_transforms import ToTensor
-from data.data_transforms import Normalize
+from data.medical_scans_transforms import ToTensor
+from data.medical_scans_transforms import Normalize
 from helpers.config import ConfigClass
 from helpers.paths import get_dataset_path
 
@@ -85,6 +85,7 @@ class MDSDataLoaders(BaseLoader):
         self.shuffle = shuffle
         self.input_channels = 1
         self.num_classes = 1
+        self.image_size = (512, 512)
 
         data_root = os.path.join(config.path, config.dataset)
 

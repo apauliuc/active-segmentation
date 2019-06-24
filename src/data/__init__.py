@@ -1,5 +1,5 @@
 from data.cityscapes import CityScapesDataLoaders
-from data.medical_dataset import MDSDataLoaders
+from data.medical_scans import MDSDataLoaders
 from data.voc import VOCDataLoader
 
 

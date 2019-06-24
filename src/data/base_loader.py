@@ -12,3 +12,4 @@ class BaseLoader:
     num_classes: int
     predict_path: str
     dir_list: list
+    image_size: tuple

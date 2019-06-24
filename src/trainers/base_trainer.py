@@ -137,6 +137,7 @@ class BaseTrainer(abc.ABC):
 
             self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
             self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
+            self.model_cfg.network_params.image_size = self.data_loaders.image_size
 
         self.model = self._init_model(not reinitialise)
         self.optimizer = self._init_optimizer(not reinitialise)
@@ -167,6 +168,7 @@ class BaseTrainer(abc.ABC):
 
             self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
             self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
+            self.model_cfg.network_params.image_size = self.data_loaders.image_size
 
         self.ens_models = list()
         self.ens_optimizers = list()

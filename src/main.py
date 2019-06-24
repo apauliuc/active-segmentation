@@ -5,7 +5,7 @@ import subprocess
 import torch
 from datetime import datetime
 
-from data.data_preprocess_mds import mds_separate_scans_to_slices, mds_preprocess_scans
+from data.medical_scans_preprocess import mds_separate_scans_to_slices, mds_preprocess_scans
 from helpers.config import get_config_from_path
 from scripts.active_learn import main_active_learning
 from scripts.predict import main_predict

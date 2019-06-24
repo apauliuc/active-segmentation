@@ -111,16 +111,18 @@ class CityScapes(Dataset):
 class CityScapesDataLoaders(BaseLoader):
 
     def __init__(self, config: ConfigClass, file_list=None, shuffle=True):
+
         self.config = config
         self.shuffle = shuffle
         self.input_channels = 3
         self.num_classes = 19
+        self.image_size = (1024, 512)
 
         # self.data_root = os.path.join(config.path, config.dataset)
         self.data_root = '/Users/andrei/Programming/CityscapesDataset/'
 
-        self.train_dataset = CityScapes(self.data_root, 'train', file_list=file_list)
-        self.val_dataset = CityScapes(self.data_root, 'val')
+        self.train_dataset = CityScapes(self.data_root, 'train', file_list=file_list, input_size=self.image_size)
+        self.val_dataset = CityScapes(self.data_root, 'val', input_size=self.image_size)
 
         self.train_loader = DataLoader(self.train_dataset, batch_size=config.batch_size, shuffle=shuffle,
                                        num_workers=config.num_workers,
