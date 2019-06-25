@@ -24,11 +24,11 @@ class ProbabilisticUNet(UNetBase):
     def forward(self, x):
         unet_encoding, previous_x = self.unet_encoder(x)
 
-        unet_encoding = self.unet_decoder(unet_encoding, previous_x)
+        unet_decoding = self.unet_decoder(unet_encoding, previous_x)
 
         # TODO: do some more things here
 
-        unet_out = self.unet_segmentation_map(unet_encoding)
+        unet_out = self.output_conv(unet_decoding)
 
         return unet_out
 

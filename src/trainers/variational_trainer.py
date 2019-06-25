@@ -1,5 +1,5 @@
+import torch
 from ignite.engine.engine import Engine
-from ignite.engine import create_supervised_trainer, create_supervised_evaluator
 
 from data import get_dataloaders
 from helpers.config import ConfigClass
@@ -17,10 +17,46 @@ class VariationalTrainer(BaseTrainer):
         self._init_train_components()
 
     def _init_trainer_engine(self) -> Engine:
-        return create_supervised_trainer(self.model, self.optimizer, self.criterion, self.device, True)
+        self.model.to(self.device)
+
+        # noinspection PyUnusedLocal
+        def _update(_engine, batch):
+            self.model.train()
+            self.optimizer.zero_grad()
+
+            x, y = batch
+            x = x.to(device=self.device, non_blocking=True)
+            y = y.to(device=self.device, non_blocking=True)
+
+            y_pred = self.model(x)
+            loss = self.criterion(y_pred, y)
+            loss.backward()
+
+            self.optimizer.step()
+            return loss.item()
+
+        return Engine(_update)
 
     def _init_evaluator_engine(self) -> Engine:
-        return create_supervised_evaluator(self.model, self.metrics, self.device, True)
+        self.model.to(self.device)
+
+        # noinspection PyUnusedLocal
+        def _inference(_engine, batch):
+            self.model.eval()
+            with torch.no_grad():
+                x, y = batch
+                x = x.to(device=self.device, non_blocking=True)
+                y = y.to(device=self.device, non_blocking=True)
+
+                y_pred = self.model(x)
+                return y_pred, y
+
+        engine = Engine(_inference)
+
+        for name, metric in self.metrics.items():
+            metric.attach(engine, name)
+
+        return engine
 
     def run(self) -> None:
         self.main_logger.info(f'{self.log_name} initialised. Starting training on {self.device}.')

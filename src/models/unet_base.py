@@ -64,6 +64,7 @@ class UNetBase(nn.Module):
         # Parameters
         filter_factors = [1, 2, 4, 8, 16]
         filter_sizes = [num_filters * s for s in filter_factors]
+        self.filter_sizes = filter_sizes
         pool_layer = nn.MaxPool2d(2, 2)
 
         # Create downsampling layers
@@ -114,7 +115,7 @@ class UNetBase(nn.Module):
                     )
 
         # Final conv layer 1x1
-        self.output_conv = nn.Conv2d(filter_sizes[0], self.num_classes, kernel_size=1)
+        self.output_conv = nn.Conv2d(self.filter_sizes[0], self.num_classes, kernel_size=1)
 
     def unet_encoder(self, x):
         previous_x = []
@@ -135,9 +136,6 @@ class UNetBase(nn.Module):
             x_out = dec_block(torch.cat([x_skip, x_out], dim=1))
 
         return x_out
-
-    def unet_segmentation_map(self, x):
-        return self.output_conv(x)
 
     def forward(self, x):
         raise NotImplementedError
