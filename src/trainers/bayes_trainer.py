@@ -106,7 +106,3 @@ class BayesianTrainer(BaseTrainer):
             metric.attach(engine, name)
 
         return engine
-
-    def run(self) -> None:
-        self.main_logger.info(f'{self.log_name} initialised. Starting training on {self.device}.')
-        self.trainer.run(self.data_loaders.train_loader, max_epochs=self.train_cfg.num_epochs)

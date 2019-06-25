@@ -359,6 +359,6 @@ class BaseTrainer(abc.ABC):
         self.evaluator.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
         self.trainer.add_event_handler(Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
 
-    @abc.abstractmethod
     def run(self) -> None:
-        pass
+        self.main_logger.info(f'{self.log_name} initialised. Starting training on {self.device}.')
+        self.trainer.run(self.data_loaders.train_loader, max_epochs=self.train_cfg.num_epochs)
