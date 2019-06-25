@@ -1,147 +1,46 @@
 import random
-import torch
 
 import numpy as np
-from PIL.Image import Image, FLIP_LEFT_RIGHT
-from PIL.Image import BILINEAR
-from torchvision.transforms import transforms
+from PIL.Image import FLIP_LEFT_RIGHT, BILINEAR
 
 
-class Rotation(object):
+class Compose(object):
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, image, segmentation):
+        assert image.size == segmentation.size
+
+        for t in self.transforms:
+            image, segmentation = t(image, segmentation)
+        return image, segmentation
+
+    def __repr__(self):
+        format_string = self.__class__.__name__ + '('
+        for t in self.transforms:
+            format_string += '\n'
+            format_string += '    {0}'.format(t)
+        format_string += '\n)'
+        return format_string
+
+
+class RandomHorizontalFlip(object):
+    def __call__(self, image, segmentation):
+        if random.random() < 0.5:
+            return image.transpose(FLIP_LEFT_RIGHT), segmentation.transpose(FLIP_LEFT_RIGHT)
+        return image, segmentation
+
+
+class Rotate(object):
     """
     Rotates an image to random angle
     """
 
-    def __init__(self) -> None:
-        self._angles = np.arange(0, 5, 1)
+    def __init__(self):
+        self._angles = np.arange(-15, 15, 1)
 
-    def __call__(self, sample: tuple) -> tuple:
-        return self.rotate(sample[0], sample[1])
-
-    def rotate(self, image: Image, segmentation: Image) -> tuple:
-        """
-
-        :param image: Image to be rotated at random angle
-        :param segmentation: Segmentation rotated at random angle
-        :return: Rotated PIL image and segmentation.
-        """
-        assert isinstance(image, Image) and isinstance(segmentation, Image)
+    def __call__(self, image, segmentation):
         angle = random.choice(self._angles)
+        print(angle)
 
         return image.rotate(angle, resample=BILINEAR), segmentation.rotate(angle, resample=BILINEAR)
-
-
-class ToPILImage(object):
-    """
-    Converts npy array to PIL Image
-    """
-
-    def __init__(self) -> None:
-        self._to_pil = transforms.ToPILImage()
-
-    def __call__(self, sample: tuple) -> tuple:
-        return self.to_pil_image(sample[0], sample[1])
-
-    def to_pil_image(self, image, segmentation) -> tuple:
-        """
-
-        :param image: Image to be converted to PIL Image.
-        :param segmentation: Segmentation to be converted to PIL Image.
-        :return: Converted PIL image and segmentation.
-        """
-        if len(image.shape) == 2:
-            image = np.expand_dims(image, axis=2)
-        if len(segmentation.shape) == 2:
-            segmentation = np.expand_dims(segmentation, axis=2)
-
-        return self._to_pil(image), self._to_pil(segmentation)
-
-
-class ToTensor(object):
-    """
-    Convert npy array to tensor
-    """
-
-    def __init__(self) -> None:
-        self.to_tensor = transforms.ToTensor()
-
-    def __call__(self, sample: tuple) -> tuple:
-        return self.toTensor(sample[0], sample[1])
-
-    def toTensor(self, image, segmentation) -> tuple:
-        """
-
-        :param image: Image to be converted to tensor.
-        :param segmentation: Segmentation to be converted to tensor.
-        :return: Image and segmentation as tensor object
-        """
-        image = self.to_tensor(image).type(torch.FloatTensor)
-        segmentation = self.to_tensor(segmentation).type(torch.FloatTensor)
-        # segmentation = self.to_tensor(segmentation).type(torch.FloatTensor).squeeze(0)
-        return image, segmentation
-
-
-class Normalize(object):
-    """"
-    Normalises image with dataset mean and standard deviation.
-    """
-
-    def __init__(self, mean=6.838, std=15.604) -> None:
-        self._normalize = transforms.Normalize([mean], [std])
-
-    def __call__(self, sample: tuple) -> tuple:
-        return self.normalize(sample[0], sample[1])
-
-    def normalize(self, image: torch.FloatTensor, segmentation: torch.FloatTensor):
-        if segmentation.max() == 255:
-            segmentation = segmentation / 255
-
-        return self._normalize(image), segmentation
-
-
-class Flip(object):
-    """
-    Randomly flip an image and its segmentation horizontally
-    """
-
-    def __call__(self, sample: tuple) -> tuple:
-        return self.flip(sample[0], sample[1])
-
-    def flip(self, image: Image, segmentation: Image) -> tuple:
-        """
-
-        :param image: Image to be randomly flipped.
-        :param segmentation: Segmentation to be randomly flipped.
-        :return: Randomly flipped image and segmentation
-        """
-        assert isinstance(image, Image) and isinstance(segmentation, Image)
-
-        p = random.random()
-
-        if p < 0.5:
-            return image, segmentation
-        else:
-            return image.transpose(FLIP_LEFT_RIGHT), segmentation.transpose(FLIP_LEFT_RIGHT)
-
-
-class FlipNumpy(object):
-    """
-    Randomly flip image/segmentation as Numpy objects
-    """
-
-    def __call__(self, sample: tuple) -> tuple:
-        return self.flip(sample[0], sample[1])
-
-    def flip(self, image: np.array, segmentation: np.array) -> tuple:
-        """
-
-        :param image: image as NPY array to flip
-        :param segmentation: segmentation as NPY array to flip
-        :return: Randomly flipped image and segmentation
-        """
-        p = random.random()
-
-        if p < 0.5:
-            return image, segmentation
-        else:
-            return np.fliplr(image), np.fliplr(segmentation)

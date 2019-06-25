@@ -9,21 +9,18 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
 from data.base_loader import BaseLoader
-from data.medical_scans_transforms import ToTensor
-from data.medical_scans_transforms import Normalize
 from helpers.config import ConfigClass
 from helpers.paths import get_dataset_path
+import data.medical_scans_transforms as custom_transforms
+import torchvision.transforms as standard_transforms
 
 
 class MDSMain(Dataset):
     """Medical Scans Dataset"""
 
-    def __init__(self, data_dir, file_list=None, transform=lambda x: x):
-        """
-        :param data_dir: path to folder containing images
-        :param file_list: list of train files to use (optional, used for active learning)
-        :param transform: optional transform to apply on samples
-        """
+    def __init__(self, data_dir, split, file_list=None, dataset_stats=None):
+        self.split = split
+
         if file_list is None:
             with open(join(data_dir, 'file_list.pkl'), 'rb') as f:
                 file_list = pickle.load(f)
@@ -33,7 +30,7 @@ class MDSMain(Dataset):
         self.image_dir = os.path.join(data_dir, 'image')
         self.segment_dir = os.path.join(data_dir, 'segment')
 
-        self.transform = transform
+        self.joint_transform, self.input_transform, self.target_transform = self._get_transforms(dataset_stats)
 
     def __len__(self) -> int:
         return len(self.file_list)
@@ -44,26 +41,57 @@ class MDSMain(Dataset):
         image = Image.open(join(self.image_dir, img_name))
         segmentation = Image.open(join(self.segment_dir, img_name))
 
-        image, segmentation = self.transform((image, segmentation))
+        if self.joint_transform is not None:
+            image, segmentation = self.joint_transform(image, segmentation)
+
+        if self.input_transform is not None:
+            image = self.input_transform(image)
+
+        if self.target_transform is not None:
+            segmentation = self.target_transform(segmentation)
 
         return image, segmentation
+
+    def _get_transforms(self, mean_std):
+        if self.split == 'train':
+            joint = custom_transforms.Compose([
+                custom_transforms.RandomHorizontalFlip(),
+                custom_transforms.Rotate()
+            ])
+        elif self.split == 'val':
+            joint = None
+        else:
+            raise RuntimeError('Invalid dataset mode')
+
+        input_transform = standard_transforms.Compose([
+            standard_transforms.ToTensor(),
+            standard_transforms.Normalize(**mean_std)
+        ])
+
+        target_transform = standard_transforms.ToTensor()
+
+        return joint, input_transform, target_transform
 
 
 class MDSPrediction(Dataset):
     """Prediction Medical Scans Dataset"""
 
-    def __init__(self, predict_path, dir_name, in_transform=lambda x: x, out_transform=lambda x: x):
+    def __init__(self, predict_path, dir_name, dataset_stats=None):
         dir_path = os.path.join(predict_path, dir_name)
         in_name = os.path.join(dir_path, f'{dir_name}_scan.npy')
         out_name = os.path.join(dir_path, f'{dir_name}_segmentation.npy')
 
+        input_transforms, output_transforms = self._get_transforms(dataset_stats)
+
         self.scan = np.load(in_name)
-        self.scan = in_transform(np.transpose(self.scan, (1, 2, 0))).type(torch.FloatTensor)
+        self.scan = np.transpose(self.scan, (1, 2, 0))
+        self.scan = input_transforms(self.scan).type(torch.FloatTensor)
         self.scan = self.scan.unsqueeze(1)
 
-        self.segment = np.load(out_name)
-        self.segment = out_transform(np.transpose(self.segment, (1, 2, 0))).type(torch.FloatTensor)
-        self.segment = self.segment.unsqueeze(1)
+        self.segmentation = np.load(out_name)
+        self.segmentation = np.transpose(self.segmentation, (1, 2, 0))
+        self.segmentation = output_transforms(self.segmentation).type(torch.FloatTensor)
+        self.segmentation = self.segmentation.unsqueeze(1)
 
         self.shape = self.scan.shape
 
@@ -72,8 +100,23 @@ class MDSPrediction(Dataset):
 
     def __getitem__(self, item: int):
         image = self.scan[item, :, :]
-        segment = self.segment[item, :, :]
+        segment = self.segmentation[item, :, :]
         return image, segment
+
+    @staticmethod
+    def _get_transforms(mean_std):
+        input_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.float().div(255)),
+            transforms.Normalize(**mean_std)
+        ])
+
+        output_transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.float().div(255))
+        ])
+
+        return input_transform, output_transforms
 
 
 class MDSDataLoaders(BaseLoader):
@@ -90,30 +133,15 @@ class MDSDataLoaders(BaseLoader):
         data_root = os.path.join(config.path, config.dataset)
 
         with open(os.path.join(data_root, 'norm_data.pkl'), 'rb') as f:
-            ds_statistics = pickle.load(f)
-
-        self.train_transform = transforms.Compose([
-            ToTensor(),
-            Normalize(**ds_statistics)
-        ])
-
-        self.predict_in_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Lambda(lambda x: x.float().div(255)),
-            transforms.Normalize([ds_statistics['mean']], [ds_statistics['std']])
-        ])
-
-        self.predict_out_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Lambda(lambda x: x.float().div(255))
-        ])
+            self.ds_statistics = pickle.load(f)
 
         if config.mode == 'train':
             self.train_path = get_dataset_path(config.path, config.dataset, 'train')
             val_path = get_dataset_path(config.path, config.dataset, 'val')
 
-            self.train_dataset = MDSMain(self.train_path, file_list=file_list, transform=self.train_transform)
-            self.val_dataset = MDSMain(val_path, transform=self.train_transform)
+            self.train_dataset = MDSMain(self.train_path, split='train', file_list=file_list,
+                                         dataset_stats=self.ds_statistics)
+            self.val_dataset = MDSMain(val_path, split='val', dataset_stats=self.ds_statistics)
 
             self.train_loader = DataLoader(self.train_dataset, batch_size=config.batch_size, shuffle=shuffle,
                                            num_workers=config.num_workers,
@@ -144,8 +172,7 @@ class MDSDataLoaders(BaseLoader):
 
     def get_predict_loader(self, dir_name) -> DataLoader:
         predict_dataset = MDSPrediction(self.predict_path, dir_name,
-                                        in_transform=self.predict_in_transform,
-                                        out_transform=self.predict_out_transform)
+                                        self.ds_statistics)
 
         return DataLoader(predict_dataset,
                           batch_size=self.config.batch_size_val,
@@ -154,7 +181,8 @@ class MDSDataLoaders(BaseLoader):
                           pin_memory=torch.cuda.is_available())
 
     def update_train_loader(self, new_file_list: list) -> None:
-        new_train_dataset = MDSMain(self.train_path, file_list=new_file_list, transform=self.train_transform)
+        new_train_dataset = MDSMain(self.train_path, split='train', file_list=new_file_list,
+                                    dataset_stats=self.ds_statistics)
 
         self.train_loader = DataLoader(new_train_dataset,
                                        batch_size=self.config.batch_size,

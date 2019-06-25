@@ -137,8 +137,8 @@ def mds_separate_scans_to_slices(root_dir, save_path, scan_name, dummy_dataset=F
 
     dataset_scan = np.stack(scans_list)
     norm = {
-        'mean': (dataset_scan.mean() / 255.),
-        'std': (dataset_scan.std() / 255.)
+        'mean': [(dataset_scan.mean() / 255.)],
+        'std': [(dataset_scan.std() / 255.)]
     }
 
     with open(os.path.join(save_path, 'norm_data.pkl'), 'wb') as f:
