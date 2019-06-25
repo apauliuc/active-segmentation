@@ -68,51 +68,45 @@ class UNetBase(nn.Module):
         pool_layer = nn.MaxPool2d(2, 2)
 
         # Create downsampling layers
-        self.down_path = nn.ModuleList()
-        self.down_path.append(UNetConvBlock(self.in_channels,
-                                            filter_sizes[0],
-                                            batch_norm=batch_norm,
-                                            dropout=False,
-                                            dropout_p=dropout_p))
-        self.down_samplers = [None]
+        self.unet_enc_blocks = nn.ModuleList()
+        self.unet_enc_blocks.append(UNetConvBlock(self.in_channels,
+                                                  filter_sizes[0],
+                                                  batch_norm=batch_norm,
+                                                  dropout=False,
+                                                  dropout_p=dropout_p))
+        self.unet_enc_down = [None]
 
         for prev_idx, num_filters in enumerate(filter_sizes[1:]):
             current_dropout = False if prev_idx == 0 else dropout
             t = 'encoder' if num_filters != filter_sizes[-1] else 'center'
 
-            self.down_path.append(UNetConvBlock(filter_sizes[prev_idx],
-                                                num_filters,
-                                                batch_norm=batch_norm,
-                                                dropout=current_dropout,
-                                                dropout_p=dropout_p,
-                                                block_type=t))
-            self.down_samplers.append(pool_layer)
+            self.unet_enc_blocks.append(UNetConvBlock(filter_sizes[prev_idx],
+                                                      num_filters,
+                                                      batch_norm=batch_norm,
+                                                      dropout=current_dropout,
+                                                      dropout_p=dropout_p,
+                                                      block_type=t))
+            self.unet_enc_down.append(pool_layer)
 
         # Create upsampling layers
-        self.up_path = nn.ModuleList()
-        self.up_samplers = nn.ModuleList()
+        self.unet_dec_blocks = nn.ModuleList()
+        self.unet_dec_up = nn.ModuleList()
 
         for idx, num_filters in enumerate(filter_sizes[1:]):
             current_dropout = False if idx < 2 else dropout
 
-            self.up_path.append(UNetConvBlock(num_filters,
-                                              filter_sizes[idx],
-                                              batch_norm=batch_norm,
-                                              dropout=current_dropout,
-                                              dropout_p=dropout_p,
-                                              block_type='decoder'))
+            self.unet_dec_blocks.append(UNetConvBlock(num_filters,
+                                                      filter_sizes[idx],
+                                                      batch_norm=batch_norm,
+                                                      dropout=current_dropout,
+                                                      dropout_p=dropout_p,
+                                                      block_type='decoder'))
             if learn_upconv:
-                self.up_samplers.append(
+                self.unet_dec_up.append(
                     nn.ConvTranspose2d(num_filters, filter_sizes[idx], kernel_size=4, stride=2, padding=1))
             else:
-                self.up_samplers.append(
+                self.unet_dec_up.append(
                     UpsampleConv(num_filters, filter_sizes[idx], scale_factor=2, mode='bilinear'))
-
-            for m in self.unet_dec_up():
-                if isinstance(m, nn.ConvTranspose2d):
-                    m.weight.data.copy_(
-                        get_upsampling_weight(m.in_channels, m.out_channels, m.kernel_size[0])
-                    )
 
         # Final conv layer 1x1
         self.output_conv = nn.Conv2d(self.filter_sizes[0], self.num_classes, kernel_size=1)
