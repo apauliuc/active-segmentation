@@ -7,8 +7,8 @@ import torch
 
 from ignite import handlers
 from ignite.engine.engine import Engine, Events
-from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from helpers.torch_utils import apply_dropout
 from trainers.base_trainer import BaseTrainer

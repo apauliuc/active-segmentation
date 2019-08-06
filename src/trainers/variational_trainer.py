@@ -1,6 +1,6 @@
 from typing import Tuple
 from logging import Logger
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 import torch
 from ignite import metrics

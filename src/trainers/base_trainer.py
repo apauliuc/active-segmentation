@@ -7,7 +7,7 @@ from logging import Logger
 
 import torch
 import torch.optim as optim
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 from ignite import handlers, metrics
 from ignite.engine.engine import Engine, Events
