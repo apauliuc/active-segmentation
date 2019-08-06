@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from torch import distributions
+from typing import Tuple
 
 
 class FlattenLayer(nn.Module):
@@ -49,3 +51,36 @@ def get_upsampling_weight(in_channels, out_channels, kernel_size):
     weight = np.zeros((in_channels, out_channels, kernel_size, kernel_size), dtype=np.float64)
     weight[list(range(in_channels)), list(range(out_channels)), :, :] = filt
     return torch.from_numpy(weight).float()
+
+
+class Flatten(nn.Module):
+    def __init__(self):
+        super(Flatten, self).__init__()
+
+    def forward(self, _in: torch.Tensor):
+        bs = _in.shape[0]
+        return _in.reshape((bs, -1))
+
+
+class Unflatten(nn.Module):
+    shape: Tuple[int, ...]
+
+    def __init__(self):
+        super(Unflatten, self).__init__()
+
+    def forward(self, _in: torch.Tensor, num_samples: int, shape: Tuple[int, ...]) -> torch.Tensor:
+        bs = _in.shape[0]
+
+        return _in.reshape((bs, max(1, num_samples), *shape))
+
+
+class ReparameterizedSample(nn.Module):
+    def __init__(self):
+        super(ReparameterizedSample, self).__init__()
+
+    def forward(self, mean: torch.Tensor, var: torch.Tensor) -> torch.Tensor:
+        std = torch.sqrt(var)
+        dist = distributions.normal.Normal(mean, std)
+        z = dist.rsample()
+
+        return z.contiguous()

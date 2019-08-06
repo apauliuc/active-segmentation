@@ -1,9 +1,14 @@
+from typing import Tuple
+
 import numpy as np
 import torch
-import torch.nn as nn
-from torch.distributions import Normal, Independent
+from torch import nn
+import torchvision.transforms.functional as tf_F
 
+from models.common import ReparameterizedSample
 from models.unet_base import UNetBase
+
+PUNET_FORWARD = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
 
 class ProbabilisticUNet(UNetBase):
@@ -19,52 +24,80 @@ class ProbabilisticUNet(UNetBase):
                  learn_upconv=True,
                  latent_dim=6):
         super(ProbabilisticUNet, self).__init__(input_channels, num_classes, num_filters, batch_norm, learn_upconv,
-                                                False, 0)
+                                                dropout=False, dropout_p=0)
         # U-Net components constructed in the main method
 
-        # Components related to latent space
+        # Components for latent space
         self.latent_dim = latent_dim
-        self.latent_space_conv = nn.Conv2d(self.filter_sizes[-1], 2*self.latent_dim, kernel_size=1, stride=1)
+        self.latent_space_conv = nn.Conv2d(self.filter_sizes[-1], 2 * self.latent_dim, kernel_size=1, stride=1)
+        self.var_softplus = nn.Softplus()
+        self.rsample = ReparameterizedSample()
 
-        # Components for combining sample with the feature maps
+        # Components for combining sample with feature maps
         self.channel_axis = 1
         self.spatial_axes = [2, 3]
-
         last_layers = [
             nn.Conv2d(self.filter_sizes[0] + self.latent_dim, self.filter_sizes[0], kernel_size=1),
             nn.ReLU(inplace=True)
         ]
 
         for _ in range(2):
-            last_layers.append(nn.Conv2d(self.filter_sizes[0] + self.latent_dim, self.filter_sizes[0], kernel_size=1))
+            last_layers.append(nn.Conv2d(self.filter_sizes[0], self.filter_sizes[0], kernel_size=1))
             last_layers.append(nn.ReLU(inplace=True))
 
         self.f_combine = nn.Sequential(*last_layers)
 
         # Components for input reconstruction
-        self.recon_decoder = nn.Conv2d(self.latent_dim, self.filter_sizes[0], kernel_size=1)
+        self.mean, self.std = 0, 1
+        decoder_filters = [256, 128, 64, 32, 16, 8, 4, 2]
+        decoder_layers = [
+            nn.ConvTranspose2d(self.latent_dim, decoder_filters[0], kernel_size=4, stride=2, padding=1),
+            nn.ReLU(inplace=True)
+        ]
 
-    def construct_latent_distribution(self, encoding):
-        # TODO combine information from previous layers (involves more parameters)
+        for idx, filter_size in enumerate(decoder_filters[1:]):
+            decoder_layers.append(
+                nn.ConvTranspose2d(decoder_filters[idx], filter_size, kernel_size=4, stride=2, padding=1))
+
+            decoder_layers.append(nn.ReLU(inplace=True))
+
+        decoder_layers.append(
+            nn.ConvTranspose2d(decoder_filters[-1], 1, kernel_size=4, stride=2, padding=1))
+        decoder_layers.append(nn.Sigmoid())
+
+        self.recon_decoder = nn.Sequential(*decoder_layers)
+
+    def register_mean_std(self, mean_std, device):
+        mean, std = mean_std.values()
+
+        self.mean = torch.as_tensor(mean, dtype=torch.float32, device=device)
+        self.std = torch.as_tensor(std, dtype=torch.float32, device=device)
+
+    def latent_sample(self, encoding):
+        # Can combine information from previous layers (involves more parameters)
+
+        # encoding shape: batch x 512 x 32 x 32
 
         # Shrink feature maps
         encoding = torch.mean(encoding, dim=2, keepdim=True)
         encoding = torch.mean(encoding, dim=3, keepdim=True)
+        # shape: batch x 512 x 1 x 1
 
         # Compute mu and log sigma through conv layer
-        mu_log_sigma = self.latent_space_conv(encoding)
+        mu_var = self.latent_space_conv(encoding)
+        # shape: batch x 2*latent size x 1 x 1
 
         # Squeeze the second dimension twice, since otherwise it won't work when batch size is equal to 1
-        mu_log_sigma = torch.squeeze(mu_log_sigma, dim=2)
-        mu_log_sigma = torch.squeeze(mu_log_sigma, dim=2)
+        mu_var = torch.squeeze(mu_var, dim=2)
+        mu_var = torch.squeeze(mu_var, dim=2)
 
-        mu = mu_log_sigma[:, :self.latent_dim]
-        log_sigma = mu_log_sigma[:, self.latent_dim:]
+        mu = mu_var[:, :self.latent_dim]
+        var = self.var_softplus(mu_var[:, self.latent_dim:]) + 1e-5  # lower bound variance of posterior
 
-        # This is a multivariate normal with diagonal covariance matrix sigma
-        # https://github.com/pytorch/pytorch/pull/11178
-        latent_space_dist = Independent(Normal(loc=mu, scale=torch.exp(log_sigma)), 1)
-        return latent_space_dist
+        # b, c, h, w = mu.shape
+        z = self.rsample(mu, var)
+
+        return mu, var, z
 
     def tile(self, a, dim, n_tile):
         """
@@ -97,26 +130,26 @@ class ProbabilisticUNet(UNetBase):
     def reconstruction_decoder(self, z):
         z = torch.unsqueeze(z, self.spatial_axes[0])
         z = torch.unsqueeze(z, self.spatial_axes[1])
-        # TODO: finish this
-        return self.recon_decoder(z)
 
-    def forward(self, x, training=True):
+        recon = self.recon_decoder(z)
+        return recon.sub(self.mean).div(self.std)
+
+    def forward(self, x) -> PUNET_FORWARD:
         # Forward pass UNet encoder and decoder
         unet_encoding, previous_x = self.unet_encoder(x)
         unet_decoding = self.unet_decoder(unet_encoding, previous_x)
 
         # Compute latent space distribution and retrieve sample
-        latent_space = self.construct_latent_distribution(unet_encoding)
-        z_posterior = latent_space.rsample()
+        mu, var, z = self.latent_sample(unet_encoding)
 
         # Combine sample with feature maps and get final segmentation map
-        out_combined = self.combine_features_and_sample(unet_decoding, z_posterior)
-        segmentation_map = self.output_conv(out_combined)
+        out_combined = self.combine_features_and_sample(unet_decoding, z)
+        segmentation = self.output_conv(out_combined)
 
         # Reconstruct image
-        reconstruction_input = self.reconstruction_decoder(z_posterior)
+        recon = self.reconstruction_decoder(z)
 
-        return segmentation_map, latent_space, reconstruction_input
+        return segmentation, recon, mu, var
 
     def __repr__(self):
         return 'Probabilistic U-Net'
