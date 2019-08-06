@@ -13,3 +13,4 @@ class BaseLoader:
     predict_path: str
     dir_list: list
     image_size: tuple
+    ds_statistics: dict

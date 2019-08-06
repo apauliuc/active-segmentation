@@ -41,6 +41,5 @@ class Rotate(object):
 
     def __call__(self, image, segmentation):
         angle = random.choice(self._angles)
-        print(angle)
 
         return image.rotate(angle, resample=BILINEAR), segmentation.rotate(angle, resample=BILINEAR)

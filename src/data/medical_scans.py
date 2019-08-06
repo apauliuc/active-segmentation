@@ -56,7 +56,7 @@ class MDSMain(Dataset):
         if self.split == 'train':
             joint = custom_transforms.Compose([
                 custom_transforms.RandomHorizontalFlip(),
-                custom_transforms.Rotate()
+                # custom_transforms.Rotate()
             ])
         elif self.split == 'val':
             joint = None

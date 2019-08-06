@@ -117,6 +117,7 @@ class CityScapesDataLoaders(BaseLoader):
         self.input_channels = 3
         self.num_classes = 19
         self.image_size = (1024, 512)
+        self.ds_statistics = {'mean': [0.3006, 0.3365, 0.2956], 'std': [0.1951, 0.1972, 0.1968]}
 
         # self.data_root = os.path.join(config.path, config.dataset)
         self.data_root = '/Users/andrei/Programming/CityscapesDataset/'
