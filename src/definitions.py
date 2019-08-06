@@ -22,5 +22,9 @@ elif os.environ.get('USERNAME') == 'aspauliuc':
     # AMC
     RUNS_DIR = os.path.join('C:', 'Andrei', 'RUNS')
     DATA_DIR = os.path.join('C:', 'Andrei', 'data')
+elif os.environ.get('USERNAME') == 'Andy':
+    # PC Home
+    RUNS_DIR = os.path.join('C:\\', 'Andrei', 'RUNS')
+    DATA_DIR = os.path.join('C:\\', 'Andrei', 'data')
 
 VOC_ROOT = ''

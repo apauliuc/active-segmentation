@@ -19,6 +19,7 @@ def main_train_model(args, config_path: str):
     config.data.path = args.ds_path
     config.gpu_node = args.gpu_node
     config.training.loss_fn.gpu_node = args.gpu_node
+    config.model.type = config.training.type
 
     run_dir = get_new_run_path(config.run_name)
 

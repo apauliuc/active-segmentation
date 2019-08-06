@@ -127,7 +127,7 @@ class BaseTrainer(abc.ABC):
     # Single model
     def _init_train_components(self, reinitialise=False):
         if not reinitialise:
-            self.metrics = {
+            self.val_metrics = {
                 'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn)),
                 'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
                                                        threshold=self.config.binarize_threshold)
@@ -152,12 +152,12 @@ class BaseTrainer(abc.ABC):
         return create_supervised_trainer(self.model, self.optimizer, self.criterion, self.device, True)
 
     def _init_evaluator_engine(self) -> Engine:
-        return create_supervised_evaluator(self.model, self.metrics, self.device, True)
+        return create_supervised_evaluator(self.model, self.val_metrics, self.device, True)
 
     # Ensemble Method
     def _init_train_components_ensemble(self, reinitialise=False):
         if not reinitialise:
-            self.metrics = {
+            self.val_metrics = {
                 'loss': metrics.Loss(BCEAndJaccardLoss(eval_ensemble=True, gpu_node=self.config.gpu_node)),
                 'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
                                                        threshold=self.config.binarize_threshold,
@@ -238,7 +238,7 @@ class BaseTrainer(abc.ABC):
 
         engine = Engine(_inference)
 
-        for name, metric in self.metrics.items():
+        for name, metric in self.val_metrics.items():
             metric.attach(engine, name)
 
         return engine
