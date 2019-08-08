@@ -90,7 +90,7 @@ def predict_one_pass(config: ConfigClass, model, name):
                 x = x.to(device=device, non_blocking=True)
                 y = y.to(device=device, non_blocking=True)
 
-                y_pred = model(x)
+                y_pred, *_ = model(x)
 
                 segment_metrics.update((y_pred, y))
 

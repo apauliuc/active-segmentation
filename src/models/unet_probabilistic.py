@@ -3,7 +3,6 @@ from typing import Tuple
 import numpy as np
 import torch
 from torch import nn
-import torchvision.transforms.functional as tf_F
 
 from models.common import ReparameterizedSample
 from models.unet_base import UNetBase
@@ -67,12 +66,6 @@ class ProbabilisticUNet(UNetBase):
 
         self.recon_decoder = nn.Sequential(*decoder_layers)
 
-    def register_mean_std(self, mean_std, device):
-        mean, std = mean_std.values()
-
-        self.mean = torch.as_tensor(mean, dtype=torch.float32, device=device)
-        self.std = torch.as_tensor(std, dtype=torch.float32, device=device)
-
     def latent_sample(self, encoding):
         # Can combine information from previous layers (involves more parameters)
 
@@ -94,10 +87,7 @@ class ProbabilisticUNet(UNetBase):
         mu = mu_var[:, :self.latent_dim]
         var = self.var_softplus(mu_var[:, self.latent_dim:]) + 1e-5  # lower bound variance of posterior
 
-        # b, c, h, w = mu.shape
-        z = self.rsample(mu, var)
-
-        return mu, var, z
+        return mu, var,
 
     def tile(self, a, dim, n_tile):
         """
@@ -139,8 +129,9 @@ class ProbabilisticUNet(UNetBase):
         unet_encoding, previous_x = self.unet_encoder(x)
         unet_decoding = self.unet_decoder(unet_encoding, previous_x)
 
-        # Compute latent space distribution and retrieve sample
-        mu, var, z = self.latent_sample(unet_encoding)
+        # Compute latent space parameters and sample
+        mu, var = self.latent_sample(unet_encoding)
+        z = self.rsample(mu, var)
 
         # Combine sample with feature maps and get final segmentation map
         out_combined = self.combine_features_and_sample(unet_decoding, z)

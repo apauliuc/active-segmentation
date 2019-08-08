@@ -321,7 +321,7 @@ class BaseTrainer(abc.ABC):
             f'Duration: {train_duration} || Avg loss: {avg_loss:.4f}'
         logger.info(msg)
 
-        writer.add_scalar('training/total_loss', avg_loss, _train_engine.state.epoch)
+        writer.add_scalar('training/segment_loss', avg_loss, _train_engine.state.epoch)
 
     def _evaluate_on_val(self, _train_engine: Engine, logger: Logger, writer: SummaryWriter) -> None:
         self.evaluator.run(self.data_loaders.val_loader)
@@ -333,7 +333,7 @@ class BaseTrainer(abc.ABC):
             f'IoU: {segment_metrics["avg_iou"]:.4f} | F1: {segment_metrics["avg_f1"]:.4f}'
         logger.info(msg)
 
-        writer.add_scalar('validation/total_loss', eval_loss, _train_engine.state.epoch)
+        writer.add_scalar('validation/segment_loss', eval_loss, _train_engine.state.epoch)
         for key, value in segment_metrics.items():
             writer.add_scalar(f'validation_segment_metrics/{key}', value, _train_engine.state.epoch)
 

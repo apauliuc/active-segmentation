@@ -37,9 +37,9 @@ class VariationalTrainer(BaseTrainer):
     def _init_engines(self) -> Tuple[Engine, Engine]:
         self.train_metrics = {
             'total_loss': metrics.RunningAverage(output_transform=lambda x: x['loss']),
-            'seg_loss': metrics.RunningAverage(output_transform=lambda x: x['segment_loss']),
-            'kl_div': metrics.RunningAverage(output_transform=lambda x: x['kl_div']),
-            'recon_loss': metrics.RunningAverage(output_transform=lambda x: x['recon_loss'])
+            'segment_loss': metrics.RunningAverage(output_transform=lambda x: x['segment_loss']),
+            'recon_loss': metrics.RunningAverage(output_transform=lambda x: x['recon_loss']),
+            'kl_div': metrics.RunningAverage(output_transform=lambda x: x['kl_div'])
         }
 
         self.val_metrics = {
