@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 from torch import nn
 
-VAE_CRITERION_FORWARD = Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+VAE_CRITERION_FORWARD = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
 
 class KLDivergence(nn.Module):
@@ -20,8 +20,11 @@ class KLDivergence(nn.Module):
 
 
 class VAECriterion(nn.Module):
-    def __init__(self, ce_loss=nn.CrossEntropyLoss(reduction='mean')):
+    def __init__(self, ce_loss=nn.CrossEntropyLoss(reduction='mean'), mse_factor=0, kld_factor=0):
         super(VAECriterion, self).__init__()
+
+        self.mse_factor = mse_factor
+        self.kld_factor = kld_factor
 
         self.ce = ce_loss
         self.mse = nn.MSELoss(reduction='mean')
@@ -33,4 +36,6 @@ class VAECriterion(nn.Module):
         mse = self.mse(recon, x)
         kld = self.kld(mu, var)
 
-        return ce, mse, kld
+        loss = ce + self.mse_factor * mse + self.kld_factor * kld
+
+        return loss, ce, mse, kld

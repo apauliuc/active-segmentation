@@ -316,23 +316,26 @@ class BaseTrainer(abc.ABC):
     def _log_training_results(self, _train_engine: Engine, logger: Logger, writer: SummaryWriter) -> None:
         train_duration = timer_to_str(self.timer.value())
         avg_loss = _train_engine.state.metrics['train_loss']
+
         msg = f'Training results - Epoch:{_train_engine.state.epoch:2d}/{_train_engine.state.max_epochs}. ' \
-            f'Duration: {train_duration}. Avg loss: {avg_loss:.4f}'
+            f'Duration: {train_duration} || Avg loss: {avg_loss:.4f}'
         logger.info(msg)
-        writer.add_scalar('training/avg_loss', avg_loss, _train_engine.state.epoch)
+
+        writer.add_scalar('training/total_loss', avg_loss, _train_engine.state.epoch)
 
     def _evaluate_on_val(self, _train_engine: Engine, logger: Logger, writer: SummaryWriter) -> None:
         self.evaluator.run(self.data_loaders.val_loader)
-        eval_loss = self.evaluator.state.metrics['loss']
-        eval_metrics = self.evaluator.state.metrics['segment_metrics']
-        msg = f'Eval. on val_loader - Avg loss: {eval_loss:.4f}   ' \
-            f'IoU: {eval_metrics["avg_iou"]:.4f}   ' \
-            f'F1: {eval_metrics["avg_f1"]:.4f}'
-        logger.info(msg)
-        writer.add_scalar('validation_eval/avg_loss', eval_loss, _train_engine.state.epoch)
 
-        for key, value in eval_metrics.items():
-            writer.add_scalar(f'val_metrics/{key}', value, _train_engine.state.epoch)
+        eval_loss = self.evaluator.state.metrics['loss']
+        segment_metrics = self.evaluator.state.metrics['segment_metrics']
+
+        msg = f'Eval. on val_loader - Avg loss: {eval_loss:.4f}         ||         ' \
+            f'IoU: {segment_metrics["avg_iou"]:.4f} | F1: {segment_metrics["avg_f1"]:.4f}'
+        logger.info(msg)
+
+        writer.add_scalar('validation/total_loss', eval_loss, _train_engine.state.epoch)
+        for key, value in segment_metrics.items():
+            writer.add_scalar(f'validation_segment_metrics/{key}', value, _train_engine.state.epoch)
 
     @staticmethod
     def val_loss(_engine: Engine) -> float:
