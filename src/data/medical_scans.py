@@ -55,7 +55,7 @@ class MDSMain(Dataset):
     def _get_transforms(self, mean_std):
         if self.split == 'train':
             joint = custom_transforms.Compose([
-                custom_transforms.RandomHorizontalFlip(),
+                # custom_transforms.RandomHorizontalFlip(),
                 # custom_transforms.Rotate()
             ])
         elif self.split == 'val':

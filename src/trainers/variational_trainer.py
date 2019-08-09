@@ -1,3 +1,4 @@
+import os
 from typing import Tuple
 from logging import Logger
 from torch.utils.tensorboard import SummaryWriter
@@ -12,6 +13,7 @@ from helpers.metrics import VAEMetrics, SegmentationMetrics
 from helpers.utils import timer_to_str
 from losses.vae_criterion import VAECriterion
 from trainers.base_trainer import BaseTrainer
+from definitions import RUNS_DIR
 
 
 class VariationalTrainer(BaseTrainer):
@@ -23,6 +25,7 @@ class VariationalTrainer(BaseTrainer):
         self.main_logger.info(self.data_loaders.msg)
 
         self.starting_kld_factor = 0 if self.train_cfg.loss_fn.kld_warmup else self.train_cfg.loss_fn.kld_factor
+        self.starting_mse_factor = 0 if self.train_cfg.loss_fn.mse_warmup else self.train_cfg.loss_fn.mse_factor
 
         self._init_train_components()
 
@@ -30,9 +33,20 @@ class VariationalTrainer(BaseTrainer):
         super()._init_train_components()
 
         self.vae_criterion = VAECriterion(ce_loss=self.criterion,
-                                          mse_factor=self.train_cfg.loss_fn.mse_factor,
+                                          mse_factor=self.starting_mse_factor,
                                           kld_factor=self.starting_kld_factor)
+        self.main_logger.info(f'Final loss is {self.vae_criterion}')
         self.model.register_mean_std(self.data_loaders.ds_statistics, self.device)
+
+        if self.model_cfg.network_params.load_standard_unet:
+            self.main_logger.info('Loading weights from standard UNet')
+            pretrained_dict = torch.load(os.path.join(RUNS_DIR, 'standard.pth'))
+            model_dict = self.model.state_dict()
+
+            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+            model_dict.update(pretrained_dict)
+            self.model.load_state_dict(model_dict)
+            self.model.to(self.device)
 
     def _init_engines(self) -> Tuple[Engine, Engine]:
         self.train_metrics = {
@@ -44,11 +58,11 @@ class VariationalTrainer(BaseTrainer):
 
         self.val_metrics = {
             'vae_metrics': VAEMetrics(loss_fn=self.criterion,
-                                      mse_factor=self.train_cfg.loss_fn.mse_factor,
+                                      mse_factor=self.starting_mse_factor,
                                       kld_factor=self.starting_kld_factor),
             'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
                                                    threshold=self.config.binarize_threshold),
-            }
+        }
 
         trainer = self._init_trainer_engine()
         evaluator = self._init_evaluator_engine()
@@ -76,8 +90,8 @@ class VariationalTrainer(BaseTrainer):
             return {
                 'loss': loss.item(),
                 'segment_loss': ce.item(),
-                'kl_div': kl_div.item(),
-                'recon_loss': mse.item()
+                'recon_loss': mse.item(),
+                'kl_div': kl_div.item()
             }
 
         _engine = Engine(_update)
@@ -112,6 +126,8 @@ class VariationalTrainer(BaseTrainer):
 
     def _on_epoch_completed(self, _engine: Engine) -> None:
         super()._on_epoch_completed(_engine)
+        if self.train_cfg.loss_fn.mse_warmup:
+            self._step_mse(_engine)
         if self.train_cfg.loss_fn.kld_warmup:
             self._step_kld(_engine)
 
@@ -120,9 +136,9 @@ class VariationalTrainer(BaseTrainer):
         _metrics = _train_engine.state.metrics
 
         msg = f'Training results - Epoch:{_train_engine.state.epoch:2d}/{_train_engine.state.max_epochs}  ' \
-            f'Duration: {train_duration}  ||  ' \
-            f'Avg loss: {_metrics["total_loss"]:.4f} | ' \
-            f'Seg loss: {_metrics["seg_loss"]:.4f} | ' \
+            f'Duration: {train_duration} | ' \
+            f'Avg loss: {_metrics["total_loss"]:.4f}  ||  ' \
+            f'Seg loss: {_metrics["segment_loss"]:.4f} | ' \
             f'Recon loss: {_metrics["recon_loss"]:.4f} | ' \
             f'KL Div: {_metrics["kl_div"]:.4f}'
         logger.info(msg)
@@ -152,14 +168,51 @@ class VariationalTrainer(BaseTrainer):
 
     def _step_kld(self, _engine: Engine) -> None:
         """Warm-up method for KL Divergence"""
-        if _engine.state.epoch != 0 and _engine.state.epoch % self.train_cfg.loss_fn.kld_step_interval == 0:
-            step = (_engine.state.epoch + 1) // self.train_cfg.loss_fn.kld_step_interval
-            self.vae_criterion.kld_factor = min(self.train_cfg.loss_fn.kld_factor,
-                                                step * self.train_cfg.loss_fn.kld_step_size)
-            self.val_metrics['vae_metrics'].update_kld_factor(self.vae_criterion.kld_factor)
-            self.main_logger.info(f'KLD factor changed to {self.vae_criterion.kld_factor} '
+
+        def _update_factor(factor):
+            self.vae_criterion.kld_factor = factor
+            self.val_metrics['vae_metrics'].update_kld_factor(factor)
+            self.main_logger.info(f'KLD factor changed to {factor} '
                                   f'at epoch {_engine.state.epoch}')
 
+        if _engine.state.epoch != 0:
+            if self.train_cfg.loss_fn.kld_factor_type == 'interval' and \
+                    _engine.state.epoch % self.train_cfg.loss_fn.kld_step_interval == 0 and \
+                    self.vae_criterion.kld_factor < self.train_cfg.loss_fn.kld_factor:
+                step = (_engine.state.epoch + 1) // self.train_cfg.loss_fn.kld_step_interval
+                _update_factor(min(self.train_cfg.loss_fn.kld_factor,
+                                   step * self.train_cfg.loss_fn.kld_step_size))
+            elif self.train_cfg.loss_fn.kld_factor_type == 'gradual' and \
+                    _engine.state.epoch > self.train_cfg.loss_fn.kld_step_interval and \
+                    self.vae_criterion.kld_factor < self.train_cfg.loss_fn.kld_factor:
+                step = _engine.state.epoch - self.train_cfg.loss_fn.kld_step_interval
+                _update_factor(min(self.train_cfg.loss_fn.kld_factor,
+                                   step * self.train_cfg.loss_fn.kld_step_size))
+
+    def _step_mse(self, _engine):
+        """Warm-up method for MSE Loss"""
+
+        def _update_factor(factor):
+            self.vae_criterion.mse_factor = factor
+            self.val_metrics['vae_metrics'].update_mse_factor(factor)
+            self.main_logger.info(f'MSE factor changed to {factor} '
+                                  f'at epoch {_engine.state.epoch}')
+
+        if _engine.state.epoch != 0:
+            if self.train_cfg.loss_fn.mse_factor_type == 'interval' and \
+                    _engine.state.epoch % self.train_cfg.loss_fn.mse_step_interval == 0 and \
+                    self.vae_criterion.mse_factor < self.train_cfg.loss_fn.mse_factor:
+                step = (_engine.state.epoch + 1) // self.train_cfg.loss_fn.mse_step_interval
+                _update_factor(min(self.train_cfg.loss_fn.mse_factor,
+                                   step * self.train_cfg.loss_fn.mse_step_size))
+            elif self.train_cfg.loss_fn.mse_factor_type == 'gradual' and \
+                    _engine.state.epoch > self.train_cfg.loss_fn.mse_step_interval and \
+                    self.vae_criterion.mse_factor < self.train_cfg.loss_fn.mse_factor:
+                step = _engine.state.epoch - self.train_cfg.loss_fn.mse_step_interval
+                _update_factor(min(self.train_cfg.loss_fn.mse_factor,
+                                   step * self.train_cfg.loss_fn.mse_step_size))
+
     def run(self) -> None:
-        self.main_logger.info(f'Initial KLD factor = {self.vae_criterion.kld_factor}')
+        self.main_logger.info(f'Current MSE factor = {self.vae_criterion.mse_factor} | '
+                              f'Current KLD factor = {self.vae_criterion.kld_factor}')
         super().run()

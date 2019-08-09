@@ -39,3 +39,6 @@ class VAECriterion(nn.Module):
         loss = ce + self.mse_factor * mse + self.kld_factor * kld
 
         return loss, ce, mse, kld
+
+    def __repr__(self):
+        return f'VAE Criterion with MSE factor {self.mse_factor} and KLD factor {self.kld_factor}'

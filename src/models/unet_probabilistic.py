@@ -35,14 +35,13 @@ class ProbabilisticUNet(UNetBase):
         # Components for combining sample with feature maps
         self.channel_axis = 1
         self.spatial_axes = [2, 3]
+
         last_layers = [
             nn.Conv2d(self.filter_sizes[0] + self.latent_dim, self.filter_sizes[0], kernel_size=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(self.filter_sizes[0], self.filter_sizes[0], kernel_size=1),
             nn.ReLU(inplace=True)
         ]
-
-        for _ in range(2):
-            last_layers.append(nn.Conv2d(self.filter_sizes[0], self.filter_sizes[0], kernel_size=1))
-            last_layers.append(nn.ReLU(inplace=True))
 
         self.f_combine = nn.Sequential(*last_layers)
 
@@ -76,6 +75,16 @@ class ProbabilisticUNet(UNetBase):
         encoding = torch.mean(encoding, dim=3, keepdim=True)
         # shape: batch x 512 x 1 x 1
 
+        # AVG POOL
+        # b x 512 x 32 x 32 -> avg pool (2x2) + conv (kernel 3, padding 1, stride 1)
+        # -> b x 512 x 16 x 16 -> avg pool (2x2) + conv (kernel 3, padding 1, stride 1)
+        # -> b x 512 x 8 x 8 -> conv (kernel 1, stride 1, padding 0)
+        # -> b x 2 * latent_size x 8 x 8
+
+        # mean/std shape: b x latent_channels x latent_H x latent_W
+
+        # shape: batch x latent_size x 8 x 8
+
         # Compute mu and log sigma through conv layer
         mu_var = self.latent_space_conv(encoding)
         # shape: batch x 2*latent size x 1 x 1
@@ -87,7 +96,7 @@ class ProbabilisticUNet(UNetBase):
         mu = mu_var[:, :self.latent_dim]
         var = self.var_softplus(mu_var[:, self.latent_dim:]) + 1e-5  # lower bound variance of posterior
 
-        return mu, var,
+        return mu, var
 
     def tile(self, a, dim, n_tile):
         """
@@ -139,6 +148,7 @@ class ProbabilisticUNet(UNetBase):
 
         # Reconstruct image
         recon = self.reconstruction_decoder(z)
+        # z shape: b x latent_channels x 1 x 1
 
         return segmentation, recon, mu, var
 

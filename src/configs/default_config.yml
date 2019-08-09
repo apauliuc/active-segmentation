@@ -8,8 +8,7 @@ data:
   run_val_on_train: False
 training:
   type: standard
-  bayesian: False
-  beta_type: Blundell
+#  beta_type: Blundell
   seed:
   num_epochs: 75
   optimizer:
@@ -26,8 +25,21 @@ training:
 #      factor: 0.5
   loss_fn:
     name: bce_and_jaccard
+    ignore_index: 255   # CITYSCAPES
+    ###
+    mse_factor: 0.5
+    mse_warmup: True
+    mse_factor_type: gradual
+    mse_step_interval: 15
+    mse_step_size: 0.1
+    ###
+    kld_factor: 2
+    kld_warmup: False
+    kld_step_interval: 15
+    kld_step_size: 0.1
+    ###
   early_stop_fn: f1_score
-  early_stop: True
+  early_stop: False
   patience: 31
   use_ensemble: False
   ensemble:
@@ -39,6 +51,9 @@ model:
 #    pretrained: True
     dropout: False
     dropout_p: 0.25
+    ###
+    latent_dim: 32
+    load_standard_unet: False
 resume:
   resume_from:
   saved_model:
