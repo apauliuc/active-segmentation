@@ -279,7 +279,7 @@ class BaseTrainer(abc.ABC):
         if self.optim_cfg.scheduler == 'step':
             measure = _engine.state.epoch
         elif self.optim_cfg.scheduler == 'plateau':
-            measure = 50 if _engine.state.epoch == 1 else _engine.state.metrics['train_loss']
+            measure = 50 if _engine.state.epoch == 1 else self.val_loss(self.evaluator)
         else:
             return None
 
@@ -339,7 +339,7 @@ class BaseTrainer(abc.ABC):
 
     @staticmethod
     def val_loss(_engine: Engine) -> float:
-        return -round(_engine.state.metrics['loss'], 6)
+        return round(_engine.state.metrics['loss'].item(), 6)
 
     @staticmethod
     def iou_score(_engine: Engine) -> float:
