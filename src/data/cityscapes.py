@@ -60,6 +60,7 @@ class CityScapes(Dataset):
     def __len__(self):
         return len(self.images)
 
+    # noinspection DuplicatedCode
     def __getitem__(self, index):
         image_path, segment_path = self.images[index]
         image, segmentation = Image.open(image_path).convert('RGB'), Image.open(segment_path)

@@ -35,6 +35,7 @@ class MDSMain(Dataset):
     def __len__(self) -> int:
         return len(self.file_list)
 
+    # noinspection DuplicatedCode
     def __getitem__(self, item: int):
         img_name = self.file_list[item]
 

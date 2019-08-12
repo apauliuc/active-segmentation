@@ -82,18 +82,9 @@ class ActiveTrainerScan(BaseTrainer):
         self._log_training_results(_engine, self.train_logger, self.train_writer)
         self._evaluate_on_val(_engine, self.train_logger, self.train_writer)
 
-    def _init_handlers(self) -> None:
-        self._init_epoch_timer()
+    def _init_handlers(self, _init_checkpoint=True) -> None:
         self._init_checkpoint_handler(save_dir=self.save_model_dir)
-        self._init_early_stopping_handler()
-
-        self.trainer.add_event_handler(Events.EPOCH_STARTED, self._on_epoch_started)
-        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, self._on_epoch_completed)
-        self.trainer.add_event_handler(Events.COMPLETED, self._on_events_completed)
-
-        self.trainer.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
-        self.evaluator.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
-        self.trainer.add_event_handler(Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
+        super()._init_handlers(_init_checkpoint=False)
 
     def _finalize(self, on_error=False) -> None:
         if not on_error:

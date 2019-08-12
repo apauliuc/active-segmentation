@@ -38,6 +38,7 @@ class BaseTrainer(abc.ABC):
         self.model_cfg = config.model
         self.train_cfg = config.training
         self.optim_cfg = config.training.optimizer
+        self.loss_cfg = config.training.loss_fn
         self.resume_cfg = config.resume
 
         if self.train_cfg.seed is not None:
@@ -92,7 +93,7 @@ class BaseTrainer(abc.ABC):
         return optimizer
 
     def _init_criterion(self):
-        criterion = get_loss_function(self.train_cfg.loss_fn).to(device=self.device)
+        criterion = get_loss_function(self.loss_cfg).to(device=self.device)
         self.main_logger.info(f'Using loss function {criterion}')
 
         return criterion
@@ -128,7 +129,7 @@ class BaseTrainer(abc.ABC):
     def _init_train_components(self, reinitialise=False):
         if not reinitialise:
             self.val_metrics = {
-                'loss': metrics.Loss(get_loss_function(self.train_cfg.loss_fn)),
+                'loss': metrics.Loss(get_loss_function(self.loss_cfg)),
                 'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
                                                        threshold=self.config.binarize_threshold)
             }
@@ -349,18 +350,20 @@ class BaseTrainer(abc.ABC):
     def f1_score(_engine: Engine) -> float:
         return round(_engine.state.metrics['segment_metrics']['avg_f1'], 6)
 
-    def _init_handlers(self) -> None:
+    def _init_handlers(self, _init_checkpoint=True) -> None:
+        if _init_checkpoint:
+            self._init_checkpoint_handler()
+
         self._init_epoch_timer()
-        self._init_checkpoint_handler()
         self._init_early_stopping_handler()
 
         self.trainer.add_event_handler(Events.EPOCH_STARTED, self._on_epoch_started)
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, self._on_epoch_completed)
         self.trainer.add_event_handler(Events.COMPLETED, self._on_events_completed)
+        self.trainer.add_event_handler(Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
 
         self.trainer.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
         self.evaluator.add_event_handler(Events.EXCEPTION_RAISED, self._on_exception_raised)
-        self.trainer.add_event_handler(Events.ITERATION_COMPLETED, handlers.TerminateOnNan())
 
     def run(self) -> None:
         self.main_logger.info(f'{self.log_name} initialised. Starting training on {self.device}.')
