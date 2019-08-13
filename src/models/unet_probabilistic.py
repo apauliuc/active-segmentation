@@ -10,6 +10,7 @@ from models.unet_base import UNetBase
 PUNET_FORWARD = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
 
+# noinspection DuplicatedCode
 class ProbabilisticUNet(UNetBase):
     """
     Probabilistic U-Net

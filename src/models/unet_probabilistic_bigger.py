@@ -32,11 +32,11 @@ class ProbabilisticUNetBigger(UNetBase):
         self.latent_dim = latent_dim
 
         self.latent_space_pipeline = nn.Sequential(
-            nn.Conv2d(self.filter_sizes[-1], self.filter_sizes[-1], kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(self.filter_sizes[-1], self.filter_sizes[-1] // 2, kernel_size=3, stride=1, padding=1),
             nn.AvgPool2d(2),
-            nn.Conv2d(self.filter_sizes[-1], self.filter_sizes[-1], kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(self.filter_sizes[-1] // 2, self.filter_sizes[-1] // 4, kernel_size=3, stride=1, padding=1),
             nn.AvgPool2d(2),
-            nn.Conv2d(self.filter_sizes[-1], 2 * self.latent_dim, kernel_size=1, stride=1)
+            nn.Conv2d(self.filter_sizes[-1] // 4, 2 * self.latent_dim, kernel_size=1, stride=1)
         )
 
         self.var_softplus = nn.Softplus()
@@ -101,20 +101,6 @@ class ProbabilisticUNetBigger(UNetBase):
 
         return mu, var
 
-    def tile(self, a, dim, n_tile):
-        """
-        This function is taken form PyTorch forum and mimics the behavior of tf.tile.
-        Source: https://discuss.pytorch.org/t/how-to-tile-a-tensor/13853/3
-        """
-        init_dim = a.size(dim)
-        repeat_idx = [1] * a.dim()
-        repeat_idx[dim] = n_tile
-        a = a.repeat(*repeat_idx)
-        order_index = np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)])
-        # noinspection PyArgumentList
-        order_index = torch.LongTensor(order_index).to(next(self.parameters()).device)
-        return torch.index_select(a, dim, order_index)
-
     def combine_features_and_sample(self, features, z):
         """
         Features has shape (batch)x(channels)x(H)x(W).
@@ -149,4 +135,4 @@ class ProbabilisticUNetBigger(UNetBase):
         return segmentation, recon, mu, var
 
     def __repr__(self):
-        return 'Probabilistic U-Net'
+        return 'Probabilistic U-Net BIG'
