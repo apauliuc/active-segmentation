@@ -31,17 +31,14 @@ class ProbabilisticUNetBigger(UNetBase):
         # Components for latent space
         self.latent_dim = latent_dim
 
-        latent_space_pipeline = [
+        self.latent_space_pipeline = nn.Sequential(
             nn.Conv2d(self.filter_sizes[-1], self.filter_sizes[-1], kernel_size=3, stride=1, padding=1),
             nn.AvgPool2d(2),
             nn.Conv2d(self.filter_sizes[-1], self.filter_sizes[-1], kernel_size=3, stride=1, padding=1),
             nn.AvgPool2d(2),
             nn.Conv2d(self.filter_sizes[-1], 2 * self.latent_dim, kernel_size=1, stride=1)
-        ]
+        )
 
-        self.latent_space_pipeline = nn.Sequential(*latent_space_pipeline)
-
-        # self.latent_space_conv = nn.Conv2d(self.filter_sizes[-1], 2 * self.latent_dim, kernel_size=1, stride=1)
         self.var_softplus = nn.Softplus()
         self.rsample = ReparameterizedSample()
 
