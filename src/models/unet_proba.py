@@ -127,7 +127,7 @@ class ProbabilisticUNet(UNetBase):
         maps_concat = torch.cat((features, z), dim=self.channel_axis)
         return self.f_combine(maps_concat)
 
-    def reconstruction_decoder(self, z):
+    def reconstruct_image(self, z):
         z = torch.unsqueeze(z, self.spatial_axes[0])
         z = torch.unsqueeze(z, self.spatial_axes[1])
 
@@ -148,10 +148,42 @@ class ProbabilisticUNet(UNetBase):
         segmentation = self.output_conv(out_combined)
 
         # Reconstruct image
-        recon = self.reconstruction_decoder(z)
-        # z shape: b x latent_channels x 1 x 1
+        recon = self.reconstruct_image(z)
 
         return segmentation, recon, mu, var
+
+    def inference(self, x):
+        with torch.no_grad():
+            # Forward pass UNet encoder and decoder
+            unet_encoding, previous_x = self.unet_encoder(x)
+            unet_decoding = self.unet_decoder(unet_encoding, previous_x)
+
+            # Compute latent space parameters and sample
+            mu, var = self.latent_sample(unet_encoding)
+            z = self.rsample(mu, var)
+
+            # Create segmentation
+            segmentation = self.output_conv(self.combine_features_and_sample(unet_decoding, z))
+
+            return segmentation, unet_decoding, mu, var
+
+    def inference_multi(self, x, num_samples):
+        with torch.no_grad():
+            # Forward pass UNet encoder and decoder
+            unet_encoding, previous_x = self.unet_encoder(x)
+            unet_decoding = self.unet_decoder(unet_encoding, previous_x)
+
+            # Compute latent space parameters
+            mu, var = self.latent_sample(unet_encoding)
+
+            # Create segmentations
+            segmentations = []
+            for i in range(num_samples):
+                z = self.rsample(mu, var)
+                current_segment = self.output_conv(self.combine_features_and_sample(unet_decoding, z))
+                segmentations.append(current_segment)
+
+            return segmentations, unet_decoding, mu, var
 
     def __repr__(self):
         return 'Probabilistic U-Net'

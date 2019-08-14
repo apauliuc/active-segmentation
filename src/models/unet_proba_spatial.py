@@ -1,6 +1,5 @@
 from typing import Tuple
 
-import numpy as np
 import torch
 from torch import nn
 
@@ -8,10 +7,11 @@ from models.common import ReparameterizedSample
 from models.unet_base import UNetBase
 
 PUNET_FORWARD = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+PUNET_INFERENCE = Tuple[torch.Tensor]
 
 
 # noinspection DuplicatedCode
-class ProbabilisticUNetBigger(UNetBase):
+class ProbabilisticUNetSpatial(UNetBase):
     """
     Probabilistic U-Net
     """
@@ -22,22 +22,32 @@ class ProbabilisticUNetBigger(UNetBase):
                  num_filters=32,
                  batch_norm=False,
                  learn_upconv=True,
-                 latent_dim=6):
-        super(ProbabilisticUNetBigger, self).__init__(input_channels, num_classes, num_filters, batch_norm,
-                                                      learn_upconv,
-                                                      dropout=False, dropout_p=0)
+                 latent_dim=6,
+                 decrease_latent=False):
+        super(ProbabilisticUNetSpatial, self).__init__(input_channels, num_classes, num_filters, batch_norm,
+                                                       learn_upconv,
+                                                       dropout=False, dropout_p=0)
         # U-Net components constructed in the main method
 
         # Components for latent space
         self.latent_dim = latent_dim
 
-        self.latent_space_pipeline = nn.Sequential(
-            nn.Conv2d(self.filter_sizes[-1], self.filter_sizes[-1] // 2, kernel_size=3, stride=1, padding=1),
-            nn.AvgPool2d(2),
-            nn.Conv2d(self.filter_sizes[-1] // 2, self.filter_sizes[-1] // 4, kernel_size=3, stride=1, padding=1),
-            nn.AvgPool2d(2),
-            nn.Conv2d(self.filter_sizes[-1] // 4, 2 * self.latent_dim, kernel_size=1, stride=1)
-        )
+        if decrease_latent:
+            self.latent_space_pipeline = nn.Sequential(
+                nn.Conv2d(self.filter_sizes[-1], self.filter_sizes[-1] // 2, kernel_size=3, stride=1, padding=1),
+                nn.AvgPool2d(2),
+                nn.Conv2d(self.filter_sizes[-1] // 2, self.filter_sizes[-1] // 4, kernel_size=3, stride=1, padding=1),
+                nn.AvgPool2d(2),
+                nn.Conv2d(self.filter_sizes[-1] // 4, 2 * self.latent_dim, kernel_size=1, stride=1)
+            )
+        else:
+            self.latent_space_pipeline = nn.Sequential(
+                nn.Conv2d(self.filter_sizes[-1], self.filter_sizes[-1], kernel_size=3, stride=1, padding=1),
+                nn.AvgPool2d(2),
+                nn.Conv2d(self.filter_sizes[-1], self.filter_sizes[-1], kernel_size=3, stride=1, padding=1),
+                nn.AvgPool2d(2),
+                nn.Conv2d(self.filter_sizes[-1], 2 * self.latent_dim, kernel_size=1, stride=1)
+            )
 
         self.var_softplus = nn.Softplus()
         self.rsample = ReparameterizedSample()
@@ -103,9 +113,9 @@ class ProbabilisticUNetBigger(UNetBase):
 
     def combine_features_and_sample(self, features, z):
         """
-        Features has shape (batch)x(channels)x(H)x(W).
+        Features has shape (batch) x 32 x 512 x 512.
         z has size (batch)x(latent_dim)x(l_H)x(l_W).
-        Use convTranspose2d layers to upsample to (batch)x(latent_dim)x(H)x(W)
+        Use convTranspose2d layers to upsample to (batch) x 32 x 512 x 512
         Returns the result after applying conv layers on concatenated maps
         """
         z = self.sample_upscale(z)
@@ -134,5 +144,38 @@ class ProbabilisticUNetBigger(UNetBase):
 
         return segmentation, recon, mu, var
 
+    def inference(self, x):
+        with torch.no_grad():
+            # Forward pass UNet encoder and decoder
+            unet_encoding, previous_x = self.unet_encoder(x)
+            unet_decoding = self.unet_decoder(unet_encoding, previous_x)
+
+            # Compute latent space parameters and sample
+            mu, var = self.latent_sample(unet_encoding)
+            z = self.rsample(mu, var)
+
+            # Create segmentation
+            segmentation = self.output_conv(self.combine_features_and_sample(unet_decoding, z))
+
+            return segmentation, unet_decoding, mu, var
+
+    def inference_multi(self, x, num_samples):
+        with torch.no_grad():
+            # Forward pass UNet encoder and decoder
+            unet_encoding, previous_x = self.unet_encoder(x)
+            unet_decoding = self.unet_decoder(unet_encoding, previous_x)
+
+            # Compute latent space parameters
+            mu, var = self.latent_sample(unet_encoding)
+
+            # Create segmentations
+            segmentations = []
+            for i in range(num_samples):
+                z = self.rsample(mu, var)
+                current_segment = self.output_conv(self.combine_features_and_sample(unet_decoding, z))
+                segmentations.append(current_segment)
+
+            return segmentations, unet_decoding, mu, var
+
     def __repr__(self):
-        return 'Probabilistic U-Net BIG'
+        return 'Probabilistic U-Net Spatial'

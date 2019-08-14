@@ -5,8 +5,9 @@ from models.fcn8 import FCN8
 from models.fcn16 import FCN16
 from models.fcn32 import FCN32
 from bayesian.bayes_unet import BBBUnet
-from models.unet_probabilistic import ProbabilisticUNet
-from models.unet_probabilistic_bigger import ProbabilisticUNetBigger
+from models.unet_proba import ProbabilisticUNet
+from models.unet_proba_spatial import ProbabilisticUNetSpatial
+from models.unet_proba_spatial_large import ProbabilisticUNetSpatialLarge
 from models.unet_vae import VariationalUNet
 
 from helpers.utils import retrieve_class_init_parameters
@@ -40,7 +41,8 @@ def _get_model_instance(name: str, train_type: str):
         elif train_type == 'variational':
             return {
                 'unet_proba': ProbabilisticUNet,
-                'unet_proba_test': ProbabilisticUNetBigger,
+                'unet_proba_spatial': ProbabilisticUNetSpatial,
+                'unet_proba_spatial_large': ProbabilisticUNetSpatialLarge,
                 'unet_vae': VariationalUNet
             }[name]
     except KeyError:

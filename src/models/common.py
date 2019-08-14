@@ -78,9 +78,13 @@ class ReparameterizedSample(nn.Module):
     def __init__(self):
         super(ReparameterizedSample, self).__init__()
 
-    def forward(self, mean: torch.Tensor, var: torch.Tensor) -> torch.Tensor:
+    def forward(self, mean: torch.Tensor, var: torch.Tensor, num_samples=1) -> torch.Tensor:
         std = torch.sqrt(var)
         dist = distributions.normal.Normal(mean, std)
-        z = dist.rsample()
+        if num_samples == 1:
+            z = dist.rsample()
+        else:
+            z = dist.rsample([num_samples])
+            z = z.transpose(0, 1)
 
         return z.contiguous()
