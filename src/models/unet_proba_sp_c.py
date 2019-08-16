@@ -4,6 +4,7 @@ import torch
 from torch import nn
 
 from models.common import ReparameterizedSample
+from models.unet_base import UNetConvBlock
 from models.unet_base import UNetBase
 
 PUNET_FORWARD = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
@@ -11,7 +12,7 @@ PUNET_INFERENCE = Tuple[torch.Tensor]
 
 
 # noinspection DuplicatedCode
-class ProbabilisticUNetSpatialLarge(UNetBase):
+class ProbaUNetSpCommon(UNetBase):
     """
     Probabilistic U-Net
     """
@@ -23,11 +24,18 @@ class ProbabilisticUNetSpatialLarge(UNetBase):
                  batch_norm=False,
                  learn_upconv=True,
                  latent_dim=6,
-                 decrease_latent=False):
-        super(ProbabilisticUNetSpatialLarge, self).__init__(input_channels, num_classes, num_filters, batch_norm,
-                                                            learn_upconv,
-                                                            dropout=False, dropout_p=0)
+                 decrease_latent=False,
+                 upnet1_latent=False):
+        super(ProbaUNetSpCommon, self).__init__(input_channels, num_classes, num_filters, batch_norm,
+                                                learn_upconv,
+                                                dropout=False, dropout_p=0)
         # U-Net components constructed in the main method
+
+        upnet1_filters = [32, 16, 16, 8, 8]
+        upnet2_filters = [8, 4, 4]
+
+        if upnet1_latent:
+            upnet1_filters = [16 for _ in range(5)]
 
         # Components for latent space
         self.latent_dim = latent_dim
@@ -52,40 +60,44 @@ class ProbabilisticUNetSpatialLarge(UNetBase):
         self.channel_axis = 1
         self.spatial_axes = [2, 3]
 
-        sample_upscale = []
-
-        for _ in range(5):
-            sample_upscale.append(
-                nn.ConvTranspose2d(self.latent_dim, self.latent_dim, kernel_size=4, stride=2, padding=1))
-            sample_upscale.append(nn.ReLU(inplace=True))
-
-        self.sample_upscale = nn.Sequential(*sample_upscale)
-
         self.f_combine = nn.Sequential(
-            nn.Conv2d(self.filter_sizes[0] + self.latent_dim, self.filter_sizes[0], kernel_size=1),
+            nn.Conv2d(self.filter_sizes[0] + upnet1_filters[-1], self.filter_sizes[0], kernel_size=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(self.filter_sizes[0], self.filter_sizes[0], kernel_size=1),
             nn.ReLU(inplace=True)
         )
 
-        # Components for input reconstruction
+        # VAE Decoder
         self.mean, self.std = 0, 1
-        decoder_filters = [16, 16, 8, 8, 4]
-        decoder_layers = [
-            nn.ConvTranspose2d(self.latent_dim, decoder_filters[0], kernel_size=4, stride=2, padding=1),
-            nn.ReLU(inplace=True)
+
+        # UpNet1
+        upnet1_layers = [
+            nn.ConvTranspose2d(self.latent_dim, upnet1_filters[0], kernel_size=4, stride=2, padding=1),
+            nn.ReLU(inplace=True),
+            UNetConvBlock(upnet1_filters[0], upnet1_filters[0])
         ]
 
-        for idx, filter_size in enumerate(decoder_filters[1:]):
-            decoder_layers.append(
-                nn.ConvTranspose2d(decoder_filters[idx], filter_size, kernel_size=4, stride=2, padding=1))
-            decoder_layers.append(nn.ReLU(inplace=True))
+        for idx, filter_size in enumerate(upnet1_filters[1:]):
+            upnet1_layers.append(
+                nn.ConvTranspose2d(upnet1_filters[idx], filter_size, kernel_size=4, stride=2, padding=1))
+            upnet1_layers.append(nn.ReLU(inplace=True))
+            upnet1_layers.append(UNetConvBlock(filter_size, filter_size))
 
-        decoder_layers.append(
-            nn.Conv2d(decoder_filters[-1], 1, kernel_size=3, stride=1, padding=1))
-        decoder_layers.append(nn.Sigmoid())
+        self.upnet1 = nn.Sequential(*upnet1_layers)
 
-        self.recon_decoder = nn.Sequential(*decoder_layers)
+        # UpNet2
+        upnet2_layers = []
+
+        for idx, filter_size in enumerate(upnet2_filters[1:]):
+            upnet2_layers.append(
+                nn.Conv2d(upnet2_filters[idx], filter_size, kernel_size=3, stride=1, padding=1))
+            upnet2_layers.append(nn.ReLU(inplace=True))
+
+        upnet2_layers.append(
+            nn.Conv2d(upnet2_filters[-1], 1, kernel_size=1, stride=1))
+        upnet2_layers.append(nn.Sigmoid())
+
+        self.upnet2 = nn.Sequential(*upnet2_layers)
 
     def latent_sample(self, encoding):
         # Can combine information from previous layers (involves more parameters)
@@ -107,15 +119,14 @@ class ProbabilisticUNetSpatialLarge(UNetBase):
 
         return mu, var
 
-    def combine_features_and_sample(self, features, z):
+    def combine_features_and_sample(self, features, upnet1_output):
         """
         Features has shape (batch) x 32 x 512 x 512.
         z has size (batch)x(latent_dim)x(l_H)x(l_W).
         Use convTranspose2d layers to upsample to (batch) x 32 x 512 x 512
         Returns the result after applying conv layers on concatenated maps
         """
-        z = self.sample_upscale(z)
-        maps_concat = torch.cat((features, z), dim=self.channel_axis)
+        maps_concat = torch.cat((features, upnet1_output), dim=self.channel_axis)
         return self.f_combine(maps_concat)
 
     def reconstruct_image(self, z):
@@ -131,47 +142,49 @@ class ProbabilisticUNetSpatialLarge(UNetBase):
         mu, var = self.latent_sample(unet_encoding)
         z = self.rsample(mu, var)
 
+        upnet1_output = self.upnet1(z)
+
         # Combine sample with feature maps and get final segmentation map
-        out_combined = self.combine_features_and_sample(unet_decoding, z)
+        out_combined = self.combine_features_and_sample(unet_decoding, upnet1_output)
         segmentation = self.output_conv(out_combined)
 
         # Reconstruct image
-        recon = self.reconstruct_image(z)
+        recon = self.upnet2(upnet1_output)
 
         return segmentation, recon, mu, var
 
-    def inference(self, x):
-        with torch.no_grad():
-            # Forward pass UNet encoder and decoder
-            unet_encoding, previous_x = self.unet_encoder(x)
-            unet_decoding = self.unet_decoder(unet_encoding, previous_x)
-
-            # Compute latent space parameters and sample
-            mu, var = self.latent_sample(unet_encoding)
-            z = self.rsample(mu, var)
-
-            # Create segmentation
-            segmentation = self.output_conv(self.combine_features_and_sample(unet_decoding, z))
-
-            return segmentation, unet_decoding, mu, var
-
-    def inference_multi(self, x, num_samples):
-        with torch.no_grad():
-            # Forward pass UNet encoder and decoder
-            unet_encoding, previous_x = self.unet_encoder(x)
-            unet_decoding = self.unet_decoder(unet_encoding, previous_x)
-
-            # Compute latent space parameters
-            mu, var = self.latent_sample(unet_encoding)
-
-            # Create segmentations
-            segmentations = []
-            for i in range(num_samples):
-                z = self.rsample(mu, var)
-                current_segment = self.output_conv(self.combine_features_and_sample(unet_decoding, z))
-                segmentations.append(current_segment)
-
-            return segmentations, unet_decoding, mu, var
+    # def inference(self, x):
+    #     with torch.no_grad():
+    #         # Forward pass UNet encoder and decoder
+    #         unet_encoding, previous_x = self.unet_encoder(x)
+    #         unet_decoding = self.unet_decoder(unet_encoding, previous_x)
+    #
+    #         # Compute latent space parameters and sample
+    #         mu, var = self.latent_sample(unet_encoding)
+    #         z = self.rsample(mu, var)
+    #
+    #         # Create segmentation
+    #         segmentation = self.output_conv(self.combine_features_and_sample(unet_decoding, z))
+    #
+    #         return segmentation, unet_decoding, mu, var
+    #
+    # def inference_multi(self, x, num_samples):
+    #     with torch.no_grad():
+    #         # Forward pass UNet encoder and decoder
+    #         unet_encoding, previous_x = self.unet_encoder(x)
+    #         unet_decoding = self.unet_decoder(unet_encoding, previous_x)
+    #
+    #         # Compute latent space parameters
+    #         mu, var = self.latent_sample(unet_encoding)
+    #
+    #         # Create segmentations
+    #         segmentations = []
+    #         for i in range(num_samples):
+    #             z = self.rsample(mu, var)
+    #             current_segment = self.output_conv(self.combine_features_and_sample(unet_decoding, z))
+    #             segmentations.append(current_segment)
+    #
+    #         return segmentations, unet_decoding, mu, var
 
     def __repr__(self):
         return 'Probabilistic U-Net Spatial Large'
