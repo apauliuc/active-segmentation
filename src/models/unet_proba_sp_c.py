@@ -35,7 +35,8 @@ class ProbaUNetSpCommon(UNetBase):
         upnet2_filters = [8, 4, 4]
 
         if upnet1_latent:
-            upnet1_filters = [16 for _ in range(5)]
+            upnet1_filters = [latent_dim for _ in range(5)]
+            upnet2_filters[0] = latent_dim
 
         # Components for latent space
         self.latent_dim = latent_dim
