@@ -86,7 +86,7 @@ class ProbabilisticUNetSpatial(UNetBase):
             decoder_layers.append(nn.ReLU(inplace=True))
 
         decoder_layers.append(
-            nn.Conv2d(decoder_filters[-1], 1, kernel_size=1, stride=1))
+            nn.Conv2d(decoder_filters[-1], input_channels, kernel_size=1, stride=1))
         decoder_layers.append(nn.Sigmoid())
 
         self.recon_decoder = nn.Sequential(*decoder_layers)
@@ -128,8 +128,7 @@ class ProbabilisticUNetSpatial(UNetBase):
 
     def forward(self, x) -> PUNET_FORWARD:
         # Forward pass UNet encoder and decoder
-        unet_encoding, previous_x = self.unet_encoder(x)
-        unet_decoding = self.unet_decoder(unet_encoding, previous_x)
+        unet_encoding, unet_decoding = self.unet_pipeline(x)
 
         # Compute latent space parameters and sample
         mu, var = self.latent_sample(unet_encoding)
@@ -147,8 +146,7 @@ class ProbabilisticUNetSpatial(UNetBase):
     def inference(self, x):
         with torch.no_grad():
             # Forward pass UNet encoder and decoder
-            unet_encoding, previous_x = self.unet_encoder(x)
-            unet_decoding = self.unet_decoder(unet_encoding, previous_x)
+            unet_encoding, unet_decoding = self.unet_pipeline(x)
 
             # Compute latent space parameters and sample
             mu, var = self.latent_sample(unet_encoding)
@@ -162,8 +160,7 @@ class ProbabilisticUNetSpatial(UNetBase):
     def inference_multi(self, x, num_samples):
         with torch.no_grad():
             # Forward pass UNet encoder and decoder
-            unet_encoding, previous_x = self.unet_encoder(x)
-            unet_decoding = self.unet_decoder(unet_encoding, previous_x)
+            unet_encoding, unet_decoding = self.unet_pipeline(x)
 
             # Compute latent space parameters
             mu, var = self.latent_sample(unet_encoding)

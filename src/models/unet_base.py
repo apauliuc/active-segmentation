@@ -2,28 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.common import ConvBnRelu, get_upsampling_weight
-
-
-class UNetConvBlock(nn.Module):
-    def __init__(self, in_size, out_size, batch_norm=False, dropout=False, dropout_p=0.2,
-                 block_type='encoder'):
-        super(UNetConvBlock, self).__init__()
-        layers = []
-
-        if dropout and block_type in ['encoder', 'center']:
-            layers.append(nn.Dropout2d(p=dropout_p))
-
-        layers.append(ConvBnRelu(in_size, out_size, batch_norm))
-        layers.append(ConvBnRelu(out_size, out_size, batch_norm))
-
-        if dropout and block_type in ['center', 'decoder']:
-            layers.append(nn.Dropout2d(p=dropout_p))
-
-        self.layers = nn.Sequential(*layers)
-
-    def forward(self, x):
-        return self.layers(x)
+from models.common import UNetConvBlock
 
 
 class UpsampleConv(nn.Module):
@@ -137,6 +116,11 @@ class UNetBase(nn.Module):
 
         self.mean = torch.as_tensor(mean, dtype=torch.float32, device=device)
         self.std = torch.as_tensor(std, dtype=torch.float32, device=device)
+
+    def unet_pipeline(self, x):
+        unet_encoding, previous_x = self.unet_encoder(x)
+        unet_decoding = self.unet_decoder(unet_encoding, previous_x)
+        return unet_encoding, unet_decoding
 
     def forward(self, x):
         raise NotImplementedError
