@@ -6,9 +6,8 @@ from models.fcn16 import FCN16
 from models.fcn32 import FCN32
 from bayesian.bayes_unet import BBBUnet
 from models.unet_proba import ProbabilisticUNet
-from models.unet_proba_spatial_common import ProbaUNetSpCommon
+from models.unet_proba_spatial_common import ProbaUNetSpatialCommon
 from models.unet_proba_spatial import ProbabilisticUNetSpatial
-from models.unet_proba_spatial_large import ProbabilisticUNetSpatialLarge
 from models.unet_vae import VariationalUNet
 
 from helpers.utils import retrieve_class_init_parameters
@@ -43,9 +42,8 @@ def _get_model_instance(name: str, train_type: str):
             return {
                 'unet_proba': ProbabilisticUNet,
                 'unet_proba_spatial': ProbabilisticUNetSpatial,
-                'unet_proba_spatial_large': ProbabilisticUNetSpatialLarge,
-                'unet_vae': VariationalUNet,
-                'unet_common': ProbaUNetSpCommon
+                'unet_proba_common': ProbaUNetSpatialCommon,
+                'unet_vae': VariationalUNet
             }[name]
     except KeyError:
         raise Exception(f'Model {name} not available')

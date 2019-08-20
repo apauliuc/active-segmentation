@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import torch.nn as nn
 from torch import distributions, nn as nn
 from typing import Tuple
 
@@ -88,24 +87,3 @@ class ReparameterizedSample(nn.Module):
             z = z.transpose(0, 1)
 
         return z.contiguous()
-
-
-class UNetConvBlock(nn.Module):
-    def __init__(self, in_size, out_size, batch_norm=False, dropout=False, dropout_p=0.2,
-                 block_type='encoder'):
-        super(UNetConvBlock, self).__init__()
-        layers = []
-
-        if dropout and block_type in ['encoder', 'center']:
-            layers.append(nn.Dropout2d(p=dropout_p))
-
-        layers.append(ConvBnRelu(in_size, out_size, batch_norm))
-        layers.append(ConvBnRelu(out_size, out_size, batch_norm))
-
-        if dropout and block_type in ['center', 'decoder']:
-            layers.append(nn.Dropout2d(p=dropout_p))
-
-        self.layers = nn.Sequential(*layers)
-
-    def forward(self, x):
-        return self.layers(x)

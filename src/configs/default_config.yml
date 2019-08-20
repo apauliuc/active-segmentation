@@ -16,25 +16,28 @@ training:
     lr: 0.001
     weight_decay: 0.0005
     amsgrad: False
-    scheduler: step
+    scheduler: plateau
     scheduler_params:
-      step_size: 30
-      gamma: 0.1
-#      mode: min
-#      patience: 10
-#      factor: 0.5
+#      step_size: 20
+#      gamma: 0.1
+      mode: min
+      patience: 15
+      factor: 0.1
+      verbose: True
   loss_fn:
     name: bce_and_jaccard
     ignore_index: 255   # CITYSCAPES
+    prior_var: 1
     ###
     mse_factor: 0.5
-    mse_warmup: True
+    mse_warmup: False
     mse_factor_type: gradual
-    mse_step_interval: 15
+    mse_step_interval: 1
     mse_step_size: 0.1
     ###
     kld_factor: 2
     kld_warmup: False
+    kld_factor_type: gradual
     kld_step_interval: 15
     kld_step_size: 0.1
     ###
@@ -51,9 +54,17 @@ model:
 #    pretrained: True
     dropout: False
     dropout_p: 0.25
-    ###
-    latent_dim: 32
+    ### Proba
     load_standard_unet: False
+    latent_dim: 2
+    # Spatial
+    spatial_large: True
+    last_kernel_size: 1
+    decrease_latent: True
+    # Spatial Common
+    upnet1_latent: True
+    # VAE
+    bottom_block_full: False
 resume:
   resume_from:
   saved_model:

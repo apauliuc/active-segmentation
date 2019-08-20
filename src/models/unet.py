@@ -17,7 +17,7 @@ class UNet(UNetBase):
         super(UNet, self).__init__(input_channels, num_classes, num_filters, batch_norm, learn_upconv,
                                    dropout, dropout_p)
 
-    def forward(self, x):
+    def forward(self, x, inference=False, num_samples=1):
         unet_encoding, previous_x = self.unet_encoder(x)
 
         unet_out = self.output_conv(self.unet_decoder(unet_encoding, previous_x))
