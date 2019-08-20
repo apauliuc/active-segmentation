@@ -24,8 +24,8 @@ class VariationalTrainer(BaseTrainer):
         self.data_loaders = get_dataloaders(config.data)
         self.main_logger.info(self.data_loaders.msg)
 
-        self.starting_kld_factor = 0 if self.train_cfg.loss_fn.kld_warmup else self.train_cfg.loss_fn.kld_factor
-        self.starting_mse_factor = 0 if self.train_cfg.loss_fn.mse_warmup else self.train_cfg.loss_fn.mse_factor
+        self.starting_kld_factor = 0 if self.loss_cfg.kld_warmup else self.loss_cfg.kld_factor
+        self.starting_mse_factor = 0 if self.loss_cfg.mse_warmup else self.loss_cfg.mse_factor
 
         self._init_train_components()
 
@@ -34,7 +34,8 @@ class VariationalTrainer(BaseTrainer):
 
         self.vae_criterion = VAECriterion(ce_loss=self.criterion,
                                           mse_factor=self.starting_mse_factor,
-                                          kld_factor=self.starting_kld_factor)
+                                          kld_factor=self.starting_kld_factor,
+                                          prior_var=self.loss_cfg.prior_var)
         self.main_logger.info(f'Final loss is {self.vae_criterion}')
         self.model.register_mean_std(self.data_loaders.ds_statistics, self.device)
 
@@ -126,9 +127,9 @@ class VariationalTrainer(BaseTrainer):
 
     def _on_epoch_started(self, _engine: Engine) -> None:
         super()._on_epoch_started(_engine)
-        if self.train_cfg.loss_fn.mse_warmup:
+        if self.loss_cfg.mse_warmup:
             self._step_mse(_engine)
-        if self.train_cfg.loss_fn.kld_warmup:
+        if self.loss_cfg.kld_warmup:
             self._step_kld(_engine)
 
     def _log_training_results(self, _train_engine: Engine, logger: Logger, writer: SummaryWriter) -> None:
