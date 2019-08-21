@@ -51,7 +51,7 @@ class VariationalUNetNoRecon(VariationalUNetBase):
 
         segmentation = self.output_conv(decoding)
 
-        return segmentation, mu, var
+        return segmentation, None, mu, var
 
     def _inference(self, x: torch.tensor, num_samples=1):
         with torch.no_grad():
@@ -69,7 +69,7 @@ class VariationalUNetNoRecon(VariationalUNetBase):
 
                 segmentation_all.append(self.output_conv(decoding))
 
-            return segmentation_all, mu, var
+            return segmentation_all, [], mu, var
 
     def __repr__(self):
         return 'Variational U-Net without Reconstruction'

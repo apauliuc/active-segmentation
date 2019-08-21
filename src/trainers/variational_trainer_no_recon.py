@@ -56,7 +56,7 @@ class VariationalTrainerNoReconstruction(VariationalTrainer):
             x = x.to(device=self.device, non_blocking=True)
             y = y.to(device=self.device, non_blocking=True)
 
-            pred, mu, var = self.model(x)
+            pred, _, mu, var = self.model(x)
 
             loss, ce, mse, kl_div = self.vae_criterion(pred, y, x, x, mu, var)
 
@@ -88,7 +88,7 @@ class VariationalTrainerNoReconstruction(VariationalTrainer):
                 x = x.to(device=self.device, non_blocking=True)
                 y = y.to(device=self.device, non_blocking=True)
 
-                pred, mu, var = self.model(x)
+                pred, _, mu, var = self.model(x)
 
                 return pred, y, x, x, mu, var
 
