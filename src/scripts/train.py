@@ -9,6 +9,7 @@ from trainers.bayes_trainer import BayesianTrainer
 from trainers.passive_trainer_ensemble import PassiveTrainerEnsemble
 from trainers.passive_trainer import PassiveTrainer
 from trainers.variational_trainer import VariationalTrainer
+from trainers.variational_trainer_no_recon import VariationalTrainerNoReconstruction
 
 
 def main_train_model(args, config_path: str):
@@ -20,6 +21,7 @@ def main_train_model(args, config_path: str):
     config.gpu_node = args.gpu_node
     config.training.loss_fn.gpu_node = args.gpu_node
     config.model.type = config.training.type
+    config.training.reconstruction = False if 'no_recon' in config.model.name else True
 
     run_dir = get_new_run_path(config.run_name)
 
@@ -44,4 +46,7 @@ def _get_trainer_type(train_cfg: ConfigClass):
         else:
             return PassiveTrainer
     elif train_cfg.type == 'variational':
-        return VariationalTrainer
+        if train_cfg.reconstruction:
+            return VariationalTrainer
+        else:
+            return VariationalTrainerNoReconstruction

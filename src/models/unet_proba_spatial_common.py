@@ -23,7 +23,8 @@ class ProbaUNetSpatialCommon(VariationalUNetBase):
         super(ProbaUNetSpatialCommon, self).__init__(input_channels, num_classes, num_filters, batch_norm,
                                                      learn_upconv, latent_dim)
         upnet1_filters = [32, 16, 16, 8, 8]
-        upnet2_filters = [8, 4, 4]
+        # upnet2_filters = [8, 4, 4]
+        upnet2_filters = [8, 4]
 
         if upnet1_latent:
             upnet1_filters = [latent_dim for _ in range(5)]

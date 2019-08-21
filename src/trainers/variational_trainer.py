@@ -18,8 +18,8 @@ from definitions import RUNS_DIR
 
 class VariationalTrainer(BaseTrainer):
 
-    def __init__(self, config: ConfigClass, save_dir: str):
-        super(VariationalTrainer, self).__init__(config, save_dir, 'Variational_Trainer')
+    def __init__(self, config: ConfigClass, save_dir: str, log_name='Variational_Trainer'):
+        super(VariationalTrainer, self).__init__(config, save_dir, log_name)
 
         self.data_loaders = get_dataloaders(config.data)
         self.main_logger.info(self.data_loaders.msg)
