@@ -49,7 +49,7 @@ def _get_model_instance(name: str, train_type: str):
                 'unet_vae': VariationalUNet,
                 'unet_vae_no_recon': VariationalUNetNoRecon,
                 'unet_proba_spatial_prev': ProbabilisticUNetSpatialPrevious,
-                'unet_stochastic': StochasticUNetNoRecon
+                'unet_stochastic_no_recon': StochasticUNetNoRecon
             }[name]
     except KeyError:
         raise Exception(f'Model {name} not available')
