@@ -25,6 +25,7 @@ class VariationalTrainerNoReconstruction(VariationalTrainer):
         super(VariationalTrainerNoReconstruction, self).__init__(config, save_dir, 'Variational_Trainer_NoRecon')
 
         self.loss_cfg.mse_factor = 0
+        self.loss_cfg.mse_warmup = False
 
     def _init_engines(self) -> Tuple[Engine, Engine]:
         self.train_metrics = {
@@ -99,11 +100,6 @@ class VariationalTrainerNoReconstruction(VariationalTrainer):
                 metric.attach(_engine, name)
 
         return _engine
-
-    def _on_epoch_started(self, _engine: Engine) -> None:
-        super()._on_epoch_started(_engine)
-        if self.loss_cfg.kld_warmup:
-            self._step_kld(_engine)
 
     def _log_training_results(self, _train_engine: Engine, logger: Logger, writer: SummaryWriter) -> None:
         train_duration = timer_to_str(self.timer.value())

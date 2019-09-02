@@ -15,6 +15,7 @@ import data.medical_scans_transforms as custom_transforms
 import torchvision.transforms as standard_transforms
 
 
+# noinspection DuplicatedCode
 class MDSMain(Dataset):
     """Medical Scans Dataset"""
 
@@ -35,12 +36,29 @@ class MDSMain(Dataset):
     def __len__(self) -> int:
         return len(self.file_list)
 
-    # noinspection DuplicatedCode
     def __getitem__(self, item: int):
         img_name = self.file_list[item]
 
         image = Image.open(join(self.image_dir, img_name))
         segmentation = Image.open(join(self.segment_dir, img_name))
+
+        if self.joint_transform is not None:
+            image, segmentation = self.joint_transform(image, segmentation)
+
+        if self.input_transform is not None:
+            image = self.input_transform(image)
+
+        if self.target_transform is not None:
+            segmentation = self.target_transform(segmentation)
+
+        return image, segmentation
+
+    def get_image_from_name(self, name: str):
+        if name[-4:] != '.png':
+            name = f'{name}.png'
+
+        image = Image.open(join(self.image_dir, name))
+        segmentation = Image.open(join(self.segment_dir, name))
 
         if self.joint_transform is not None:
             image, segmentation = self.joint_transform(image, segmentation)
