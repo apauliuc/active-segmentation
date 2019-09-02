@@ -11,6 +11,7 @@ from models.unet_proba_spatial import ProbabilisticUNetSpatial
 from models.unet_proba_spatial_previous import ProbabilisticUNetSpatialPrevious
 from models.unet_vae import VariationalUNet
 from models.unet_vae_no_recon import VariationalUNetNoRecon
+from models.unet_vae_stochastic import StochasticUNetNoRecon
 
 from helpers.utils import retrieve_class_init_parameters
 
@@ -47,7 +48,8 @@ def _get_model_instance(name: str, train_type: str):
                 'unet_proba_common': ProbaUNetSpatialCommon,
                 'unet_vae': VariationalUNet,
                 'unet_vae_no_recon': VariationalUNetNoRecon,
-                'unet_proba_spatial_prev': ProbabilisticUNetSpatialPrevious
+                'unet_proba_spatial_prev': ProbabilisticUNetSpatialPrevious,
+                'unet_stochastic': StochasticUNetNoRecon
             }[name]
     except KeyError:
         raise Exception(f'Model {name} not available')
