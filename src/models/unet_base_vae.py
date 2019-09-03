@@ -28,8 +28,6 @@ class VariationalUNetBase(UNetBase):
         self.channel_axis = 1
         self.spatial_axes = [2, 3]
 
-        self.mean, self.std = 0, 1
-
         self.var_softplus = nn.Softplus()
         self.rsample = ReparameterizedSample()
 
@@ -37,12 +35,6 @@ class VariationalUNetBase(UNetBase):
         self.upconv_sample = nn.Sequential()
         self.recon_pipeline = nn.Sequential()
         self.f_combine = nn.Sequential()
-
-    def register_mean_std(self, mean_std, device):
-        mean, std = mean_std.values()
-
-        self.mean = torch.as_tensor(mean, dtype=torch.float32, device=device)
-        self.std = torch.as_tensor(std, dtype=torch.float32, device=device)
 
     def latent_space_params(self, encoding: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         mu_var = self.latent_space_pipeline(encoding)

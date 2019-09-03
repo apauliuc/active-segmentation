@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch import distributions, nn as nn
+from torch import distributions, nn
 from typing import Tuple
 
 
@@ -87,3 +87,21 @@ class ReparameterizedSample(nn.Module):
             z = z.transpose(0, 1)
 
         return z.contiguous()
+
+
+class DropoutLayer(nn.Dropout2d):
+
+    def __init__(self, dropout_full, dropout_p):
+        super(DropoutLayer, self).__init__(p=dropout_p, inplace=False)
+        self.dropout_full = dropout_full
+        self.dropout_p = dropout_p
+
+    def forward(self, x):
+        if self.dropout_full:
+            if self.training:
+                mask = torch.zeros_like(x) if np.random.rand(1) < self.dropout_p else torch.ones_like(x)
+                return x * mask
+            else:
+                return x * (1. - self.dropout_p)
+        else:
+            return super(DropoutLayer, self).forward(x)

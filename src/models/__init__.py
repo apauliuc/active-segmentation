@@ -9,6 +9,7 @@ from models.unet_proba import ProbabilisticUNet
 from models.unet_proba_spatial_common import ProbaUNetSpatialCommon
 from models.unet_proba_spatial import ProbabilisticUNetSpatial
 from models.unet_proba_spatial_previous import ProbabilisticUNetSpatialPrevious
+from models.unet_sk import SKUNet
 from models.unet_vae import VariationalUNet
 from models.unet_vae_no_recon import VariationalUNetNoRecon
 from models.unet_vae_stochastic import StochasticUNetNoRecon
@@ -33,6 +34,7 @@ def _get_model_instance(name: str, train_type: str):
         if train_type == 'standard':
             return {
                 'unet': UNet,
+                'skunet': SKUNet,
                 'ternaus_net': TernausNet,
                 'segnet': SegNet,
                 'fcn8': FCN8,

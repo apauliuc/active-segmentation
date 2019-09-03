@@ -63,6 +63,8 @@ class UNetBase(nn.Module):
         self.num_classes = num_classes
         self.dropout = dropout
 
+        self.mean, self.std = 0, 1
+
         # Parameters
         filter_factors = [1, 2, 4, 8, 16]
         filter_sizes = [num_filters * s for s in filter_factors]
@@ -137,6 +139,12 @@ class UNetBase(nn.Module):
         unet_encoding, previous_x = self.unet_encoder(x)
         unet_decoding = self.unet_decoder(unet_encoding, previous_x)
         return unet_encoding, unet_decoding
+
+    def register_mean_std(self, mean_std, device):
+        mean, std = mean_std.values()
+
+        self.mean = torch.as_tensor(mean, dtype=torch.float32, device=device)
+        self.std = torch.as_tensor(std, dtype=torch.float32, device=device)
 
     def forward(self, x: torch.tensor, inference=False, num_samples=1):
         raise NotImplementedError
