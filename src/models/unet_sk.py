@@ -7,7 +7,7 @@ from models.unet_base import UNetBase
 # noinspection DuplicatedCode
 class SKUNet(UNetBase):
     """
-    Standard U-Net model for semantic segmentation
+    Standard U-Net model with Stochastic Skip Connections for semantic segmentation
     """
 
     def __init__(self,

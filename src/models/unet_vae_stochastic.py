@@ -6,6 +6,10 @@ from models.common import DropoutLayer
 
 # noinspection DuplicatedCode
 class StochasticUNetNoRecon(VariationalUNetNoRecon):
+    """
+    Variational U-Net without reconstruction with Stochastic Skip Connections
+    """
+
     def __init__(self,
                  input_channels=1,
                  num_classes=1,
@@ -24,10 +28,6 @@ class StochasticUNetNoRecon(VariationalUNetNoRecon):
             self.dropout_layers.append(DropoutLayer(dropout_full=dropout_full, dropout_p=dropout_p))
 
         self.last_dropout = DropoutLayer(dropout_full=dropout_full, dropout_p=dropout_p)
-
-    """
-    Variational U-Net without reconstruction
-    """
 
     def unet_decoder(self, x, previous_x):
         x_out = x

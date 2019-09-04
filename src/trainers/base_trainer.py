@@ -340,7 +340,7 @@ class BaseTrainer(abc.ABC):
 
     @staticmethod
     def val_loss(_engine: Engine) -> float:
-        return round(_engine.state.metrics['loss'].item(), 6)
+        return round(_engine.state.metrics['loss'], 6)
 
     @staticmethod
     def iou_score(_engine: Engine) -> float:

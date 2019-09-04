@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import SimpleITK as SiTK
 
+from definitions import DATA_DIR
 from data import MDSDataLoaders
 from helpers.config import ConfigClass
 from helpers.utils import binarize_nparray
@@ -205,6 +206,7 @@ def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_m
     if name is None:
         name = config.run_name
     config.data.mode = 'predict'
+    config.data.path = DATA_DIR
 
     # Load model
     if config.training.use_ensemble:
