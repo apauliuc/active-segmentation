@@ -45,6 +45,7 @@ def main(args):
 
     elif args.run_type == 'predict':
         # Run prediction on the val dataset using previous run directory
+        print(f'Predicting on run {args.run_dir}')
         run_dir = os.path.join(RUNS_DIR, args.run_dir)
         config = get_config_from_path(os.path.join(run_dir, 'cfg_file.yml'))
 
