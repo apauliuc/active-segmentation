@@ -3,12 +3,14 @@ import torch
 import torch.nn as nn
 from torch.nn import init
 
+from models.common import DropoutLayer
+
 longTensor = torch.cuda.LongTensor if torch.cuda.is_available() else torch.LongTensor
 floatTensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
 
 def apply_dropout(m):
-    if type(m) == nn.Dropout2d:
+    if type(m) == nn.Dropout2d or type(m) == DropoutLayer:
         m.train()
 
 
