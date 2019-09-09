@@ -22,6 +22,7 @@ def main_active_learning(args, config_path: str):
     config.gpu_node = args.gpu_node
     config.training.loss_fn.gpu_node = args.gpu_node
     config.al_mode = True
+    config.model.type = config.training.type
 
     config.active_learn.weighted = True if 'weighted' in config.active_learn.method else False
 
@@ -29,7 +30,8 @@ def main_active_learning(args, config_path: str):
         config.prediction.mode = 'mc'
         config.prediction.mc_passes = config.active_learn.mc_passes
         config.training.use_ensemble = False
-        config.model.network_params.dropout = True
+        if 'skunet' not in config.model.name:
+            config.model.network_params.dropout = True
     elif 'ensemble' in config.active_learn.method:
         config.prediction.mode = 'single'
         config.training.use_ensemble = True
