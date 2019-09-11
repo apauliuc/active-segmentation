@@ -6,7 +6,7 @@ from os.path import join
 from PIL import Image
 
 from torch.utils.data import Dataset
-from torchvision.transforms import transforms
+import torchvision.transforms as standard_transforms
 
 from helpers.config import ConfigClass
 from helpers.paths import get_dataset_path
@@ -60,9 +60,9 @@ class ALMDSPatientPool:
         with open(join(config.data.path, config.data.dataset, 'norm_data.pkl'), 'rb') as f:
             ds_statistics = pickle.load(f)
 
-        self.input_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize([ds_statistics['mean']], [ds_statistics['std']])
+        self.input_transform = standard_transforms.Compose([
+            standard_transforms.ToTensor(),
+            standard_transforms.Normalize(**ds_statistics)
         ])
 
     def _remove_from_pool(self, scans_to_remove: list) -> None:
