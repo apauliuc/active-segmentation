@@ -50,13 +50,15 @@ training:
 model:
   name: unet
   network_params:
-    num_filters: 32
+    num_filters: 32  # base unet
 #    pretrained: True
-    dropout: False
-    dropout_p: 0.25
+    dropout: False  # used in standard UNet
+    dropout_p: 0.5  # dropout proba for main path UNet
+    dropout_full: False  # Drop full skip connections, or parts of them
+    dropout_sk_p: 0.5  # dropout proba for stochastic skip conn. UNet
     ### Proba
     load_standard_unet: False
-    latent_dim: 2
+    latent_dim: 4
     # Spatial
     spatial_large: True
     last_kernel_size: 1

@@ -17,16 +17,17 @@ class SKUNet(UNetBase):
                  learn_upconv=True,
                  dropout=False,
                  dropout_p=0.2,
-                 dropout_full=False):
+                 dropout_full=False,
+                 dropout_sk_p=0.2):
         super(SKUNet, self).__init__(input_channels, num_classes, num_filters, batch_norm, learn_upconv,
                                      dropout, dropout_p)
 
         self.dropout_layers = []
 
         for i in range(len(self.unet_enc_down)):
-            self.dropout_layers.append(DropoutLayer(dropout_full=dropout_full, dropout_p=dropout_p))
+            self.dropout_layers.append(DropoutLayer(dropout_full=dropout_full, dropout_p=dropout_sk_p))
 
-        self.last_dropout = DropoutLayer(dropout_full=dropout_full, dropout_p=dropout_p)
+        self.last_dropout = DropoutLayer(dropout_full=dropout_full, dropout_p=dropout_sk_p)
 
     def unet_decoder(self, x, previous_x):
         x_out = x
@@ -47,4 +48,4 @@ class SKUNet(UNetBase):
         return unet_out
 
     def __repr__(self):
-        return 'SKUNet'
+        return 'SKUNet with Dropout' if self.dropout else 'SKUNet'

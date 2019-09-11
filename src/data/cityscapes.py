@@ -35,7 +35,7 @@ class CityScapes(Dataset):
     classes = ["road", "sidewalk", "building", "wall", "fence", "pole", "traffic light", "traffic sign", "vegetation",
                "terrain", "sky", "person", "rider", "car", "truck", "bus", "train", "motorcycle", "bicycle"]
 
-    def __init__(self, root, split, file_list=None, input_size=(1024, 512)):
+    def __init__(self, root, split, file_list=None, input_size=(512, 512)):
         self.split = split
         self.input_size = input_size
         self.ignore_label = 255
@@ -117,11 +117,11 @@ class CityScapesDataLoaders(BaseLoader):
         self.shuffle = shuffle
         self.input_channels = 3
         self.num_classes = 19
-        self.image_size = (1024, 512)
+        self.image_size = (512, 512)
         self.ds_statistics = {'mean': [0.3006, 0.3365, 0.2956], 'std': [0.1951, 0.1972, 0.1968]}
 
-        # self.data_root = os.path.join(config.path, config.dataset)
-        self.data_root = '/Users/andrei/Programming/CityscapesDataset/'
+        self.data_root = os.path.join(config.path, config.dataset)
+        # self.data_root = '/Users/andrei/Programming/CityscapesDataset/'
 
         self.train_dataset = CityScapes(self.data_root, 'train', file_list=file_list, input_size=self.image_size)
         self.val_dataset = CityScapes(self.data_root, 'val', input_size=self.image_size)
