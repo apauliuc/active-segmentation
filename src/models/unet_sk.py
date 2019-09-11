@@ -4,7 +4,6 @@ from models.common import DropoutLayer
 from models.unet_base import UNetBase
 
 
-# noinspection DuplicatedCode
 class SKUNet(UNetBase):
     """
     Standard U-Net model with Stochastic Skip Connections for semantic segmentation

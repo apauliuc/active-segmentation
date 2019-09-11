@@ -5,7 +5,6 @@ from torch import nn
 from models.unet_base_vae import VariationalUNetBase
 
 
-# noinspection DuplicatedCode
 class ProbabilisticUNet(VariationalUNetBase):
     """
     Probabilistic U-Net

@@ -9,7 +9,6 @@ from models.common import ReparameterizedSample
 from models.unet_base import UNetBase, UNetConvBlock
 
 
-# noinspection DuplicatedCode
 class VariationalUNetBase(UNetBase):
     """
     Base class for U-Net neural networks with Variational Component

@@ -5,7 +5,6 @@ from models.unet_base import UNetConvBlock
 from models.unet_base_vae import VariationalUNetBase
 
 
-# noinspection DuplicatedCode
 class ProbaUNetSpatialCommon(VariationalUNetBase):
     """
     Probabilistic U-Net

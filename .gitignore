@@ -115,6 +115,7 @@ src/notebooks/
 runs*/
 RESULTS/
 sh_scripts/
+figures/
 
 Some files
 layers_*

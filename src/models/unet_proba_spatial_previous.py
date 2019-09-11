@@ -7,7 +7,6 @@ from models.common import ReparameterizedSample
 from models.unet_base_vae import VariationalUNetBase
 
 
-# noinspection DuplicatedCode
 class ProbabilisticUNetSpatialPrevious(VariationalUNetBase):
     """
     Probabilistic U-Net

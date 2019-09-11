@@ -6,7 +6,6 @@ from models.common import ConvBnRelu
 from models.unet_base_vae import VariationalUNetBase
 
 
-# noinspection DuplicatedCode
 class VariationalUNetNoRecon(VariationalUNetBase):
     """
     Variational U-Net without reconstruction

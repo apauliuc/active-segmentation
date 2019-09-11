@@ -5,8 +5,7 @@ import numpy as np
 from scipy.special import xlogy
 import torch
 
-from ignite import handlers
-from ignite.engine.engine import Engine, Events
+from ignite.engine.engine import Engine
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -172,7 +171,7 @@ class ActiveTrainerScan(BaseTrainer):
             al_loader = DataLoader(scan_dataset,
                                    batch_size=self.config.data.batch_size_val,
                                    shuffle=False,
-                                   num_workers=self.config.data.num_workers,
+                                   num_workers=1,
                                    pin_memory=torch.cuda.is_available())
 
             scan_prediction = None
@@ -233,7 +232,7 @@ class ActiveTrainerScan(BaseTrainer):
             al_loader = DataLoader(scan_dataset,
                                    batch_size=self.config.data.batch_size_val,
                                    shuffle=False,
-                                   num_workers=self.config.data.num_workers,
+                                   num_workers=1,
                                    pin_memory=torch.cuda.is_available())
 
             predictions = list()

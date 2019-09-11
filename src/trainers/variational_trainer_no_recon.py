@@ -16,7 +16,6 @@ from trainers.variational_trainer import VariationalTrainer
 from definitions import RUNS_DIR
 
 
-# noinspection DuplicatedCode
 class VariationalTrainerNoReconstruction(VariationalTrainer):
 
     def __init__(self, config: ConfigClass, save_dir: str):

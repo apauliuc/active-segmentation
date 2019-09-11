@@ -15,7 +15,6 @@ import data.medical_scans_transforms as custom_transforms
 import torchvision.transforms as standard_transforms
 
 
-# noinspection DuplicatedCode
 class MDSMain(Dataset):
     """Medical Scans Dataset"""
 

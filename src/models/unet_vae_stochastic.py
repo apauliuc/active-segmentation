@@ -4,7 +4,6 @@ from models import VariationalUNetNoRecon
 from models.common import DropoutLayer
 
 
-# noinspection DuplicatedCode
 class StochasticUNetNoRecon(VariationalUNetNoRecon):
     """
     Variational U-Net without reconstruction with Stochastic Skip Connections
