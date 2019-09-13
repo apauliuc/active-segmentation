@@ -47,7 +47,7 @@ def main_active_learning(args, config_path: str):
     trainer = trainer_class(config, run_dir)
     trainer.run()
 
-    if args.train_predict:
+    if args.train_predict and 'AMC' in config.data.dataset:
         main_predict(config, run_dir)
 
 
