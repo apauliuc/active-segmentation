@@ -4,7 +4,7 @@ import yaml
 
 from helpers.config import get_config_from_path, ConfigClass
 from helpers.paths import get_new_run_path
-from scripts.predict import main_predict
+from scripts.predict_mds import main_predict_mds
 from trainers.bayes_trainer import BayesianTrainer
 from trainers.passive_trainer_ensemble import PassiveTrainerEnsemble
 from trainers.passive_trainer import PassiveTrainer
@@ -34,7 +34,7 @@ def main_train_model(args, config_path: str):
     trainer.run()
 
     if args.train_predict and 'AMC' in config.data.dataset:
-        main_predict(config, run_dir)
+        main_predict_mds(config, run_dir)
 
 
 def _get_trainer_type(train_cfg: ConfigClass):

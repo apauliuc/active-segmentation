@@ -202,11 +202,12 @@ def save_segmentation_to_file(segmentation, threshold, path, dir_id, name):
                     os.path.join(path, dir_id, f'{dir_id}_predicted_{name}.mha'))
 
 
-def main_predict(config: ConfigClass, load_directory=None, name=None, use_best_model=True):
+def main_predict_mds(config: ConfigClass, load_directory=None, name=None, use_best_model=True):
     if name is None:
         name = config.run_name
     config.data.mode = 'predict'
     config.data.path = DATA_DIR
+    config.data.batch_size_val = 12
 
     # Load model
     if config.training.use_ensemble:

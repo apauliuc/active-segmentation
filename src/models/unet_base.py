@@ -145,5 +145,9 @@ class UNetBase(nn.Module):
         self.mean = torch.as_tensor(mean, dtype=torch.float32, device=device)
         self.std = torch.as_tensor(std, dtype=torch.float32, device=device)
 
+        if self.in_channels > 1:
+            self.mean = self.mean.unsqueeze(1).unsqueeze(1)
+            self.std = self.std.unsqueeze(1).unsqueeze(1)
+
     def forward(self, x: torch.tensor, inference=False, num_samples=1):
         raise NotImplementedError

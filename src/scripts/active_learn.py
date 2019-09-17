@@ -4,7 +4,7 @@ import yaml
 
 from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
-from scripts.predict import main_predict
+from scripts.predict_mds import main_predict_mds
 from trainers.active_learn_scan.bald import BALDScan
 from trainers.active_learn_scan.least_confident import LeastConfidentScan
 from trainers.active_learn_scan.max_entropy import MaxEntropyScan
@@ -48,7 +48,7 @@ def main_active_learning(args, config_path: str):
     trainer.run()
 
     if args.train_predict and 'AMC' in config.data.dataset:
-        main_predict(config, run_dir)
+        main_predict_mds(config, run_dir)
 
 
 def _get_al_trainer(name: str):

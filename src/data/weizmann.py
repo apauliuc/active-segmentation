@@ -17,7 +17,7 @@ import torchvision.transforms as standard_transforms
 class WeizmannDS(Dataset):
     """Weizmann Segmentation Dataset"""
 
-    def __init__(self, data_dir, split, file_list=None, dataset_stats=None, input_size=(112, 288)):
+    def __init__(self, data_dir, split, file_list=None, dataset_stats=None, input_size=(288, 112)):
         self.split = split
         self.input_size = input_size
         self.root_dir = join(data_dir, split)
@@ -110,7 +110,7 @@ class WeizmannDataLoaders(BaseLoader):
         self.shuffle = shuffle
         self.input_channels = 3
         self.num_classes = 1
-        self.image_size = (112, 288)
+        self.image_size = (288, 112)  # width x height
 
         self.data_root = os.path.join(config.path, config.dataset)
 
@@ -156,17 +156,17 @@ class WeizmannDataLoaders(BaseLoader):
                                        num_workers=self.config.num_workers,
                                        pin_memory=torch.cuda.is_available())
 
-
-if __name__ == '__main__':
-
-    config = get_config_from_path(os.path.join(CONFIG_DIR, CONFIG_DEFAULT))
-    device = torch.device(f'cuda:{0}' if torch.cuda.is_available() else 'cpu')
-    config.data.mode = 'train'
-    config.data.path = DATA_DIR
-    config.gpu_node = 0
-    config.training.loss_fn.gpu_node = 0
-    config.model.type = config.training.type
-    config.training.reconstruction = False if 'no_recon' in config.model.name else True
-
-    w_dl = WeizmannDataLoaders(config.data)
-    print('aaa')
+#
+# if __name__ == '__main__':
+#
+#     config = get_config_from_path(os.path.join(CONFIG_DIR, CONFIG_DEFAULT))
+#     device = torch.device(f'cuda:{0}' if torch.cuda.is_available() else 'cpu')
+#     config.data.mode = 'train'
+#     config.data.path = DATA_DIR
+#     config.gpu_node = 0
+#     config.training.loss_fn.gpu_node = 0
+#     config.model.type = config.training.type
+#     config.training.reconstruction = False if 'no_recon' in config.model.name else True
+#
+#     w_dl = WeizmannDataLoaders(config.data)
+#     print('aaa')
