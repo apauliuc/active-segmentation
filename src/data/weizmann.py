@@ -8,8 +8,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 from data.base_loader import BaseLoader
-from definitions import CONFIG_DIR, CONFIG_DEFAULT, DATA_DIR
-from helpers.config import ConfigClass, get_config_from_path
+from helpers.config import ConfigClass
 import data.cityscapes_transforms as custom_transforms
 import torchvision.transforms as standard_transforms
 
@@ -75,31 +74,78 @@ class WeizmannDS(Dataset):
             raise RuntimeError('Invalid dataset mode')
 
         input_transform = standard_transforms.Compose([
+            # standard_transforms.Resize((self.input_size[1], self.input_size[0])),
             standard_transforms.ToTensor(),
             standard_transforms.Normalize(**mean_std)
         ])
 
-        target_transform = standard_transforms.ToTensor()
+        target_transform = standard_transforms.Compose([
+            # standard_transforms.Resize((self.input_size[1], self.input_size[0])),
+            standard_transforms.ToTensor()
+        ])
 
         return joint, input_transform, target_transform
 
-    # def get_image_from_name(self, name: str):
-    #     if name[-4:] != '.png':
-    #         name = f'{name}.png'
-    #
-    #     image = Image.open(join(self.image_dir, name))
-    #     segmentation = Image.open(join(self.segment_dir, name))
-    #
-    #     if self.joint_transform is not None:
-    #         image, segmentation = self.joint_transform(image, segmentation)
-    #
-    #     if self.input_transform is not None:
-    #         image = self.input_transform(image)
-    #
-    #     if self.target_transform is not None:
-    #         segmentation = self.target_transform(segmentation)
-    #
-    #     return image, segmentation
+    def get_image_from_name(self, name: str):
+        segmentation_names = self.img_to_seg[name]
+        pairs = []
+
+        for seg_name in segmentation_names:
+            image = Image.open(join(self.root_dir, name, 'src_color', f'{name}.png'))
+            segmentation = Image.open(join(self.root_dir, name, 'human_seg', seg_name))
+
+            if self.joint_transform is not None:
+                image, segmentation = self.joint_transform(image, segmentation)
+
+            if self.input_transform is not None:
+                image = self.input_transform(image)
+
+            if self.target_transform is not None:
+                segmentation = np.where(np.array(segmentation)[:, :, 1] != 0, 0, 1).astype(np.float32)
+                segmentation = self.target_transform(segmentation)
+
+            pairs.append((image, segmentation))
+
+        return pairs
+
+
+class WeizmannDSEvaluation(Dataset):
+    """Weizmann Segmentation Dataset - Evaluation phase"""
+
+    def __init__(self, data_dir, dataset_stats=None, input_size=(288, 112)):
+        self.input_size = input_size
+        self.root_dir = data_dir
+
+        self.image_list = []
+
+        for x in os.listdir(self.root_dir):
+            if os.path.isdir(join(self.root_dir, x)):
+                self.image_list.append(x)
+
+        self.joint_transform, self.input_transform, self.target_transform = self._get_transforms(dataset_stats)
+
+    def __len__(self) -> int:
+        return len(self.image_list)
+
+    def __getitem__(self, item: int):
+        image_name = self.image_list[item]
+
+        image = Image.open(join(self.root_dir, image_name, 'src_color', f'{image_name}.png'))
+        shape = (image.height, image.width)
+
+        if self.input_transform is not None:
+            image = self.input_transform(image)
+
+        return image, image_name, shape
+
+    def _get_transforms(self, mean_std):
+        input_transform = standard_transforms.Compose([
+            standard_transforms.Resize((self.input_size[1], self.input_size[0])),
+            standard_transforms.ToTensor(),
+            standard_transforms.Normalize(**mean_std)
+        ])
+
+        return None, input_transform, None
 
 
 class WeizmannDataLoaders(BaseLoader):
@@ -155,18 +201,3 @@ class WeizmannDataLoaders(BaseLoader):
                                        shuffle=self.shuffle,
                                        num_workers=self.config.num_workers,
                                        pin_memory=torch.cuda.is_available())
-
-#
-# if __name__ == '__main__':
-#
-#     config = get_config_from_path(os.path.join(CONFIG_DIR, CONFIG_DEFAULT))
-#     device = torch.device(f'cuda:{0}' if torch.cuda.is_available() else 'cpu')
-#     config.data.mode = 'train'
-#     config.data.path = DATA_DIR
-#     config.gpu_node = 0
-#     config.training.loss_fn.gpu_node = 0
-#     config.model.type = config.training.type
-#     config.training.reconstruction = False if 'no_recon' in config.model.name else True
-#
-#     w_dl = WeizmannDataLoaders(config.data)
-#     print('aaa')

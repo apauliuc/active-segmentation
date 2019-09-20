@@ -41,7 +41,20 @@ def create_directory(path: str):
         os.makedirs(path)
 
 
-def recursive_glob(root_dir='.', suffix=''):
+def recursive_glob_filenames(root_dir='.', suffix=''):
+    """Performs recursive glob with given suffix and rootdir
+        :param root_dir is the root directory
+        :param suffix is the suffix to be searched
+    """
+    return [
+        filename
+        for loop_root, _, filenames in os.walk(root_dir)
+        for filename in filenames
+        if filename.endswith(suffix)
+    ]
+
+
+def recursive_glob_paths(root_dir='.', suffix=''):
     """Performs recursive glob with given suffix and rootdir
         :param root_dir is the root directory
         :param suffix is the suffix to be searched
