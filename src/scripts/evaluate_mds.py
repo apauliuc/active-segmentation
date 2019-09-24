@@ -7,68 +7,12 @@ from definitions import DATA_DIR
 from data import MDSDataLoaders
 from helpers.config import ConfigClass
 from helpers.utils import binarize_nparray
-from models import get_model
 from helpers.metrics import SegmentationMetrics
 from helpers.torch_utils import apply_dropout
+from scripts.evaluate_general import load_single_model, load_ensemble_models
 
 
-def get_files_list(config: ConfigClass, load_directory: str):
-    # Find model file to load from
-    if config.al_mode:
-        al_directory = sorted([x for x in os.listdir(load_directory) if 'Step' in x])[-1]
-        load_directory = os.path.join(load_directory, al_directory)
-        files_list = os.listdir(load_directory)
-    else:
-        files_list = os.listdir(load_directory)
-
-    return files_list, load_directory
-
-
-def load_ensemble_models(config: ConfigClass, load_directory=None, use_best_model=True):
-    device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
-
-    files_list, load_directory = get_files_list(config, load_directory)
-
-    model_filenames = list()
-    fname_pattern = 'best_model_' if use_best_model else 'final_model_'
-    for f in files_list:
-        if fname_pattern in f:
-            model_filenames.append(f)
-
-    # Load models
-    models = list()
-    for f in model_filenames:
-        model = get_model(config.model)
-        model.load_state_dict(torch.load(os.path.join(load_directory, f)))
-        model.to(device)
-        models.append(model)
-
-    return models
-
-
-def load_single_model(config: ConfigClass, load_directory=None, use_best_model=True):
-    device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
-
-    files_list, load_directory = get_files_list(config, load_directory)
-
-    model_filename = 'final_model_1.pth'
-
-    fname_pattern = 'best_model_' if use_best_model else 'final_model_'
-    for f in files_list:
-        if fname_pattern in f:
-            model_filename = f
-
-    model_filepath = os.path.join(load_directory, model_filename)
-
-    # Load model
-    model = get_model(config.model)
-    model.load_state_dict(torch.load(model_filepath))
-    model.to(device)
-
-    return model
-
-
-def predict_one_pass(config: ConfigClass, model, name):
+def mds_evaluate_one_pass(config: ConfigClass, model, name):
     device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
 
     # Create dataloader wrapper
@@ -76,9 +20,9 @@ def predict_one_pass(config: ConfigClass, model, name):
     segment_metrics = SegmentationMetrics(num_classes=loader_wrapper.num_classes,
                                           threshold=config.binarize_threshold)
 
-    # Predict
+    # Evaluate
     for dir_id in loader_wrapper.dir_list:
-        data_loader = loader_wrapper.get_predict_loader(dir_id)
+        data_loader = loader_wrapper.get_evaluation_loader(dir_id)
 
         model.eval()
         segmentation = np.zeros(data_loader.dataset.shape)
@@ -91,7 +35,7 @@ def predict_one_pass(config: ConfigClass, model, name):
                 x = x.to(device=device, non_blocking=True)
                 y = y.to(device=device, non_blocking=True)
 
-                y_pred, *_ = model(x)
+                y_pred = model(x)
 
                 segment_metrics.update((y_pred, y))
 
@@ -105,7 +49,7 @@ def predict_one_pass(config: ConfigClass, model, name):
     return metrics
 
 
-def predict_monte_carlo(config: ConfigClass, model, name):
+def mds_evaluate_monte_carlo(config: ConfigClass, model, name):
     device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
 
     # Create dataloader wrapper
@@ -113,9 +57,9 @@ def predict_monte_carlo(config: ConfigClass, model, name):
     segment_metrics = SegmentationMetrics(num_classes=loader_wrapper.num_classes,
                                           threshold=config.binarize_threshold)
 
-    # Predict
+    # Evaluate
     for dir_id in loader_wrapper.dir_list:
-        data_loader = loader_wrapper.get_predict_loader(dir_id)
+        data_loader = loader_wrapper.get_evaluation_loader(dir_id)
 
         model.eval()
         model.apply(apply_dropout)
@@ -149,7 +93,7 @@ def predict_monte_carlo(config: ConfigClass, model, name):
     return metrics
 
 
-def predict_ensemble(config: ConfigClass, models_list, name):
+def mds_evaluate_ensemble(config: ConfigClass, models_list, name):
     device = torch.device(f'cuda:{config.gpu_node}' if torch.cuda.is_available() else 'cpu')
 
     # Create dataloader wrapper
@@ -157,9 +101,9 @@ def predict_ensemble(config: ConfigClass, models_list, name):
     segment_metrics = SegmentationMetrics(num_classes=loader_wrapper.num_classes,
                                           threshold=config.binarize_threshold)
 
-    # Predict
+    # Evaluate
     for dir_id in loader_wrapper.dir_list:
-        data_loader = loader_wrapper.get_predict_loader(dir_id)
+        data_loader = loader_wrapper.get_evaluation_loader(dir_id)
 
         for m in models_list:
             m.eval()
@@ -202,10 +146,10 @@ def save_segmentation_to_file(segmentation, threshold, path, dir_id, name):
                     os.path.join(path, dir_id, f'{dir_id}_predicted_{name}.mha'))
 
 
-def main_predict_mds(config: ConfigClass, load_directory=None, name=None, use_best_model=True):
+def main_evaluation_mds(config: ConfigClass, load_directory=None, name=None, use_best_model=True):
     if name is None:
         name = config.run_name
-    config.data.mode = 'predict'
+    config.data.mode = 'evaluate'
     config.data.path = DATA_DIR
     config.data.batch_size_val = 12
 
@@ -213,18 +157,18 @@ def main_predict_mds(config: ConfigClass, load_directory=None, name=None, use_be
     if config.training.use_ensemble:
         models_list = load_ensemble_models(config, load_directory, use_best_model)
 
-        metrics = predict_ensemble(config, models_list, name)
+        metrics = mds_evaluate_ensemble(config, models_list, name)
     else:
         model = load_single_model(config, load_directory, use_best_model)
 
         if config.prediction.mode == 'single':
-            metrics = predict_one_pass(config, model, name)
+            metrics = mds_evaluate_one_pass(config, model, name)
         else:
-            metrics = predict_monte_carlo(config, model, name)
+            metrics = mds_evaluate_monte_carlo(config, model, name)
 
-    print('Predictions done. Segmentation metrics:')
+    print('Evaluations done. Segmentation metrics:')
     print(metrics)
 
-    with open(os.path.join(load_directory, 'prediction_results.txt'), 'w+') as f:
+    with open(os.path.join(load_directory, 'evaluation_results.txt'), 'w+') as f:
         for k, v in metrics.items():
             f.write(f"{k}: {v:.4f}\n")

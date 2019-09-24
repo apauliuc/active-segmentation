@@ -171,28 +171,28 @@ class MDSDataLoaders(BaseLoader):
 
             if file_list is None:
                 self.msg = f'Train data loader created from {self.train_path}. ' \
-                    f'Validation data loader created from {val_path}'
+                           f'Validation data loader created from {val_path}'
             else:
                 self.msg = f'AL train data loader created from {self.train_path}. ' \
-                    f'Validation data loader created from {val_path}'
+                           f'Validation data loader created from {val_path}'
 
             if config.run_val_on_train:
                 self.val_train_loader = DataLoader(self.train_dataset, batch_size=config.batch_size_val,
                                                    shuffle=shuffle, num_workers=config.num_workers,
                                                    pin_memory=torch.cuda.is_available())
 
-        elif config.mode == 'predict':
+        elif config.mode == 'evaluate':
             self.predict_path = get_dataset_path(config.path, config.dataset, 'predict')
             self.dir_list = [x for x in os.listdir(self.predict_path)
                              if os.path.isdir(os.path.join(self.predict_path, x))]
         else:
             raise Exception('Data loading mode not found')
 
-    def get_predict_loader(self, dir_name) -> DataLoader:
-        predict_dataset = MDSPrediction(self.predict_path, dir_name,
-                                        self.ds_statistics)
+    def get_evaluation_loader(self, dir_name) -> DataLoader:
+        evaluation_dataset = MDSPrediction(self.predict_path, dir_name,
+                                           self.ds_statistics)
 
-        return DataLoader(predict_dataset,
+        return DataLoader(evaluation_dataset,
                           batch_size=self.config.batch_size_val,
                           shuffle=False,
                           num_workers=self.config.num_workers,

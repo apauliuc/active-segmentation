@@ -8,7 +8,8 @@ from datetime import datetime
 from data.medical_scans_preprocess import mds_separate_scans_to_slices, mds_preprocess_scans
 from helpers.config import get_config_from_path
 from scripts.active_learn import main_active_learning
-from scripts.predict_mds import main_predict_mds
+from scripts.evaluate_general import main_evaluation
+from scripts.evaluate_mds import main_evaluation_mds
 from scripts.train import main_train_model
 from definitions import CONFIG_DEFAULT, CONFIG_AL, DATA_DIR, RUNS_DIR, CONFIG_DIR
 
@@ -50,7 +51,9 @@ def main(args):
         config = get_config_from_path(os.path.join(run_dir, 'cfg_file.yml'))
 
         if 'AMC' in config.data.dataset:
-            main_predict_mds(config, run_dir)
+            main_evaluation_mds(config, run_dir)
+        else:
+            main_evaluation(config, run_dir)
 
     elif args.run_type == 'active_learning':
         # Run Active Learning training algorithm

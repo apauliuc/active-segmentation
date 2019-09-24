@@ -1,10 +1,10 @@
 import os
-
 import yaml
 
 from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
-from scripts.predict_mds import main_predict_mds
+from scripts.evaluate_general import main_evaluation
+from scripts.evaluate_mds import main_evaluation_mds
 from trainers.active_learn_scan.bald import BALDScan
 from trainers.active_learn_scan.least_confident import LeastConfidentScan
 from trainers.active_learn_scan.max_entropy import MaxEntropyScan
@@ -47,8 +47,11 @@ def main_active_learning(args, config_path: str):
     trainer = trainer_class(config, run_dir)
     trainer.run()
 
-    if args.train_predict and 'AMC' in config.data.dataset:
-        main_predict_mds(config, run_dir)
+    if args.train_predict:
+        if 'AMC' in config.data.dataset:
+            main_evaluation_mds(config, run_dir)
+        else:
+            main_evaluation(config, run_dir)
 
 
 def _get_al_trainer(name: str):

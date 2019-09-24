@@ -104,34 +104,46 @@ class MSRA10KDataLoaders(BaseLoader):
         with open(os.path.join(self.data_root, 'norm_data.pkl'), 'rb') as f:
             ds_statistics = pickle.load(f)
 
-        self.train_dataset = MSRA10KDataset(self.data_root, 'train', file_list=file_list,
-                                            dataset_stats=ds_statistics, input_size=self.image_size)
-        self.val_dataset = MSRA10KDataset(self.data_root, 'val',
-                                          dataset_stats=ds_statistics, input_size=self.image_size)
+        if config.mode == 'train':
+            self.train_dataset = MSRA10KDataset(self.data_root, 'train', file_list=file_list,
+                                                dataset_stats=ds_statistics, input_size=self.image_size)
+            self.val_dataset = MSRA10KDataset(self.data_root, 'val',
+                                              dataset_stats=ds_statistics, input_size=self.image_size)
 
-        self.train_loader = DataLoader(self.train_dataset,
-                                       batch_size=config.batch_size,
-                                       shuffle=shuffle,
-                                       num_workers=config.num_workers,
-                                       pin_memory=torch.cuda.is_available())
+            self.train_loader = DataLoader(self.train_dataset,
+                                           batch_size=config.batch_size,
+                                           shuffle=shuffle,
+                                           num_workers=config.num_workers,
+                                           pin_memory=torch.cuda.is_available())
 
-        self.val_loader = DataLoader(self.val_dataset,
-                                     batch_size=config.batch_size_val,
-                                     shuffle=shuffle,
-                                     num_workers=config.num_workers,
-                                     pin_memory=torch.cuda.is_available())
+            self.val_loader = DataLoader(self.val_dataset,
+                                         batch_size=config.batch_size_val,
+                                         shuffle=shuffle,
+                                         num_workers=config.num_workers,
+                                         pin_memory=torch.cuda.is_available())
 
-        if file_list is None:
-            self.msg = f'Data loaders created from {self.data_root}'
+            if file_list is None:
+                self.msg = f'Data loaders created from {self.data_root}'
+            else:
+                self.msg = f'AL train data loader created from {self.data_root}'
+
+            if config.run_val_on_train:
+                self.val_train_loader = DataLoader(self.train_dataset,
+                                                   batch_size=config.batch_size_val,
+                                                   shuffle=shuffle,
+                                                   num_workers=config.num_workers,
+                                                   pin_memory=torch.cuda.is_available())
+        elif config.mode == 'evaluate':
+            self.evaluation_dataset = MSRA10KDataset(self.data_root, 'val',
+                                                     dataset_stats=ds_statistics, input_size=self.image_size)
+
+            self.evaluation_loader = DataLoader(self.evaluation_dataset,
+                                                batch_size=config.batch_size_val,
+                                                shuffle=True,
+                                                num_workers=config.num_workers,
+                                                pin_memory=torch.cuda.is_available())
         else:
-            self.msg = f'AL train data loader created from {self.data_root}'
-
-        if config.run_val_on_train:
-            self.val_train_loader = DataLoader(self.train_dataset,
-                                               batch_size=config.batch_size_val,
-                                               shuffle=shuffle,
-                                               num_workers=config.num_workers,
-                                               pin_memory=torch.cuda.is_available())
+            raise Exception('Data loading mode not found')
 
     def update_train_loader(self, new_file_list: list) -> None:
         new_train_dataset = MSRA10KDataset(self.data_root, split='train', file_list=new_file_list,
