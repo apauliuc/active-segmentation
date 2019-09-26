@@ -5,10 +5,12 @@ from models.fcn8 import FCN8
 from models.fcn16 import FCN16
 from models.fcn32 import FCN32
 from bayesian.bayes_unet import BBBUnet
+from models.unet_git import UNetOtherVersion
 from models.unet_proba import ProbabilisticUNet
 from models.unet_proba_spatial_common import ProbaUNetSpatialCommon
 from models.unet_proba_spatial import ProbabilisticUNetSpatial
 from models.unet_proba_spatial_previous import ProbabilisticUNetSpatialPrevious
+from models.unet_pytorch import UNetPyTorch
 from models.unet_sk import SKUNet
 from models.unet_vae import VariationalUNet
 from models.unet_vae_no_recon import VariationalUNetNoRecon
@@ -33,6 +35,8 @@ def _get_model_instance(name: str, train_type: str):
     try:
         if train_type == 'standard':
             return {
+                'unet_git': UNetOtherVersion,
+                'unet_pytorch': UNetPyTorch,
                 'unet': UNet,
                 'skunet': SKUNet,
                 'ternaus_net': TernausNet,
