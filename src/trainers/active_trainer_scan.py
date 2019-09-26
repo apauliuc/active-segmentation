@@ -107,13 +107,11 @@ class ActiveTrainerScan(BaseTrainer):
                                         self.acquisition_step)
 
         # Close writer and logger related to model training
-        self.train_writer.export_scalars_to_json(os.path.join(self.save_model_dir, 'tensorboardX.json'))
         self.train_writer.close()
         self.train_logger.removeHandler(self.train_log_handler)
 
     def _finalize_trainer(self) -> None:
         # Close writer and logger related to trainer class
-        self.main_writer.export_scalars_to_json(os.path.join(self.save_dir, 'tensorboardX.json'))
         self.main_writer.close()
         self.main_logger.removeHandler(self.main_log_handler)
 

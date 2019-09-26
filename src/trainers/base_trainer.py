@@ -310,7 +310,6 @@ class BaseTrainer(abc.ABC):
         if self.trainer.should_terminate:
             self.main_logger.info(f'Early stopping on epoch {self.trainer.state.epoch}')
 
-        self.main_writer.export_scalars_to_json(os.path.join(self.save_dir, 'tensorboardX.json'))
         self.main_writer.close()
         self.main_logger.removeHandler(self.main_log_handler)
 
