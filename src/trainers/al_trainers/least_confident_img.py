@@ -1,7 +1,7 @@
 import numpy as np
 
 from helpers.config import ConfigClass
-from trainers.al_trainers.active_trainer_img import ActiveTrainer
+from trainers.active_trainer_img import ActiveTrainer
 
 
 class LeastConfident(ActiveTrainer):
@@ -10,20 +10,16 @@ class LeastConfident(ActiveTrainer):
     """
 
     def __init__(self, config: ConfigClass, save_dir: str):
-        if 'mc' in self.config.active_learn.method:
-            self.mc_dropout = True
-            name = 'LC_MC_Trainer'
+        if config.training.use_ensemble:
+            name = 'LC_Ensemble_Trainer'
+            self.m_type = 'ensemble'
         else:
-            self.mc_dropout = False
-            name = 'LC_Trainer'
-
+            name = 'LC_MC_Trainer'
+            self.m_type = 'mc_dropout'
         super(LeastConfident, self).__init__(config, save_dir, name)
 
     def _acquisition_function(self):
-        if self.mc_dropout:
-            x = self._predict_proba_mc_dropout().cpu()
-        else:
-            x = self._predict_proba().cpu()
+        x = self._predict_proba(self.m_type)
 
         x = -(x - 0.5).abs().mean(dim=1)
 

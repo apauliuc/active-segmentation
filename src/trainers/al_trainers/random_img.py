@@ -1,7 +1,7 @@
 import numpy as np
 
 from helpers.config import ConfigClass
-from trainers.al_trainers.active_trainer_img import ActiveTrainer
+from trainers.active_trainer_img import ActiveTrainer
 
 
 class Random(ActiveTrainer):
