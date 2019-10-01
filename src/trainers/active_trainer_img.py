@@ -23,7 +23,6 @@ class ActiveTrainer(BaseTrainer):
     """
     Base implementation of AL trainer for single files
     """
-    data_pool: ALMSRA10KPool
     data_loaders: BaseLoader
     acquisition_step: int
 
@@ -35,7 +34,7 @@ class ActiveTrainer(BaseTrainer):
 
         self.al_config = config.active_learn
 
-        self.data_pool = get_pool_class(config)
+        self.data_pool = get_pool_class(self.config)
         self.data_loaders = get_dataloaders(self.config.data, file_list=self.data_pool.train_pool)
         self.main_logger.info(self.data_loaders.msg)
 

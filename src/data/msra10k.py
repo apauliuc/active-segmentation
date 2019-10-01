@@ -102,13 +102,13 @@ class MSRA10KDataLoaders(BaseLoader):
         self.data_root = os.path.join(config.path, config.dataset)
 
         with open(os.path.join(self.data_root, 'norm_data.pkl'), 'rb') as f:
-            ds_statistics = pickle.load(f)
+            self.ds_statistics = pickle.load(f)
 
         if config.mode == 'train':
             self.train_dataset = MSRA10KDataset(self.data_root, 'train', file_list=file_list,
-                                                dataset_stats=ds_statistics, input_size=self.image_size)
+                                                dataset_stats=self.ds_statistics, input_size=self.image_size)
             self.val_dataset = MSRA10KDataset(self.data_root, 'val',
-                                              dataset_stats=ds_statistics, input_size=self.image_size)
+                                              dataset_stats=self.ds_statistics, input_size=self.image_size)
 
             self.train_loader = DataLoader(self.train_dataset,
                                            batch_size=config.batch_size,
@@ -135,7 +135,7 @@ class MSRA10KDataLoaders(BaseLoader):
                                                    pin_memory=torch.cuda.is_available())
         elif config.mode == 'evaluate':
             self.evaluation_dataset = MSRA10KDataset(self.data_root, 'val',
-                                                     dataset_stats=ds_statistics, input_size=self.image_size)
+                                                     dataset_stats=self.ds_statistics, input_size=self.image_size)
 
             self.evaluation_loader = DataLoader(self.evaluation_dataset,
                                                 batch_size=config.batch_size_val,

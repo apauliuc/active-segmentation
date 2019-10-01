@@ -24,9 +24,10 @@ class ALMSRA10KPool(Dataset):
         self.al_config = config.active_learn
         self._input_size = (176, 160)
 
-        self.data_root = join(config.path, config.dataset, 'train')
+        self.data_root = join(config.data.path, config.data.dataset)
+        self.train_path = join(self.data_root, 'train')
 
-        self._data_pool = [x.split('.')[0] for x in recursive_glob_filenames(self.data_root, '.jpg')]
+        self._data_pool = [x.split('.')[0] for x in recursive_glob_filenames(self.train_path, '.jpg')]
 
         self._create_initial_pool()
 
@@ -59,14 +60,14 @@ class ALMSRA10KPool(Dataset):
 
     def copy_pool_files_to_dir(self, files: list, save_dir: str):
         for file in files:
-            shutil.copy(join(self.data_root, file), save_dir)
+            shutil.copy(join(self.train_path, f'{file}.jpg'), save_dir)
 
     def __len__(self):
         return len(self._data_pool)
 
     def __getitem__(self, index: int):
         image_name, _ = self._data_pool[index]
-        image_path = join(self.data_root, image_name)
+        image_path = join(self.train_path, f'{image_name}.jpg')
 
         image = Image.open(image_path).convert('RGB')
 
