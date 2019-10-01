@@ -7,7 +7,7 @@ from datetime import datetime
 
 from data.medical_scans_preprocess import mds_separate_scans_to_slices, mds_preprocess_scans
 from helpers.config import get_config_from_path
-from scripts.active_learn import main_active_learning
+from scripts.active_learn import main_active_learning_mds
 from scripts.evaluate_general import main_evaluation
 from scripts.evaluate_mds import main_evaluation_mds
 from scripts.train import main_train_model
@@ -58,7 +58,7 @@ def main(args):
     elif args.run_type == 'active_learning':
         # Run Active Learning training algorithm
         print(f'Using config {args.config}')
-        main_active_learning(args, os.path.join(args.configs_dir, args.config))
+        main_active_learning_mds(args, os.path.join(args.configs_dir, args.config))
 
     elif args.run_type == 'train_all_configs' or args.run_type == 'al_run_all':
         # Run training/active learning for multiple config files given file name pattern

@@ -4,7 +4,7 @@ from helpers.config import ConfigClass
 from trainers.active_trainer_img import ActiveTrainer
 
 
-class LeastConfident(ActiveTrainer):
+class LeastConfidentImage(ActiveTrainer):
     """
     Implementation of AL trainer with Least Confident acquisition function
     """
@@ -16,7 +16,7 @@ class LeastConfident(ActiveTrainer):
         else:
             name = 'LC_MC_Trainer'
             self.m_type = 'mc_dropout'
-        super(LeastConfident, self).__init__(config, save_dir, name)
+        super(LeastConfidentImage, self).__init__(config, save_dir, name)
 
     def _acquisition_function(self):
         x = self._predict_proba(self.m_type)

@@ -5,6 +5,7 @@ from helpers.config import get_config_from_path
 from helpers.paths import get_new_run_path
 from scripts.evaluate_general import main_evaluation
 from scripts.evaluate_mds import main_evaluation_mds
+
 from trainers.active_learn_scan.bald import BALDScan
 from trainers.active_learn_scan.least_confident import LeastConfidentScan
 from trainers.active_learn_scan.max_entropy import MaxEntropyScan
@@ -12,8 +13,11 @@ from trainers.active_learn_scan.random import RandomScan
 from trainers.active_learn_scan.weighted_least_confident import WeightedLeastConfidentScan
 from trainers.active_learn_scan.weighted_max_entropy import WeightedMaxEntropyScan
 
+from trainers.active_learn_general.least_confident_img import LeastConfidentImage
+from trainers.active_learn_general.random_img import RandomImage
 
-def main_active_learning(args, config_path: str):
+
+def main_active_learning_mds(args, config_path: str):
     """Entry point for training a new model with active learning"""
     config = get_config_from_path(config_path)
 
@@ -37,37 +41,50 @@ def main_active_learning(args, config_path: str):
         config.training.use_ensemble = True
         config.model.network_params.dropout = False
 
+    mds_flag = True if 'AMC' in config.data.dataset else False
+
     run_dir = get_new_run_path(config.run_name)
 
     with open(os.path.join(run_dir, 'cfg_file.yml'), 'w+') as f:
         yaml.dump(config, f)
 
-    trainer_class = _get_al_trainer(config.active_learn.method)
+    trainer_class = _get_al_trainer(config.active_learn.method, mds_flag)
 
     trainer = trainer_class(config, run_dir)
     trainer.run()
 
     if args.train_predict:
-        if 'AMC' in config.data.dataset:
+        if mds_flag:
             main_evaluation_mds(config, run_dir)
         else:
             main_evaluation(config, run_dir)
 
 
-def _get_al_trainer(name: str):
+def _get_al_trainer(name_: str, mds_flag_: bool):
     try:
-        return {
-            'random': RandomScan,
-            'least_confident_mc': LeastConfidentScan,
-            'least_confident_ensemble': LeastConfidentScan,
-            'max_entropy_mc': MaxEntropyScan,
-            'max_entropy_ensemble': MaxEntropyScan,
-            'bald_mc': BALDScan,
-            'bald_ensemble': BALDScan,
-            'weighted_least_confident_mc': WeightedLeastConfidentScan,
-            'weighted_max_entropy_mc': WeightedMaxEntropyScan,
-            'weighted_least_confident_ensemble': WeightedLeastConfidentScan,
-            'weighted_max_entropy_ensemble': WeightedMaxEntropyScan
-        }[name]
+        if mds_flag_:
+            return {
+                'random': RandomScan,
+                'least_confident_mc': LeastConfidentScan,
+                'least_confident_ensemble': LeastConfidentScan,
+                'max_entropy_mc': MaxEntropyScan,
+                'max_entropy_ensemble': MaxEntropyScan,
+                'bald_mc': BALDScan,
+                'bald_ensemble': BALDScan,
+                'weighted_least_confident_mc': WeightedLeastConfidentScan,
+                'weighted_max_entropy_mc': WeightedMaxEntropyScan,
+                'weighted_least_confident_ensemble': WeightedLeastConfidentScan,
+                'weighted_max_entropy_ensemble': WeightedMaxEntropyScan
+            }[name_]
+        else:
+            return {
+                'random': RandomImage,
+                'least_confident_mc': LeastConfidentImage,
+                'least_confident_ensemble': LeastConfidentImage,
+                # 'max_entropy_mc': MaxEntropyImage,
+                # 'max_entropy_ensemble': MaxEntropyImage,
+                # 'bald_mc': BALDImage,
+                # 'bald_ensemble': BALDImage,
+            }[name_]
     except KeyError:
-        raise Exception(f'Trainer {name} not available')
+        raise Exception(f'Trainer {name_} not available')
