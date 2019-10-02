@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from helpers.config import ConfigClass
 from trainers.active_trainer_scan import ActiveTrainerScan
@@ -20,35 +21,28 @@ class BALDScan(ActiveTrainerScan):
 
     def _acquisition_function(self):
         pred_dict = self._predict_proba_individual(self.m_type)
-        # pred_dict is dictionary of scan_id -> list of predictions as 3d tensors
+        # pred_dict is dictionary of scan_id -> list of predictions as 2d tensors
 
         bald_values = []
-        for prediction_list in pred_dict.values():
-            mc_prediction = None
-            entropy_mc_predictions = None
+        for predictions_list in pred_dict.values():
+            avg_prediction = torch.zeros_like(predictions_list[0])
+            sum_individual_entropies = np.zeros_like(predictions_list[0])
 
-            for prediction in prediction_list:
-                if mc_prediction is None:
-                    mc_prediction = prediction
-                else:
-                    mc_prediction += prediction
+            for prediction in predictions_list:
+                avg_prediction += prediction
 
                 individual_entropy = self._compute_pixel_entropy(prediction.numpy())
-
-                if entropy_mc_predictions is None:
-                    entropy_mc_predictions = individual_entropy
-                else:
-                    entropy_mc_predictions += individual_entropy
+                sum_individual_entropies += individual_entropy
 
             # Compute average of MC prediction entropies
-            entropy_mc_predictions = entropy_mc_predictions / len(prediction_list)
+            sum_individual_entropies = sum_individual_entropies / len(predictions_list)
 
             # Compute entropy of MC averaged prediction
-            mc_prediction = mc_prediction / len(prediction_list)
-            mc_averaged_entropy = self._compute_pixel_entropy(mc_prediction.numpy())
+            avg_prediction = avg_prediction / len(predictions_list)
+            entropy_avg_prediction = self._compute_pixel_entropy(avg_prediction.numpy())
 
             # Combine measures
-            bald = entropy_mc_predictions + mc_averaged_entropy
+            bald = sum_individual_entropies + entropy_avg_prediction
 
             bald_values.append(bald.mean())
 

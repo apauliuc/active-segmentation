@@ -66,7 +66,7 @@ class ALMSRA10KPool(Dataset):
         return len(self._data_pool)
 
     def __getitem__(self, index: int):
-        image_name, _ = self._data_pool[index]
+        image_name = self._data_pool[index]
         image_path = join(self.train_path, f'{image_name}.jpg')
 
         image = Image.open(image_path).convert('RGB')

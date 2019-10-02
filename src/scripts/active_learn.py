@@ -13,8 +13,10 @@ from trainers.active_learn_scan.random import RandomScan
 from trainers.active_learn_scan.weighted_least_confident import WeightedLeastConfidentScan
 from trainers.active_learn_scan.weighted_max_entropy import WeightedMaxEntropyScan
 
-from trainers.active_learn_general.least_confident_img import LeastConfidentImage
-from trainers.active_learn_general.random_img import RandomImage
+from trainers.active_learn_img.bald_img import BALDImage
+from trainers.active_learn_img.max_entropy_img import MaxEntropyImage
+from trainers.active_learn_img.least_confident_img import LeastConfidentImage
+from trainers.active_learn_img.random_img import RandomImage
 
 
 def main_active_learning_mds(args, config_path: str):
@@ -81,10 +83,10 @@ def _get_al_trainer(name_: str, mds_flag_: bool):
                 'random': RandomImage,
                 'least_confident_mc': LeastConfidentImage,
                 'least_confident_ensemble': LeastConfidentImage,
-                # 'max_entropy_mc': MaxEntropyImage,
-                # 'max_entropy_ensemble': MaxEntropyImage,
-                # 'bald_mc': BALDImage,
-                # 'bald_ensemble': BALDImage,
+                'max_entropy_mc': MaxEntropyImage,
+                'max_entropy_ensemble': MaxEntropyImage,
+                'bald_mc': BALDImage,
+                'bald_ensemble': BALDImage,
             }[name_]
     except KeyError:
         raise Exception(f'Trainer {name_} not available')
