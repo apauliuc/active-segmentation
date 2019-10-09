@@ -53,6 +53,7 @@ def main(args):
         if 'AMC' in config.data.dataset:
             main_evaluation_mds(config, run_dir)
         else:
+            config.model.network_params.input_channels = 3
             main_evaluation(config, run_dir)
 
     elif args.run_type == 'active_learning':
@@ -66,7 +67,8 @@ def main(args):
 
 
 if __name__ == '__main__':
-    print(datetime.now())
+    dir_predict = ''
+
     "Main starting point of the application"
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--run_type', type=str, default='train',
@@ -83,7 +85,7 @@ if __name__ == '__main__':
                         help='Path to main data directory')
     parser.add_argument('-tp', '--train_predict', type=bool, default=True,
                         help='Indicate whether to predict after training is finished')
-    parser.add_argument('--run_dir', type=str, default='',
+    parser.add_argument('--run_dir', type=str, default=dir_predict,
                         help='Previous run directory to load model from (works only for run_type = predict)')
     parser.add_argument('-gpu', '--gpu_node', type=int, default=0,
                         help='Use specific GPU card in node')

@@ -10,6 +10,7 @@ from torchvision.transforms import transforms as standard_transforms
 
 from helpers.config import ConfigClass
 from helpers.paths import recursive_glob_filenames
+from definitions import DATA_DIR
 
 
 class ALMSRA10KPool(Dataset):
@@ -48,9 +49,17 @@ class ALMSRA10KPool(Dataset):
             pass
 
     def _create_initial_pool(self) -> None:
-        init_pool = np.random.choice(self._data_pool,
-                                     size=self.al_config.init_pool_size,
-                                     replace=False).tolist()
+        if '.pkl' in self.al_config.init_scans:
+            with open(join(DATA_DIR, 'MSRA10K_INIT', self.al_config.init_scans), 'rb') as f:
+                init_pool = pickle.load(f)
+        else:
+            if self.al_config.init_pool_size >= len(self._data_pool):
+                print('Initial pool size too large. Setting it to default 500')
+                self.al_config.init_pool_size = 500
+
+            init_pool = np.random.choice(self._data_pool,
+                                         size=self.al_config.init_pool_size,
+                                         replace=False).tolist()
         self._labelled_pool = init_pool
         self._remove_from_data_pool(init_pool)
 
