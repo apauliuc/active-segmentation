@@ -1,26 +1,24 @@
 import abc
-import os
 import random
-import numpy as np
-from typing import Tuple
 from logging import Logger
+from typing import Tuple
 
+import numpy as np
 import torch
 import torch.optim as optim
+from ignite import handlers, metrics
+from ignite.engine import create_supervised_trainer, create_supervised_evaluator
+from ignite.engine.engine import Engine, Events
 from torch.utils.tensorboard import SummaryWriter
 
-from ignite import handlers, metrics
-from ignite.engine.engine import Engine, Events
-from ignite.engine import create_supervised_trainer, create_supervised_evaluator
-
 from data.base_loader import BaseLoader
-from models import get_model
-from losses import get_loss_function, BCEAndJaccardLoss
-from optimizers import get_optimizer
 from helpers.config import ConfigClass
 from helpers.metrics import SegmentationMetrics
-from helpers.utils import setup_logger, retrieve_class_init_parameters, timer_to_str
 from helpers.paths import get_resume_model_path, get_resume_optimizer_path
+from helpers.utils import setup_logger, retrieve_class_init_parameters, timer_to_str
+from losses import get_loss_function, BCEAndJaccardLoss
+from models import get_model
+from optimizers import get_optimizer
 
 
 class BaseTrainer(abc.ABC):
@@ -318,7 +316,7 @@ class BaseTrainer(abc.ABC):
         avg_loss = _train_engine.state.metrics['train_loss']
 
         msg = f'Training results - Epoch:{_train_engine.state.epoch:2d}/{_train_engine.state.max_epochs}. ' \
-            f'Duration: {train_duration} || Avg loss: {avg_loss:.4f}'
+              f'Duration: {train_duration} || Avg loss: {avg_loss:.4f}'
         logger.info(msg)
 
         writer.add_scalar('training/segment_loss', avg_loss, _train_engine.state.epoch)
@@ -330,7 +328,8 @@ class BaseTrainer(abc.ABC):
         segment_metrics = self.evaluator.state.metrics['segment_metrics']
 
         msg = f'Eval. on val_loader - Avg loss: {eval_loss:.4f}         ||         ' \
-            f'IoU: {segment_metrics["avg_iou"]:.4f} | F1: {segment_metrics["avg_f1"]:.4f}'
+              f'IoU: {segment_metrics["avg_iou"]:.4f} | F1: {segment_metrics["avg_f1"]:.4f} | ' \
+              f'mAP: {segment_metrics["mAP"]:.4f}'
         logger.info(msg)
 
         writer.add_scalar('validation/segment_loss', eval_loss, _train_engine.state.epoch)

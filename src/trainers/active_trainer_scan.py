@@ -2,19 +2,18 @@ import os
 import pickle
 
 import numpy as np
-from scipy.special import xlogy
 import torch
-
 from ignite.engine.engine import Engine
+from scipy.special import xlogy
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from helpers.torch_utils import apply_dropout
-from trainers.base_trainer import BaseTrainer
-from data import MDSDataLoaders
 from alsegment.mds_patient_pool import ALMDSPatientPool, ALPatientDataset
+from data import MDSDataLoaders
 from helpers.config import ConfigClass
+from helpers.torch_utils import apply_dropout
 from helpers.utils import setup_logger
+from trainers.base_trainer import BaseTrainer
 
 
 class ActiveTrainerScan(BaseTrainer):
@@ -95,9 +94,10 @@ class ActiveTrainerScan(BaseTrainer):
             eval_metrics = self.evaluator.state.metrics['segment_metrics']
 
             msg = f'Step {self.acquisition_step} - After {self.trainer.state.epoch} training epochs: ' \
-                f'Val. loss: {eval_loss:.4f}   ' \
-                f'IoU: {eval_metrics["avg_iou"]:.4f}   ' \
-                f'F1: {eval_metrics["avg_f1"]:.4f}'
+                  f'Val. loss: {eval_loss:.4f}   ' \
+                  f'IoU: {eval_metrics["avg_iou"]:.4f}   ' \
+                  f'F1: {eval_metrics["avg_f1"]:.4f}   ' \
+                  f'mAP: {eval_metrics["mAP"]}'
             self.main_logger.info(msg)
 
             self.main_writer.add_scalar(f'active_learning/avg_val_loss', eval_loss, self.acquisition_step)
