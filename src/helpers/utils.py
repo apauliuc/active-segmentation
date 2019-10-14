@@ -8,7 +8,7 @@ from typing import List
 
 def setup_logger(logdir, name=''):
     log_format = '[%(asctime)s - %(levelname)s: %(name)s: %(lineno)4d]: %(message)s'
-    logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout, datefmt='%d-%m %H:%M:%S')
+    logging.basicConfig(level=logging.INFO, format=log_format, stream=sys.stdout, datefmt='%d-%m %H:%M')
 
     formatter = logging.Formatter(log_format)
     logger = logging.getLogger(name)
