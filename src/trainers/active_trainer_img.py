@@ -70,6 +70,7 @@ class ActiveTrainer(BaseTrainer):
             pickle.dump(self.data_pool, f)
 
     def _update_components(self):
+        self.train_cfg.num_epochs += 5
         # Recreate components
         if self.use_ensemble:
             self._init_train_components_ensemble(reinitialise=True)
