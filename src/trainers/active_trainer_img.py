@@ -96,7 +96,8 @@ class ActiveTrainer(BaseTrainer):
             msg = f'Step {self.acquisition_step} - After {self.trainer.state.epoch} training epochs: ' \
                   f'Val. loss: {eval_loss:.4f}   ' \
                   f'IoU: {eval_metrics["avg_iou"]:.4f}   ' \
-                  f'F1: {eval_metrics["avg_f1"]:.4f}'
+                  f'F1: {eval_metrics["avg_f1"]:.4f}   ' \
+                  f'mAP: {eval_metrics["mAP"]}'
             self.main_logger.info(msg)
 
             self.main_writer.add_scalar(f'active_learning/avg_val_loss', eval_loss, self.acquisition_step)
