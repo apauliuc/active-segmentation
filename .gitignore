@@ -109,7 +109,8 @@ venv.bak/
 data_preprocessing/
 runs/
 src/configs/archive/
-src/configs/run_configs/
+src/configs/run_configs_al_msra10k/
+src/configs/run_configs_al_mds/
 src/old/
 src/notebooks/
 runs*/
