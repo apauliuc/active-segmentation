@@ -70,6 +70,9 @@ class ActiveTrainerScan(BaseTrainer):
             pickle.dump(self.data_pool, f)
 
     def _update_components(self):
+        if self.al_config.increase_epochs:
+            self.train_cfg.num_epochs += 5
+
         # Recreate components
         if self.use_ensemble:
             self._init_train_components_ensemble(reinitialise=True)
@@ -169,7 +172,7 @@ class ActiveTrainerScan(BaseTrainer):
             al_loader = DataLoader(scan_dataset,
                                    batch_size=self.config.data.batch_size_val,
                                    shuffle=False,
-                                   num_workers=1,
+                                   num_workers=self.config.data.num_workers,
                                    pin_memory=torch.cuda.is_available())
 
             scan_prediction = None
@@ -178,12 +181,10 @@ class ActiveTrainerScan(BaseTrainer):
             if m_type == 'mc_dropout':
                 self.model.eval()
                 self.model.apply(apply_dropout)
-
                 size_pred = self.al_config.mc_passes
             else:
                 for model in self.ens_models:
                     model.eval()
-
                 size_pred = len(self.ens_models)
 
             with torch.no_grad():

@@ -146,12 +146,12 @@ def save_segmentation_to_file(segmentation, threshold, path, dir_id, name):
                     os.path.join(path, dir_id, f'{dir_id}_predicted_{name}.mha'))
 
 
-def main_evaluation_mds(config: ConfigClass, load_directory=None, name=None, use_best_model=True):
+def main_evaluation_mds(config: ConfigClass, load_directory=None, name=None, use_best_model=True, verbose=True,
+                        save_metrics=True):
     if name is None:
         name = config.run_name
     config.data.mode = 'evaluate'
     config.data.path = DATA_DIR
-    config.data.batch_size_val = 12
 
     # Load model
     if config.training.use_ensemble:
@@ -166,9 +166,12 @@ def main_evaluation_mds(config: ConfigClass, load_directory=None, name=None, use
         else:
             metrics = mds_evaluate_monte_carlo(config, model, name)
 
-    print('Evaluations done. Segmentation metrics:')
-    print(metrics)
+    if verbose:
+        print(f'Evaluations done. Segmentation metrics: {metrics}')
 
-    with open(os.path.join(load_directory, 'evaluation_results.txt'), 'w+') as f:
-        for k, v in metrics.items():
-            f.write(f"{k}: {v:.4f}\n")
+    if save_metrics:
+        with open(os.path.join(load_directory, 'evaluation_results.txt'), 'w+') as f:
+            for k, v in metrics.items():
+                f.write(f"{k}: {v:.4f}\n")
+
+    return metrics
