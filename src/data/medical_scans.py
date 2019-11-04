@@ -10,7 +10,7 @@ from torchvision import transforms
 
 from data.base_loader import BaseLoader
 from helpers.config import ConfigClass
-from helpers.paths import get_dataset_path
+from helpers.paths import get_dataset_path, recursive_glob_filenames
 import data.medical_scans_transforms as custom_transforms
 import torchvision.transforms as standard_transforms
 
@@ -21,14 +21,13 @@ class MDSMain(Dataset):
     def __init__(self, data_dir, split, file_list=None, dataset_stats=None):
         self.split = split
 
-        if file_list is None:
-            with open(join(data_dir, 'file_list.pkl'), 'rb') as f:
-                file_list = pickle.load(f)
-
-        self.file_list = file_list
-
         self.image_dir = os.path.join(data_dir, 'image')
         self.segment_dir = os.path.join(data_dir, 'segment')
+
+        if file_list is None:
+            file_list = [x for x in recursive_glob_filenames(self.image_dir, '.png')]
+
+        self.file_list = file_list
 
         self.joint_transform, self.input_transform, self.target_transform = self._get_transforms(dataset_stats)
 
@@ -140,7 +139,7 @@ class MDSPrediction(Dataset):
 class MDSDataLoaders(BaseLoader):
 
     def __init__(self, config: ConfigClass, file_list=None, shuffle=True):
-        assert config.mode in ['train', 'predict']
+        assert config.mode in ['train', 'evaluate']
 
         self.config = config
         self.shuffle = shuffle

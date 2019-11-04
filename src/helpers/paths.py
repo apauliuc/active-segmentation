@@ -51,6 +51,7 @@ def recursive_glob_filenames(root_dir='.', suffix=''):
         for loop_root, _, filenames in os.walk(root_dir)
         for filename in filenames
         if filename.endswith(suffix)
+        and not filename.startswith('._')
     ]
 
 

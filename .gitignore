@@ -111,6 +111,7 @@ runs/
 src/configs/archive/
 src/configs/run_configs_al_msra10k/
 src/configs/run_configs_al_mds/
+src/configs/run_configs_al_mds_less_data/
 src/old/
 src/notebooks/
 runs*/
