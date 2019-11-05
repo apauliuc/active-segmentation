@@ -256,7 +256,8 @@ class BaseTrainer(abc.ABC):
         if self.use_ensemble:
             checkpoint_save = {f'model_{i}': model for i, model in enumerate(self.ens_models)}
         else:
-            checkpoint_save = {'model': self.model, 'optimizer': self.optimizer}
+            # checkpoint_save = {'model': self.model, 'optimizer': self.optimizer}
+            checkpoint_save = {'model': self.model}
 
         best_ckpoint_handler = handlers.ModelCheckpoint(save_dir, 'best', n_saved=1, require_empty=False,
                                                         score_function=self.eval_func, save_as_state_dict=True)
