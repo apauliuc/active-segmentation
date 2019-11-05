@@ -69,6 +69,7 @@ model:
 #    bottom_block_full: False
     ### FCN
     learn_upconv: True
+    batch_norm: True
 resume:
   resume_from:
   saved_model:
@@ -80,3 +81,5 @@ prediction:
   mc_passes: 25
 active_learn:
   weighted: False
+  increase_epochs: False
+  mc_passes: 20
