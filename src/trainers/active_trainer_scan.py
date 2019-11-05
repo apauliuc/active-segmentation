@@ -270,6 +270,47 @@ class ActiveTrainerScan(BaseTrainer):
 
         return prediction_dict
 
+    def _predict_proba_combined_method(self):
+        prediction_dict = {}
+
+        for scan_id in self.data_pool.unlabelled_scans:
+            scan_dataset = ALPatientDataset(self.data_pool.get_files_list_for_scan(scan_id),
+                                            image_path=self.data_pool.image_path,
+                                            in_transform=self.data_pool.input_transform)
+
+            al_loader = DataLoader(scan_dataset,
+                                   batch_size=self.config.data.batch_size_val,
+                                   shuffle=False,
+                                   num_workers=1,
+                                   pin_memory=torch.cuda.is_available())
+
+            predictions = list()
+
+            with torch.no_grad():
+                for batch in al_loader:
+                    x, _ = batch
+                    x = x.to(self.device)
+                    idx = 0
+
+                    for model in self.ens_models:
+                        model.eval()
+                        model.apply(apply_dropout)
+
+                        for _ in range(self.al_config.mc_passes):
+                            out = model(x)
+                            out_probas = torch.sigmoid(out).reshape((out.shape[0], -1)).cpu()
+
+                            if len(predictions) < idx + 1:
+                                predictions.append(out_probas)
+                            else:
+                                predictions[idx] = torch.cat((predictions[idx], out_probas))
+
+                            idx += 1
+
+            prediction_dict[scan_id] = [pred.cpu() for pred in predictions]
+
+        return prediction_dict
+
     def _compute_image_weights(self, names):
         return [self.data_pool.weights[n] for n in names]
 

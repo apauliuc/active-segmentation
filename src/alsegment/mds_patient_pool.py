@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 import torchvision.transforms as standard_transforms
 
 from helpers.config import ConfigClass
-from helpers.paths import get_dataset_path
+from helpers.paths import get_dataset_path, recursive_glob_filenames
 
 
 class ALMDSPatientPool:
@@ -30,9 +30,8 @@ class ALMDSPatientPool:
         train_path = get_dataset_path(config.data.path, config.data.dataset, 'train')
         self.image_path = join(train_path, 'image')
 
-        # Load list of training files
-        with open(join(train_path, 'file_list.pkl'), 'rb') as f:
-            self._files_pool = pickle.load(f)
+        # Read training files available
+        self._files_pool = [x for x in recursive_glob_filenames(self.image_path, '.png')]
 
         # Create pool of scans and dict {scan->files list}
         _scans_pool = set()

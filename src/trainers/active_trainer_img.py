@@ -241,6 +241,38 @@ class ActiveTrainer(BaseTrainer):
 
         return [pred.cpu() for pred in predictions]
 
+    def _predict_proba_combined_method(self):
+        al_loader = DataLoader(self.data_pool,
+                               batch_size=self.config.data.batch_size_val,
+                               shuffle=False,
+                               num_workers=self.config.data.num_workers,
+                               pin_memory=torch.cuda.is_available())
+
+        predictions = list()
+
+        with torch.no_grad():
+            for batch in al_loader:
+                x = batch
+                x = x.to(self.device)
+                idx = 0
+
+                for model in self.ens_models:
+                    model.eval()
+                    model.apply(apply_dropout)
+
+                    for _ in range(self.al_config.mc_passes):
+                        out = model(x)
+                        out_probas = torch.sigmoid(out).reshape((out.shape[0], -1)).cpu()
+
+                        if len(predictions) < idx + 1:
+                            predictions.append(out_probas)
+                        else:
+                            predictions[idx] = torch.cat((predictions[idx], out_probas))
+
+                        idx += 1
+
+        return [pred.cpu() for pred in predictions]
+
     @staticmethod
     def _compute_pixel_entropy(x):
         proba = np.expand_dims(x, 0)
