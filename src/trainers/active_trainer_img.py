@@ -73,14 +73,23 @@ class ActiveTrainer(BaseTrainer):
         if self.al_config.increase_epochs:
             self.train_cfg.num_epochs += 5
 
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         # Recreate components
         if self.use_ensemble:
+            del self.ens_models
+            del self.ens_optimizers
             self._init_train_components_ensemble(reinitialise=True)
         else:
+            del self.model
+            del self.optimizer
             self._init_train_components(reinitialise=True)
 
     def _on_epoch_completed(self, _engine: Engine) -> None:
         self._log_training_results(_engine, self.train_logger, self.train_writer)
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         self._evaluate_on_val(_engine, self.train_logger, self.train_writer)
 
     def _init_handlers(self, _init_checkpoint=True) -> None:

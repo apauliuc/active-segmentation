@@ -132,13 +132,12 @@ class BaseTrainer(abc.ABC):
                                                        threshold=self.config.binarize_threshold)
             }
 
-            self.criterion = self._init_criterion()
-
             self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
             self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
             self.model_cfg.network_params.image_size = self.data_loaders.image_size
 
         self.model = self._init_model(not reinitialise)
+        self.criterion = self._init_criterion()
         self.optimizer = self._init_optimizer(not reinitialise)
 
         self.lr_scheduler = self._init_lr_scheduler(self.optimizer)
@@ -163,12 +162,11 @@ class BaseTrainer(abc.ABC):
                                                        eval_ensemble=True)
             }
 
-            self.criterion = self._init_criterion()
-
             self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
             self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
             self.model_cfg.network_params.image_size = self.data_loaders.image_size
 
+        self.criterion = self._init_criterion()
         self.ens_models = list()
         self.ens_optimizers = list()
         self.ens_lr_schedulers = list()
