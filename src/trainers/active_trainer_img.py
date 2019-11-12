@@ -88,8 +88,6 @@ class ActiveTrainer(BaseTrainer):
 
     def _on_epoch_completed(self, _engine: Engine) -> None:
         self._log_training_results(_engine, self.train_logger, self.train_writer)
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
         self._evaluate_on_val(_engine, self.train_logger, self.train_writer)
 
     def _init_handlers(self, _init_checkpoint=True) -> None:

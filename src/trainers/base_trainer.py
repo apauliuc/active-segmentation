@@ -90,9 +90,10 @@ class BaseTrainer(abc.ABC):
 
         return optimizer
 
-    def _init_criterion(self):
+    def _init_criterion(self, init=True):
         criterion = get_loss_function(self.loss_cfg).to(device=self.device)
-        self.main_logger.info(f'Using loss function {criterion}')
+        if init:
+            self.main_logger.info(f'Using loss function {criterion}')
 
         return criterion
 
@@ -125,19 +126,18 @@ class BaseTrainer(abc.ABC):
 
     # Single model
     def _init_train_components(self, reinitialise=False):
-        if not reinitialise:
-            self.val_metrics = {
-                'loss': metrics.Loss(get_loss_function(self.loss_cfg)),
-                'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
-                                                       threshold=self.config.binarize_threshold)
-            }
+        self.val_metrics = {
+            'loss': metrics.Loss(get_loss_function(self.loss_cfg)),
+            'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
+                                                   threshold=self.config.binarize_threshold)
+        }
 
-            self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
-            self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
-            self.model_cfg.network_params.image_size = self.data_loaders.image_size
+        self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
+        self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
+        self.model_cfg.network_params.image_size = self.data_loaders.image_size
 
         self.model = self._init_model(not reinitialise)
-        self.criterion = self._init_criterion()
+        self.criterion = self._init_criterion(not reinitialise)
         self.optimizer = self._init_optimizer(not reinitialise)
 
         self.lr_scheduler = self._init_lr_scheduler(self.optimizer)
@@ -154,19 +154,18 @@ class BaseTrainer(abc.ABC):
 
     # Ensemble Method
     def _init_train_components_ensemble(self, reinitialise=False):
-        if not reinitialise:
-            self.val_metrics = {
-                'loss': metrics.Loss(BCEAndJaccardLoss(eval_ensemble=True, gpu_node=self.config.gpu_node)),
-                'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
-                                                       threshold=self.config.binarize_threshold,
-                                                       eval_ensemble=True)
-            }
+        self.val_metrics = {
+            'loss': metrics.Loss(BCEAndJaccardLoss(eval_ensemble=True, gpu_node=self.config.gpu_node)),
+            'segment_metrics': SegmentationMetrics(num_classes=self.data_loaders.num_classes,
+                                                   threshold=self.config.binarize_threshold,
+                                                   eval_ensemble=True)
+        }
 
-            self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
-            self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
-            self.model_cfg.network_params.image_size = self.data_loaders.image_size
+        self.model_cfg.network_params.input_channels = self.data_loaders.input_channels
+        self.model_cfg.network_params.num_classes = self.data_loaders.num_classes
+        self.model_cfg.network_params.image_size = self.data_loaders.image_size
 
-        self.criterion = self._init_criterion()
+        self.criterion = self._init_criterion(not reinitialise)
         self.ens_models = list()
         self.ens_optimizers = list()
         self.ens_lr_schedulers = list()
