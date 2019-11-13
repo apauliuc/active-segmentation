@@ -6,14 +6,16 @@ from helpers.paths import get_new_run_path
 from scripts.evaluate_general import main_evaluation
 from scripts.evaluate_mds import main_evaluation_mds
 from trainers.active_learn_img.bald_combined_img import BALDCombinedImage
+from trainers.active_learn_img.epsilon_greedy_img import EpsilonGreedyTrainerImage
 
 from trainers.active_learn_scan.bald import BALDScan
-from trainers.active_learn_scan.bald_combined import BALDCombinedScan
 from trainers.active_learn_scan.least_confident import LeastConfidentScan
 from trainers.active_learn_scan.max_entropy import MaxEntropyScan
 from trainers.active_learn_scan.random import RandomScan
 from trainers.active_learn_scan.weighted_least_confident import WeightedLeastConfidentScan
 from trainers.active_learn_scan.weighted_max_entropy import WeightedMaxEntropyScan
+from trainers.active_learn_scan.bald_combined import BALDCombinedScan
+from trainers.active_learn_scan.epsilon_greedy import EpsilonGreedyTrainerScan
 
 from trainers.active_learn_img.bald_img import BALDImage
 from trainers.active_learn_img.max_entropy_img import MaxEntropyImage
@@ -85,7 +87,8 @@ def _get_al_trainer(name_: str, mds_flag_: bool):
                 'weighted_max_entropy_mc': WeightedMaxEntropyScan,
                 'weighted_least_confident_ensemble': WeightedLeastConfidentScan,
                 'weighted_max_entropy_ensemble': WeightedMaxEntropyScan,
-                'bald_combined': BALDCombinedScan
+                'bald_combined': BALDCombinedScan,
+                'epsilon_greedy': EpsilonGreedyTrainerScan
             }[name_]
         else:
             return {
@@ -96,7 +99,8 @@ def _get_al_trainer(name_: str, mds_flag_: bool):
                 'max_entropy_ensemble': MaxEntropyImage,
                 'bald_mc': BALDImage,
                 'bald_ensemble': BALDImage,
-                'bald_combined': BALDCombinedImage
+                'bald_combined': BALDCombinedImage,
+                'epsilon_greedy': EpsilonGreedyTrainerImage
             }[name_]
     except KeyError:
         raise Exception(f'Trainer {name_} not available')
