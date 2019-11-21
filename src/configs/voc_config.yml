@@ -1,0 +1,30 @@
+run_name: VOC
+data:
+  dataset: VOC
+  mode: train
+  batch_size: 8
+  batch_size_val: 8
+  num_workers: 0
+  run_val_on_train: False
+training:
+  seed:
+  num_epochs: 150
+  optimizer:
+    lr: 0.001
+    weight_decay: 0.0001
+    amsgrad: True
+    scheduler: step
+    lr_cycle: 75
+  log_interval: 20
+  save_model_interval: 50
+  ignite_history_size: 1
+  loss_fn:
+    name: cross_entropy_loss
+model:
+  name: unet_v2
+  network_params:
+    filters_base: 64
+resume:
+  resume_from:
+  saved_model:
+  saved_optimizer:

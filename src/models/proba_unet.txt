@@ -1,0 +1,34 @@
+Model Variance through = Softplus + 1e-5 (lower bound)
+
+
+UNet encoding has shape: (batch x 512 x 32 x 32)
+
+Two options:
+1) Lose spatial information (inspired from original Probabilistic UNet)
+Average over 3rd and 4th dimension -> (batch x 512 x 1 x 1)
+Use conv layer. Then latent space parameters have shape: (batch x latent_dim)
+After sampling:
+  -- Broadcast (batch x latent_dim) to (batch x latent_dim x 512 x 512) by copying it on every pixel position.
+    Use this together with UNet decoding for segmentation map
+  -- Use (batch x latent_dim x 1 x 1) to create reconstruction using ConvTranspose2D layers
+
+Segmentation can be ok.
+Poor performance on reconstruction. In best case, network gets and average reconstruction and outputs that every time.
+
+
+2) Keep spatial information
+From (batch x 512 x 32 x 32) go to (batch x 32 x 8 x 8) through conv layers and avg. pool
+Flow: UNet encoding ->  conv (512, 512, kernel 3, stride 1, padding 1) + AvgPool (2x2)
+                    ->  conv (512, 512, kernel 3, stride 1, padding 1) + AvgPool (2x2)
+                    ->  conv (512, latent_dim, kernel 1, stride 1, padding 0)
+                    ->  latent parameters have shape: (batch x latent_dim x 8 x 8)
+Sample on this spatial latent space. After sampling:
+  -- Use ConvTranspose2D layers to increase size from (batch x latent_dim x 8 x 8) to (batch x latent_dim x 512 x 512)
+    Use this together with UNet decoding for segmentation map
+  -- Use ConvTranspose2D layers to create reconstruction
+
+Performance is better
+Reconstruction is different based on input (at least changes shape)
+Sampled values seem to not have big effect on output segmentation
+
+b x 32 x 512 x 512 + b x latent x 32 x 32

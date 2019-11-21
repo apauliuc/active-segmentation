@@ -1,0 +1,7 @@
+Active Learning workflow:
+1. Initialize ActiveLearner class with initial information (budget k, list of available train files, etc.)
+2. Initial training dataset created (e.g. random sample from train files) = D_train
+3. Run trainer on D_train for number of epochs/certain accuracy level reached/early stopping
+4. Use acquisition function on D_pool and select best k points
+5. Repeat steps 3 and 4 for given number of times
+6. Report improvement in model results over validation dataset

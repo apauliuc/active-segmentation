@@ -1,0 +1,85 @@
+run_name: Default
+data:
+  dataset: AMC
+  mode: train
+  batch_size: 10
+  batch_size_val: 16
+  num_workers: 4
+  run_val_on_train: False
+training:
+  type: standard
+#  beta_type: Blundell
+  seed:
+  num_epochs: 75
+  optimizer:
+    name: adam
+    lr: 0.001
+    weight_decay: 0.0005
+    amsgrad: False
+    scheduler: plateau
+    scheduler_params:
+#      step_size: 20
+#      gamma: 0.1
+      mode: min
+      patience: 30
+      factor: 0.1
+      verbose: True
+  loss_fn:
+    name: bce_and_jaccard
+#    ignore_index: 255   # CITYSCAPES
+#    prior_var: 1
+#    ###
+#    mse_factor: 0.5
+#    mse_warmup: False
+#    mse_factor_type: gradual
+#    mse_step_interval: 1
+#    mse_step_size: 0.1
+#    ###
+#    kld_factor: 2
+#    kld_warmup: False
+#    kld_factor_type: gradual
+#    kld_step_interval: 15
+#    kld_step_size: 0.1
+#    ###
+  early_stop_fn: f1_score
+  early_stop: False
+  patience: 45
+  use_ensemble: False
+  ensemble:
+    number_models: 3
+model:
+  name: unet
+  network_params:
+    num_filters: 32  # base unet
+#    pretrained: True
+    dropout: False  # used in standard UNet
+    dropout_p: 0.5  # dropout proba for main path UNet
+    dropout_full: False  # Drop full skip connections, or parts of them
+    dropout_sk_p: 0.5  # dropout proba for stochastic skip conn. UNet
+#    ### Proba
+#    load_standard_unet: False
+#    latent_dim: 4
+#    # Spatial
+#    spatial_large: True
+#    last_kernel_size: 1
+#    decrease_latent: True
+#    # Spatial Common
+#    upnet1_latent: True
+#    # VAE
+#    bottom_block_full: False
+    ### FCN
+    learn_upconv: True
+    batch_norm: True
+resume:
+  resume_from:
+  saved_model:
+  saved_optimizer:
+binarize_threshold: 0.5
+al_mode: False
+prediction:
+  mode: single
+  mc_passes: 25
+active_learn:
+  weighted: False
+  increase_epochs: False
+  mc_passes: 20

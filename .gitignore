@@ -103,4 +103,24 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# my folders
 .idea/
+/data/
+data_preprocessing/
+runs/
+src/configs/archive/
+src/configs/run_configs_al_msra10k/
+src/configs/run_configs_al_mcts/
+src/configs/run_configs_al_mcts_less_data/
+src/configs/run_configs_baselines
+src/old/
+src/notebooks/
+runs*/
+RESULTS/
+sh_scripts/
+figures/
+random_scripts/
+
+Some files
+layers_*
+unet_old.py
